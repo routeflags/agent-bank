@@ -7,11 +7,10 @@
 # the authenticated Connection.
 module ApplicationCable
   class Channel < ActionCable::Channel::Base
-    attr_reader :current_user
 
-    private
+    protected
 
-    # Override to expose current_user from the connection to subclasses.
+    # Expose current_user from the authenticated Connection to subclasses.
     def current_user
       connection.current_user
     end

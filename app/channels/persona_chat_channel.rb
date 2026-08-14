@@ -31,18 +31,25 @@ class PersonaChatChannel < ApplicationCable::Channel
   # Handle incoming messages from the client.
   # Persists the user message and queues the AI response job.
   def receive(data)
-    chat_session = ChatSession.find(data['chat_session_id'])
+    chat_session = ChatSession.find_by(id: data['chat_session_id'])
+
+    unless chat_session
+      Rails.logger.warn("[PersonaChatChannel] Session not found: #{data['chat_session_id']}")
+      return
+    end
 
     unless chat_session.person_id == current_user.id
       Rails.logger.warn("[PersonaChatChannel] Unauthorized message attempt by user #{current_user.id}")
       return
     end
 
+    next_seq = chat_session.chat_messages.maximum(:seq)&.next || 1
     message = chat_session.chat_messages.create!(
       content: data['content'],
       sender_type: 'Person',
       sender_id: current_user.id,
-      role: 'user'
+      role: 'user',
+      seq: next_seq
     )
 
     # Phase 4: PersonaExecutorJob will call the AI provider API

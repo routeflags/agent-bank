@@ -61,6 +61,7 @@ class Api::V1::ChatStreamController < ApplicationController
     since = params[:last_event_id].present? ?
       Time.at(params[:last_event_id].to_i) :
       1.year.ago
+    last_seq = 0
 
     sse_write(event: "connected", data: {
       chat_session_id: chat_session.id,
@@ -69,7 +70,7 @@ class Api::V1::ChatStreamController < ApplicationController
 
     loop do
       messages = chat_session.chat_messages
-        .where("created_at > ?", since)
+        .where("created_at > ? OR (created_at = ? AND seq > ?)", since, since, last_seq)
         .chronological
 
       messages.each do |message|
@@ -85,6 +86,7 @@ class Api::V1::ChatStreamController < ApplicationController
         }.to_json)
 
         since = message.created_at
+        last_seq = message.seq
       end
 
       # Check if the session has been closed
@@ -97,7 +99,9 @@ class Api::V1::ChatStreamController < ApplicationController
         break
       end
 
-      sleep 0.5
+      # Polling interval is configurable via environment variable
+      # to allow tuning without redeployment.
+      sleep ENV.fetch("SSE_POLL_INTERVAL", 1.0).to_f
     end
   rescue IOError, ActionController::Live::ClientDisconnected
     # Client disconnected — clean up silently
@@ -111,11 +115,12 @@ class Api::V1::ChatStreamController < ApplicationController
   private
 
   def ensure_authenticated
-    unless current_user
-      response.headers['Content-Type'] = 'text/event-stream'
-      response.stream.write("event: error\ndata: {\"error\":\"Authentication required\"}\n\n")
-      response.stream.close
-    end
+    return if current_user
+
+    response.headers['Content-Type'] = 'text/event-stream'
+    sse_write(event: "error", data: { error: "Authentication required" }.to_json)
+    response.stream.close
+    throw :abort
   end
 
   # Write an SSE-formatted event to the response stream.

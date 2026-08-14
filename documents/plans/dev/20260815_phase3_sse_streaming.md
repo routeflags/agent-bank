@@ -18,7 +18,7 @@ AI ペルソナとのチャット機能を構築する。Action Cable（WebSocke
 
 | 操作 | 振る舞い | 期待結果 |
 |------|---------|---------|
-| create | ユーザーがメッセージ送信 | ChatMessage レコード作成（sender_type: 'User'） |
+| create | ユーザーがメッセージ送信 | ChatMessage レコード作成（sender_type: 'Person'） |
 | stream | AI の応答をストリーミング | Action Cable でリアルタイム配信 |
 | history | 過去のメッセージ取得 | 時系列でメッセージ一覧 |
 
@@ -75,3 +75,54 @@ AI ペルソナとのチャット機能を構築する。Action Cable（WebSocke
 - Phase 4 の `PersonaExecutorJob` は未作成。`chat_message.created` の後処理はスタブ
 - SSE の `ClientDisconnected` は StandardError のサブクラス。rescue で補足
 - 本番環境では Redis アダプターを使用。`cable.yml` の `channel_prefix` を `capafy_production` に変更
+
+## テスト計画
+
+### 単体テスト (Unit)
+
+| テスト対象 | テスト内容 | 種別 |
+|-----------|-----------|------|
+| `ChatMessage` | role 検証（user/assistant/system のみ有効） | 正常系 |
+| `ChatMessage` | sender が optional でも保存できること | 正常系 |
+| `ChatMessage` | sender なし（assistant メッセージ）でも保存できること | 正常系 |
+| `ChatMessage` | chronological スコープが seq 順で返すこと | 正常系 |
+| `ChatMessage` | token 数が親セッションにロールアップされること | 正常系 |
+| `ChatSession` | close! で status が closed になり ended_at が記録されること | 正常系 |
+| `ChatSession` | STATUSES 以外の値でバリデーションエラーになること | 異常系 |
+
+### 統合テスト (Integration)
+
+| テスト対象 | テスト内容 | 種別 |
+|-----------|-----------|------|
+| `PersonaExecutorJob` | placeholder レスポンスが chat_messages に保存されること | 正常系 |
+| `PersonaExecutorJob` | broadcast が Action Cable 経由で送信されること | 正常系 |
+| `PersonaChatChannel#receive` | 不正な session_id で early return されること | 異常系 |
+| `PersonaChatChannel#receive` | 他人のセッションへのメッセージ送信が拒否されること | 異常系 |
+
+### ウェブテスト (Functional)
+
+| テスト対象 | テスト内容 | 種別 |
+|-----------|-----------|------|
+| `ChatSessionsController#index` | 未認証で 401 が返ること | 異常系 |
+| `ChatSessionsController#create` | 存在しない listing_id で 404 が返ること | 異常系 |
+| `ChatSessionsController#show` | 他人のセッションにアクセスできないこと | 異常系 |
+| `ChatStreamController#show` | 未認証で SSE エラーイベントが返ること | 異常系 |
+| `ChatStreamController#show` | 認証済みで event-stream が返ること | 正常系 |
+
+### E2E テスト
+
+| テスト対象 | テスト内容 | 種別 |
+|-----------|-----------|------|
+| チャットフロー | ユーザー送信 → ジョブキューイング → assistant レスポンス受信 | 正常系 |
+| SSE 再接続 | last_event_id 指定で途切れなくメッセージが取得できること | 正常系 |
+
+## コードレビュー修正履歴
+
+| 日付 | 優先度 | 修正内容 | 対象ファイル |
+|------|--------|---------|-------------|
+| 2026-08-15 | 🔴 高 | sender_type: "System" → nil（sender optional 化） | persona_executor_job.rb, chat_message.rb, 新規マイグレーション |
+| 2026-08-15 | 🔴 高 | SSE polling 間隔を環境変数 SSE_POLL_INTERVAL で制御可能に、seq ベースのフィルタリング追加 | chat_stream_controller.rb |
+| 2026-08-15 | 🔴 高 | Channel#current_user の attr_reader 削除、private → protected | channel.rb |
+| 2026-08-15 | 🟡 中 | ensure_authenticated に早期リターン追加 | chat_stream_controller.rb |
+| 2026-08-15 | 🟡 中 | receive で find → find_by + nil チェック | persona_chat_channel.rb |
+| 2026-08-15 | 🟡 中 | テスト計画の追記 | 本ドキュメント |

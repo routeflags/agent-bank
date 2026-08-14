@@ -6,8 +6,8 @@
 #
 #  id               :bigint           not null, primary key
 #  chat_session_id  :bigint           not null
-#  sender_type      :string           not null
-#  sender_id        :string(22)       not null
+#  sender_type      :string
+#  sender_id        :string(22)
 #  content          :text
 #  role             :string           default("user"), not null
 #  seq              :integer          default(0), not null
@@ -31,11 +31,12 @@ class ChatMessage < ApplicationRecord
   ROLES = %w[user assistant system].freeze
 
   belongs_to :chat_session
-  # Polymorphic sender — typically Person, but allows future extensibility.
-  belongs_to :sender, polymorphic: true
+  # Polymorphic sender — typically Person for user messages.
+  # Optional because assistant/system messages have no sender record;
+  # the `role` column is the authoritative discriminator.
+  belongs_to :sender, polymorphic: true, optional: true
 
   validates :chat_session_id, presence: true
-  validates :sender_id, presence: true
   validates :role, presence: true, inclusion: { in: ROLES }
 
   scope :chronological, -> { order(:seq) }

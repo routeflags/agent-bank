@@ -36,8 +36,6 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
 
     assistant_message = chat_session.chat_messages.create!(
       content: placeholder_response,
-      sender_type: "System",
-      sender_id: "persona_executor",
       role: "assistant",
       input_tokens: 0,
       output_tokens: 0
