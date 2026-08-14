@@ -106,6 +106,9 @@ class Listing < ApplicationRecord
   has_many :blocked_dates, :dependent => :destroy
   accepts_nested_attributes_for :blocked_dates, reject_if: :all_blank, allow_destroy: true
 
+  has_many :listing_ai_models, dependent: :destroy
+  has_many :ai_models, through: :listing_ai_models
+
   monetize :price_cents, :allow_nil => true, with_model_currency: :currency
   monetize :shipping_price_cents, allow_nil: true, with_model_currency: :currency
   monetize :shipping_price_additional_cents, allow_nil: true, with_model_currency: :currency
@@ -393,5 +396,60 @@ class Listing < ApplicationRecord
     end
     ids = listings.pluck(:id)
     ListingImage.where(listing_id: ids).destroy_all
+  end
+
+  # --- Capafy AI Persona Fields ---
+
+  RUN_MODES = %w[run_online download free].freeze
+
+  validates :default_run_mode, inclusion: { in: RUN_MODES, allow_blank: true }
+
+  # Returns the list of supported run modes parsed from the JSON text column.
+  #
+  # @return [Array<String>] supported run mode slugs, e.g. ["download", "run_online"]
+  def available_run_modes
+    return RUN_MODES if supported_run_modes.blank?
+
+    JSON.parse(supported_run_modes)
+  rescue JSON::ParserError
+    []
+  end
+
+  # Checks whether a given run mode is supported by this persona.
+  #
+  # @param mode [String] a run mode slug (e.g. "download")
+  # @return [Boolean]
+  def supports_run_mode?(mode)
+    available_run_modes.include?(mode.to_s)
+  end
+
+  # Returns a hash summarizing all persona-related fields.
+  # Useful for API responses and persona card rendering.
+  #
+  # @return [Hash]
+  def persona_card
+    {
+      short_description: short_description,
+      supported_run_modes: available_run_modes,
+      default_run_mode: default_run_mode,
+      external_apis: parsed_external_apis,
+      version_number: version_number,
+      publisher_name: publisher_name,
+      total_sold: total_sold,
+      avg_rating: avg_rating
+    }
+  end
+
+  private
+
+  # Safely parses the external_apis JSON column.
+  #
+  # @return [Hash, nil]
+  def parsed_external_apis
+    return nil if external_apis.blank?
+
+    JSON.parse(external_apis)
+  rescue JSON::ParserError
+    nil
   end
 end

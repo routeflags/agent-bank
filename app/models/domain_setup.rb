@@ -2,8 +2,8 @@
 #
 # Table name: domain_setups
 #
-#  id             :bigint           not null, primary key
-#  community_id   :bigint
+#  id             :integer          not null, primary key
+#  community_id   :integer
 #  domain         :string(255)      not null
 #  state          :string(255)      not null
 #  error          :text(65535)

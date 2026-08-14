@@ -1,0 +1,116 @@
+version: '2'
+
+services:
+  # --- MySQL ---
+  mysql:
+    image: mysql:8.4
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: sharetribe_development
+      MYSQL_USER: sharetribe
+      MYSQL_PASSWORD: secret
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sharetribe
+
+  # --- Redis ---
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sharetribe
+
+  # --- Rails Web ---
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      - RAILS_ENV=development
+      - DATABASE_HOST=mysql
+      - DATABASE_PORT=3306
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - .:/opt/app
+      - bundle_cache:/usr/local/bundle
+      - node_modules:/opt/app/node_modules
+      - client_node_modules:/opt/app/client/node_modules
+      - webpack_assets:/opt/app/public/webpack
+      - rails_tmp:/opt/app/tmp
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      bash -c "
+        rm -f tmp/pids/server.pid &&
+        bundle exec rails server -b 0.0.0.0 -p 3000
+      "
+    networks:
+      - sharetribe
+
+  # --- Delayed::Job Worker ---
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    env_file: .env
+    environment:
+      - RAILS_ENV=development
+      - DATABASE_HOST=mysql
+      - DATABASE_PORT=3306
+      - REDIS_URL=redis://redis:6379/0
+      - QUEUES=default,paperclip,mailers
+      - MAGICK_MAP_LIMIT=64MiB
+      - MAGICK_MEMORY_LIMIT=256MiB
+      - MAGICK_TIME_LIMIT=30
+    volumes:
+      - .:/opt/app
+      - bundle_cache:/usr/local/bundle
+      - node_modules:/opt/app/node_modules
+      - client_node_modules:/opt/app/client/node_modules
+      - rails_tmp:/opt/app/tmp
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: bundle exec rake jobs:work
+    networks:
+      - sharetribe
+
+volumes:
+  mysql_data:
+    driver: local
+  bundle_cache:
+    driver: local
+  node_modules:
+    driver: local
+  client_node_modules:
+    driver: local
+  webpack_assets:
+    driver: local
+  rails_tmp:
+    driver: local
+
+networks:
+  sharetribe:
+    driver: bridge

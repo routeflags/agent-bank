@@ -74,6 +74,7 @@ class Person < ApplicationRecord
   include ApplicationHelper
   include DeletePerson
   include ToView
+  include OtpAuthenticatable
 
   self.primary_key = "id"
 

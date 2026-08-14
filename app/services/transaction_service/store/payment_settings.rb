@@ -177,27 +177,16 @@ module TransactionService
         settings[:api_private_key] = encrypt_value(settings[:api_private_key], settings[:key_encryption_padding])
       end
 
+      # Delegates to EncryptionService for AES-256-CBC encryption.
+      # Retains the padding parameter for backward compatibility with
+      # existing records that may have been encrypted without padding.
       def encrypt_value(value, padding)
-        raise "can not encrypt Stripe keys, add app_encryption_key to config/config.yml" if APP_CONFIG.app_encryption_key.nil?
-
-        cipher = OpenSSL::Cipher.new('AES-256-CBC')
-        cipher.encrypt
-        cipher.key = Digest::SHA256.digest(APP_CONFIG.app_encryption_key)
-        iv = cipher.random_iv
-        cipher.padding = padding ? 1 : 0
-        cipher.iv = iv
-        text = cipher.update(value) + cipher.final
-        Base64.strict_encode64(iv + text)
+        EncryptionService.encrypt(value, padding: padding)
       end
 
+      # Delegates to EncryptionService for AES-256-CBC decryption.
       def decrypt_value(value, padding)
-        cipher = OpenSSL::Cipher.new('AES-256-CBC')
-        cipher.decrypt
-        cipher.key = Digest::SHA256.digest(APP_CONFIG.app_encryption_key)
-        cipher.padding = padding ? 1 : 0
-        plain = Base64.decode64(value)
-        cipher.iv = plain.slice!(0,16)
-        cipher.update(plain) + cipher.final
+        EncryptionService.decrypt(value, padding: padding)
       end
 
       def clean_or_encrypt_api_keys(model, new_settings)

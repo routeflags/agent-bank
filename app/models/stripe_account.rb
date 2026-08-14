@@ -2,7 +2,7 @@
 #
 # Table name: stripe_accounts
 #
-#  id                 :bigint           not null, primary key
+#  id                 :integer          not null, primary key
 #  person_id          :string(255)
 #  community_id       :integer
 #  stripe_seller_id   :string(255)
