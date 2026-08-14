@@ -2,6 +2,13 @@
 
 # Capafy AI Clone — Seed Data
 #
+# --- Billing Configuration ---
+# Billing settings are loaded from config/billing.yml at runtime.
+# No seed data is created for wallets or subscriptions because those are
+# user-specific (created via the billing flow or admin UI).
+# To change billing parameters, edit config/billing.yml directly or
+# override via BillingConfig module defaults.
+#
 # Run with: bundle exec rails db:seed
 #
 # This seed creates:

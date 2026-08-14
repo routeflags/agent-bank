@@ -95,7 +95,7 @@ CREATE TABLE `ai_models` (
   UNIQUE KEY `index_ai_models_on_ai_provider_id_and_model_id` (`ai_provider_id`,`model_id`),
   KEY `index_ai_models_on_ai_provider_id` (`ai_provider_id`),
   CONSTRAINT `fk_rails_a5ffa644de` FOREIGN KEY (`ai_provider_id`) REFERENCES `ai_providers` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `ai_providers`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -112,7 +112,7 @@ CREATE TABLE `ai_providers` (
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `index_ai_providers_on_slug` (`slug`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `ar_internal_metadata`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -195,7 +195,7 @@ CREATE TABLE `categories` (
   KEY `index_categories_on_community_id` (`community_id`) USING BTREE,
   KEY `index_categories_on_parent_id` (`parent_id`) USING BTREE,
   KEY `index_categories_on_url` (`url`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `category_custom_fields`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -235,7 +235,7 @@ CREATE TABLE `category_translations` (
   PRIMARY KEY (`id`),
   KEY `category_id_with_locale` (`category_id`,`locale`) USING BTREE,
   KEY `index_category_translations_on_category_id` (`category_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `checkout_accounts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -385,7 +385,7 @@ CREATE TABLE `communities` (
   UNIQUE KEY `index_communities_on_uuid` (`uuid`),
   KEY `index_communities_on_domain` (`domain`) USING BTREE,
   KEY `index_communities_on_ident` (`ident`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `community_customizations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -425,7 +425,7 @@ CREATE TABLE `community_customizations` (
   `profile_meta_description` text,
   PRIMARY KEY (`id`),
   KEY `index_community_customizations_on_community_id` (`community_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `community_memberships`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -478,7 +478,7 @@ CREATE TABLE `community_translations` (
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `index_community_translations_on_community_id` (`community_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `contact_requests`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -512,6 +512,26 @@ CREATE TABLE `conversations` (
   KEY `index_conversations_on_listing_id` (`listing_id`) USING BTREE,
   KEY `index_conversations_on_starting_page` (`starting_page`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `credit_transactions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `credit_transactions` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `wallet_id` bigint NOT NULL,
+  `transaction_type` varchar(255) NOT NULL,
+  `amount_cents` int NOT NULL,
+  `reference_type` varchar(255) DEFAULT NULL,
+  `reference_id` bigint DEFAULT NULL,
+  `metadata` text,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_credit_transactions_on_wallet_id` (`wallet_id`),
+  KEY `index_credit_transactions_on_reference_type_and_reference_id` (`reference_type`,`reference_id`),
+  KEY `index_credit_transactions_on_transaction_type` (`transaction_type`),
+  CONSTRAINT `fk_rails_e4ced3a389` FOREIGN KEY (`wallet_id`) REFERENCES `wallets` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `custom_field_names`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1042,7 +1062,7 @@ CREATE TABLE `marketplace_configurations` (
   `display_invite_menu` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   KEY `index_marketplace_configurations_on_community_id` (`community_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `marketplace_plans`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1660,6 +1680,87 @@ CREATE TABLE `transactions` (
   KEY `index_transactions_on_listing_id_and_current_state` (`listing_id`,`current_state`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `usage_records`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `usage_records` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `ai_model_id` bigint DEFAULT NULL,
+  `user_plan_subscription_id` bigint DEFAULT NULL,
+  `input_tokens` int DEFAULT '0',
+  `output_tokens` int DEFAULT '0',
+  `total_tokens` int DEFAULT '0',
+  `cost_cents` int DEFAULT '0',
+  `charge_cents` int DEFAULT '0',
+  `billing_model` varchar(255) DEFAULT NULL,
+  `currency` varchar(255) DEFAULT 'USD',
+  `metadata` json DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_usage_records_on_ai_model_id` (`ai_model_id`),
+  KEY `index_usage_records_on_user_plan_subscription_id_and_created_at` (`user_plan_subscription_id`,`created_at`),
+  CONSTRAINT `fk_rails_962ab2ed19` FOREIGN KEY (`ai_model_id`) REFERENCES `ai_models` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `user_plan_subscription_transitions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user_plan_subscription_transitions` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `to_state` varchar(255) DEFAULT NULL,
+  `metadata` text,
+  `sort_key` int DEFAULT '0',
+  `user_plan_subscription_id` bigint NOT NULL,
+  `most_recent` tinyint(1) DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `index_user_plan_subscription_transitions_unique` (`sort_key`,`user_plan_subscription_id`),
+  KEY `index_user_plan_sub_transitions_on_sub_id` (`user_plan_subscription_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `user_plan_subscriptions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user_plan_subscriptions` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `person_id` varchar(22) NOT NULL,
+  `listing_id` int NOT NULL,
+  `billing_model` varchar(255) NOT NULL,
+  `status` varchar(255) NOT NULL DEFAULT 'active',
+  `current_period_start` datetime DEFAULT NULL,
+  `current_period_end` datetime DEFAULT NULL,
+  `period_usage_tokens` int DEFAULT '0',
+  `cancel_at_period_end` tinyint(1) DEFAULT '0',
+  `stripe_subscription_id` varchar(255) DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_user_plan_subscriptions_on_status` (`status`),
+  KEY `index_user_plan_subscriptions_on_stripe_subscription_id` (`stripe_subscription_id`),
+  KEY `index_user_plan_subscriptions_on_person_id_and_status` (`person_id`,`status`),
+  KEY `index_user_plan_subscriptions_on_listing_id_and_person_id` (`listing_id`,`person_id`),
+  CONSTRAINT `fk_rails_d8c9463137` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `wallets`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `wallets` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `person_id` varchar(22) NOT NULL,
+  `community_id` int NOT NULL,
+  `balance_cents` int NOT NULL DEFAULT '0',
+  `currency` varchar(255) NOT NULL DEFAULT 'USD',
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `index_wallets_on_person_id_and_community_id` (`person_id`,`community_id`),
+  KEY `fk_rails_2063af8558` (`community_id`),
+  CONSTRAINT `fk_rails_2063af8558` FOREIGN KEY (`community_id`) REFERENCES `communities` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1671,6 +1772,11 @@ CREATE TABLE `transactions` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20260815000005'),
+('20260815000004'),
+('20260815000003'),
+('20260815000002'),
+('20260815000001'),
 ('20260814000005'),
 ('20260814000004'),
 ('20260814000003'),

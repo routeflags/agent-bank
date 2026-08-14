@@ -129,6 +129,10 @@ class Person < ApplicationRecord
   has_many :payer_stripe_payments, :class_name => "StripePayment", :foreign_key => "payer_id", :dependent => :destroy, :inverse_of => :payer
   has_many :receiver_stripe_payments, :class_name => "StripePayment", :foreign_key => "receiver_id", :dependent => :destroy, :inverse_of => :receiver
 
+  # Capafy AI clone — billing system (Phase 2)
+  has_one :wallet, dependent: :destroy
+  has_many :user_plan_subscriptions, dependent: :destroy
+
   deprecate communities: "Use accepted_community instead.",
             community_memberships: "Use community_membership instead.",
             deprecator: MethodDeprecator.new
@@ -622,6 +626,19 @@ class Person < ApplicationRecord
 
   def logger_metadata
     { person_uuid: uuid }
+  end
+
+  # Capafy AI clone — Stripe helpers (Phase 2)
+  # Returns the Stripe customer ID from the associated StripeAccount.
+  # Returns nil if no StripeAccount exists.
+  def stripe_customer_id
+    stripe_account&.stripe_customer_id
+  end
+
+  # Returns the default payment method for this person.
+  # Placeholder for Phase 4/5 — requires Stripe PaymentMethod storage.
+  def default_payment_method
+    nil
   end
 
   class << self
