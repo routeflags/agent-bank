@@ -1201,6 +1201,10 @@ ja:
   listings:
     bubble_listing_not_visible:
       listing_not_visible: 出品を閲覧する権限がありません。
+    shape:
+      selling: 販売
+    action_button:
+      inquire: 問い合わせる
     comment:
       wrote: 書き込む
       send_private_message: "%{person}さんにプライベートメッセージを送信する"

@@ -13,8 +13,9 @@
 #
 # This seed creates:
 #   1. Capafy AI persona categories (23 categories)
-#   2. AI providers (OpenAI, Anthropic, Google) with API key encryption
-#   3. AI models for each provider
+#   2. TransactionProcess (none) + ListingShape + CategoryListingShape links
+#   3. AI providers (OpenAI, Anthropic, Google) with API key encryption
+#   4. AI models for each provider
 #
 # Uses EncryptionService.encrypt for API keys (AES-256-CBC).
 # Scoped to Community.first for community_id references.
@@ -85,7 +86,42 @@ end
 
 puts "  Created #{created_categories.size} categories"
 
-# --- 2. AI Providers ---
+# --- 2. Transaction Process + Listing Shape ---
+
+# 'none' process: no payment required (AI persona chat platform)
+process_none = TransactionProcess.find_or_create_by!(
+  community: community,
+  process: 'none'
+) do |tp|
+  tp.author_is_seller = true
+end
+puts "    TransactionProcess: #{process_none.process} (ID: #{process_none.id})"
+
+# Single listing shape for all AI persona categories
+shape = ListingShape.find_or_create_by!(
+  community: community,
+  name: 'order_type'
+) do |s|
+  s.transaction_process_id = process_none.id
+  s.price_enabled = false
+  s.shipping_enabled = false
+  s.name_tr_key = 'listings.shape.selling'
+  s.action_button_tr_key = 'listings.action_button.inquire'
+  s.sort_priority = 0
+  s.deleted = false
+end
+puts "    ListingShape: #{shape.name} (ID: #{shape.id})"
+
+# Link shape to all categories
+created_categories.each_value do |category|
+  CategoryListingShape.find_or_create_by!(
+    category: category,
+    listing_shape: shape
+  )
+end
+puts "    Linked shape to #{created_categories.size} categories"
+
+# --- 3. AI Providers ---
 
 providers_data = [
   {
@@ -126,7 +162,7 @@ end
 
 puts "  Created #{created_providers.size} AI providers"
 
-# --- 3. AI Models ---
+# --- 4. AI Models ---
 
 models_data = [
   # OpenAI models
@@ -179,5 +215,6 @@ puts '  Created AI models'
 puts ''
 puts 'Seeding complete!'
 puts "  Categories: #{created_categories.size}"
+puts "  Shapes:     1 (none process)"
 puts "  Providers:  #{created_providers.size}"
 puts "  Models:     #{AiModel.count}"

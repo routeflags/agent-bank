@@ -1481,6 +1481,10 @@ en:
   listings:
     bubble_listing_not_visible:
       listing_not_visible: You do not have permission to view this listing.
+    shape:
+      selling: Selling
+    action_button:
+      inquire: Inquire
     comment:
       wrote: wrote
       send_private_message: Send private message to %{person}
