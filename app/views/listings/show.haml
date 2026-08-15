@@ -180,4 +180,4 @@
 
   / AI Persona Chat Panel — mounts only when the listing has an active persona
   - if @listing.default_run_mode.present? && @listing.default_run_mode == 'run_online'
-    = react_component("ChatPanelApp", props: { listing_id: @listing.id, persona_name: @listing.author&.name || 'AI Assistant' }, prerender: false)
+    = react_component("ChatPanelApp", props: { listing_id: @listing.id, persona_name: @listing.author&.given_name_or_username || 'AI Assistant' }, prerender: false)

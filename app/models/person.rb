@@ -250,6 +250,12 @@ class Person < ApplicationRecord
     self.uuid ||= UUIDUtils.create_raw
   end
 
+  # rails runner 等で Person を直接作成した場合でも
+  # ログイン認証に必要な emails レコードを自動生成する。
+  # Sharetribe の認証フローは emails テーブル経由でユーザーを検索するため、
+  # レコードがないとメールアドレスでのログインが不可能になる。
+  after_create :create_email_record, if: -> { email.present? }
+
   def uuid_object
     if self[:uuid].nil?
       nil
@@ -612,6 +618,18 @@ class Person < ApplicationRecord
   end
 
   private
+
+  # rails runner 等で Person を直接作成した場合に備え、
+  # emails テーブルにメールアドレスレコードを自動生成する。
+  # 既に同一アドレスのレコードが存在する場合は何もしない。
+  def create_email_record
+    return if emails.exists?(address: email)
+    emails.create!(
+      address: email,
+      community_id: community_id,
+      confirmed_at: Time.current
+    )
+  end
 
   def digest(password, salt)
     str = [password, salt].flatten.compact.join

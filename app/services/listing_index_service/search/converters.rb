@@ -8,7 +8,9 @@ module ListingIndexService::Search::Converters
       description: l.description,
       updated_at: l.updated_at,
       created_at: l.created_at,
-      category_id: l.category_id,
+      # category_id が nil の listing が存在する場合に備え、デフォルト値 0 を設定。
+      # EntityUtils::EntityBuilder が必須値として検証するため、nil のまま放置すると 500 エラーになる。
+      category_id: l.category_id || 0,
       comment_count: l.comments_count,
       price: l.price,
       unit_tr_key: l.unit_tr_key,
