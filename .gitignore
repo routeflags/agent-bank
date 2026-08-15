@@ -184,5 +184,8 @@ storage/
 /opencode.json
 /.opencode
 /.serena/
+/.playwright-mcp/
 /artifacts/
 /vendor/bundle/
+/screenshots/
+-1
