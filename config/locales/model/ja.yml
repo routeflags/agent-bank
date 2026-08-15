@@ -1,0 +1,25 @@
+ja: 
+  activerecord:
+    models:
+      questionnaire: 質問
+      answer: 回答
+      listing: 出品
+    attributes:
+      questionnaire:
+        message: 質問文
+        calculated_count: 文字数
+        additional_item: 追加報酬
+        total_price: 合計金額
+        answer: 回答
+        payment: 支払の有無
+        payment_status: 決済状況
+        person: 質問者
+        listing: 出品
+        created_at: 作成日時
+        updated_at: 更新日時
+      answer:
+        message: 回答文
+        read: 閲覧の有無
+        questionnaire: 質問
+        created_at: 作成日時
+        updated_at: 更新日時

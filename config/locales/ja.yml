@@ -1,10 +1,11 @@
+---
 ja:
   number:
     currency:
       format:
-        separator: 
-        delimiter: 
-        format: 
+        separator: "."
+        delimiter: ","
+        format: "%u%n"
   common:
     edit_page: ページの編集
     default_community_slogan: マーケットプレイスコミュニティー
@@ -53,7 +54,7 @@ ja:
     username_or_email: メールアドレス or ユーザー名
     what_is_this: これは何ですか？
     removed_user: ユーザは削除されました
-    banned_user: 
+    banned_user: アカウント停止
     payment_fee_info:
       title: コミッションと支払い処理手数料
       stripe: Stripe
@@ -64,7 +65,9 @@ ja:
       body_text: |-
         PayPalは各お支払いごとに、ご利用手数料を請求します。この手数料は合計料金（送料を含む）の５－２％になり、これは支払い者の住む地域や、サイト内の月額の総売り上げによります。通常、国内の利用者に対しては低めの手数料に設定されています。
         %{link_to_paypal}から、具体的な手数料についてご確認いただけます。各お支払い後お支払い手数料が記載された領収書が発行されます。
-      body_text_accept: 
+      body_text_accept: この取引は PayPal によって処理されます。PayPal は各支払いに対して手数料を請求します。この手数料は、販売価格の合計の
+        2%〜5% で、月間販売高と購入者の居住国によって異なります。通常、国内取引は海外取引よりも手数料が低く、月間販売高が高いほど手数料が割引されます。PayPal
+        アカウントにログインして %{link_to_paypal} で正確な手数料を確認できます。各購入後、正確な手数料が記載された領収書が届きます。
       link_to_paypal_text: こちら
     stripe_fee_info:
       title: Stripeの支払い手数料
@@ -76,12 +79,12 @@ ja:
       details: 注文情報
       order_by: "%{orderer_link}さんの注文内容"
       accept_offer: オファーを受け入れる
-      accept_request: リクエストを受け入れてリストを開いたままにします
-      accept_request_and_close: リクエストを受け入れてリストを閉じる
+      accept_request: リクエストを受け入れて質問を受け入れたままにします
+      accept_request_and_close: リクエストを受け入れて質問の受付を閉じる
       reject_offer: 今回はやめる
       reject_request: 今回はやめる
       close_listing: "%{listing_title_link}をクローズします"
-      update_later: 投稿を再開する
+      update_later: 出品を再開する
       optional_message: 任意メッセージ
       price_to_pay: 支払われる合計金額
       accept: 受諾する
@@ -93,9 +96,9 @@ ja:
       you_will_get_label: 受け取り額：
       total_label: 合計：
       total_value: "%{seller_gets}*"
-      total_value_paypal: 
-      total_value_stripe: 
-      paypal_fee: 
+      total_value_paypal: "%{seller_gets}*"
+      total_value_stripe: "%{seller_gets}"
+      paypal_fee: PayPal の支払い処理手数料
       paypal_fee_info: "*%{link} は別途かかります"
       shipping_price_label: 送料：
       stripe-fee_label: 支払処理手数料
@@ -134,7 +137,7 @@ ja:
       message_content_not_available: メッセージ・コンテンツが閲覧できません。
     message:
       accepted_request: リクエストを受け入れました
-      received_payment: 
+      received_payment: リクエストを承認し、支払いを受け取りました
       received_payment_wo_sum: リクエストを受け入れ、お支払いを確認できました
       accepted_offer: 受諾されたオファー
       rejected_request: リクエストにお応えすることができませんでした。お支払い手続きはキャンセルされました。
@@ -144,16 +147,16 @@ ja:
       canceled_request: リクエストはキャンセルされました
       canceled_offer: キャンセルされたオファー
       paid: "%{sum}をお支払いしました"
-      payment_preauthorized: 
-      payment_preauthorized_wo_sum: お支払い手続きが完了しました
+      payment_preauthorized: 支払いが承認されました
+      payment_preauthorized_wo_sum: 支払いが承認されました
       stripe:
-        held_payment: 
-        held_payment_wo_sum: 
-        confirmed_request: お取引が正常に完了しました。代金は現在%{author_name} の銀行口座へ振り込み手続き中、もしくは今後振り込み手続きが行われます。
-      canceled_the_order: 注文はキャンセルされました。%{service_name} 事務局に通知されました。
-      marked_as_refunded: 返金済みとしてマークする
-      dismissed_the_cancellation: 
-      payment_has_now_been_transferred: 
+        held_payment: リクエストを承認しました。支払いは注文が完了するまで%{service_name}によって保留されます。
+        held_payment_wo_sum: リクエストを承認しました。支払いは注文が完了するまで%{service_name}によって保留されます。
+        confirmed_request: お取引完了です。<br>近日中に相手の銀行口座に送金されます。
+      canceled_the_order: 注文に異議を申し立てました。%{service_name}チームに通知されました。
+      marked_as_refunded: 返金済みとしてマークされました
+      dismissed_the_cancellation: 異議を却下しました
+      payment_has_now_been_transferred: 支払いは現在%{seller}の銀行口座に送金されたか、近日中に送金されます
     new:
       message: メッセージ
       message_to: "%{author_name}さんへメッセージ"
@@ -168,14 +171,14 @@ ja:
       about_listing: "%{listing_title}"
       author_has_to_accept_request: あなたが支払う前に、%{author_name}さんがリクエストを受諾する必要があります。
     show:
-      in_response_to_listing: 投稿について
+      in_response_to_listing: 出品について
       message_sent_by: からメッセージが送信されました。
       message_sent_to: へメッセージが送信されました。
       send_reply: 送信する
       write_a_reply: メッセージを書く
       conversation_about_listing: "%{listing}に関して%{person}さんと"
       conversation_with_user: "%{person}さんと"
-      conversation_with: "%{person}さんとお問い合わせ"
+      conversation_with: "%{person}さんからのメッセージ"
       last_message_at: 最新メッセージ %{time}
       price: 価格： %{price}
       sum: 合計： %{sum}
@@ -204,7 +207,7 @@ ja:
             にてご確認ください。"
           verify: あなたのPayPalアカウントが認証前だったため、あなたの取引は承諾されませんでした。%{paypal_url} にて承認手続きをしてください。
           intl: 引き出しが出来ないPayPalアカウントであるため、お支払い手続きが出来ません。%{paypal_url} に行き、ログイン後手動でお支払いを受諾するか拒否するかしてください。
-      waiting_for_current_user_to_deliver_listing: "%{listing_title}の注文を完了させてください"
+      waiting_for_current_user_to_deliver_listing: 質問を受諾しました。<br>%{listing_title}
       waiting_for_listing_author_to_deliver_listing: "%{listing_title}の注文完了待ち"
       request_accepted: 承認されました
       request_rejected: 却下されました
@@ -228,19 +231,21 @@ ja:
           unknown_reason: お支払いは承認待ちの状態です。今一度、PayPalアカウントにログインして詳細をご確認ください。
           verify: あなたのPayPalアカウントの確認待ち
       stripe:
-        waiting_confirmation_from_requester: "%{requester_name} さんの取引完了待ちです。取引が完了して７営業日後に、代金はあなたの銀行口座に支払われます。「取引が完了した後に、代金はあなたの銀行口座へ支払われます。」"
-      order_canceled: リクエストはキャンセルされました
-      waiting_for_marketplace_review: "%{service_name} 事務局が状況を確認するのを待っています。"
-      marketplace_notified: "%{service_name} に通知されました。詳細を共有したい場合は%{contact_link} へ連絡することができます。"
-      contact_them: 
-      refunded: 返金済みとしてマークされた注文
-      dismissed: 
-      order_refunded: 
-      you_should_receive_refund_soon: 
-      issue_with_the_refund: 
-      do_you_disagree: 
-      contact_the_marketpalce_team: "%{service_name} へ問い合わせる"
-      order_cancellation_dismissed: 
+        waiting_confirmation_from_requester: ３日以内での返信を推奨しております。 <br><a href='%{path}'><button
+          class='enabled-book-button'><div class='content'>回答する</div></button></a><br>※質問者が質問を取り下げた場合、取引は不成立となります。
+          取引完了後、7営業日後に代金はあなたの口座へ振り込まれます。
+      order_canceled: 注文に異議が申し立てられました
+      waiting_for_marketplace_review: "%{service_name}チームが状況をレビューするのを待っています"
+      marketplace_notified: "%{service_name}チームに通知されました。さらなる詳細を共有したい場合は、%{contact_link}でも連絡してください。"
+      contact_them: 連絡してください
+      refunded: 注文が返金されました
+      dismissed: 注文の異議が却下されました
+      order_refunded: 注文が返金されたとしてマークされました。%{service_name}チームが異議を承認しました。
+      you_should_receive_refund_soon: 返金がすぐに行われるはずです。
+      issue_with_the_refund: 問題がありますか？返金に問題がありますか？%{contact_link}してください。
+      do_you_disagree: 問題がありますか？異議を申し立てますか？%{contact_link}してください。
+      contact_the_marketpalce_team: "%{service_name}チームに連絡してください"
+      order_cancellation_dismissed: 注文の異議が却下されました。%{service_name}チームが異議を拒否しました。
     status_link:
       accept_offer: オファーを承認する
       accept_request: リクエストを受け入れる
@@ -251,11 +256,11 @@ ja:
       reject_preauthorized_offer: 今回はやめる
       reject_preauthorized_request: 今回はやめる
       confirm: 取引完了
-      cancel: 取引未完了
+      cancel: 質問を取り下げる
       mark_as_refunded: 返金済みとしてマークする
       dismiss: 却下して支払う
   feedback:
-    feedback_subject: 
+    feedback_subject: "%{service_name}への新しいお問い合わせフォームのエントリー"
     feedback_body: "%{author_name_and_email} は、%{service_name} のお問い合わせフォームに以下の項目を送信しました。この通知は、すべて%{service_name}
       管理者に送信されます。"
     unlogged_user: 記録されてないユーザー
@@ -293,7 +298,7 @@ ja:
     branding:
       powered_by: "%{service_name} is powered by the %{sharetribe_link} marketplace
         platform."
-      create_own: 
+      create_own: "%{service_name} のような自分のオンラインマーケットプレイスを作りたいですか？ %{learn_more}。"
       learn_more: もっと見る
     confirm_reminder:
       you_have_not_yet_confirmed_or_canceled_request: いつものご利用ありがとうございます。%{request_link}のお取引はまだ完了していないのでお知らせいたします。取引完了を行ってください。完了しましたら%{other_party_given_name}さんより評価されます。
@@ -302,8 +307,9 @@ ja:
       cancel_it_link_text: キャンセルしてください
       automatic_confirmation: リクエストが承認されてから%{days_to_automatic_confirmation}日以内に取引完了を行わない場合は自動的に完了となりますのでご注意ください。
     confirm_reminder_v2:
-      headline: 
-      you_have_not_yet_confirmed_or_canceled_request: 
+      headline: まだ注文を完了または異議申し立てしていません %{request_link}。
+      you_have_not_yet_confirmed_or_canceled_request: 注文が完了している場合は、その旨を確認してください。確認後、%{other_party_given_name}
+        にフィードバックを送ることができます。
     payment_settings_reminder:
       remember_to_add_payment_details: お支払いを受け取るためにお支払い情報の入力をお願いします
       you_have_added_listing_with_payment: "%{listing_link}のリストが追加されました。しかし、あなたは料金受け取りに必要な情報を追加していないようです。お支払いを受け取るには、お支払いページより、情報を追加してください。"
@@ -311,7 +317,7 @@ ja:
       payment_settings_link: お支払い設定
     payment_settings_reminder_v2:
       fill_payout_details: 支払い口座を登録する
-      you_have_added_listing_with_payment: あなたは%{listing_link} の投稿を追加しました。支払いを受け取る口座情報を入力してください。支払いを受け取るためにこの手続きは必要です。
+      you_have_added_listing_with_payment: あなたは%{listing_link} の出品を追加しました。支払いを受け取る口座情報を入力してください。支払いを受け取るためにこの手続きは必要です。
     transaction_confirmed:
       here_is_a_message_from: これは%{other_party_given_name}さんからのメッセージです：
       request_marked_as_confirmed: リクエストは完了しました - レビューを書くのを忘れないでください
@@ -327,7 +333,7 @@ ja:
       team_title: "%{service_name} 事務局"
     transaction_confirmed_v2:
       headline_confirmed: "%{other_party_full_name} さんが%{listing_link} の取引を完了しました。"
-      headline_canceled: 
+      headline_canceled: "%{other_party_full_name}が%{listing_link}に関する注文を異議申し立てしました。"
       stripe:
         has_marked_request_as_confirmed: "「この取引は完了しました。」"
       can_give_feedback: "%{other_party_given_name} さんの、取引の評価をレビューしてください。"
@@ -336,13 +342,13 @@ ja:
       subject: リクエストは自動的に完了しました - レビューを書くのを忘れないでください
       we_have_marked_request_as_confirmed: "%{request}のリクエストが承認されてから%{days_passed}日経過しましたので、自動的に取引完了の処理が行われました。"
     transaction_automatically_confirmed_v2:
-      we_have_marked_request_as_confirmed: 
-      order_automatically_confirmed: 
+      we_have_marked_request_as_confirmed: "%{request}についての注文を完了しました。"
+      order_automatically_confirmed: リクエストが受け入れられてから%{days_passed}日が経過したため、注文は自動的に完了しました。
     booking_transaction_automatically_confirmed:
-      subject: リクエストは自動的に完了しました - レビューを書くのを忘れないでください
-      we_have_marked_request_as_confirmed: "「%{request}」のリクエストが完了したと、ステータス変更しました。予約期間が終わってから、1日が経過しましたので、このリクエストは自動的に完了済みとして扱われました。"
+      subject: 注文が自動的に完了しました - フィードバックをお願いします
+      we_have_marked_request_as_confirmed: "%{request}についての注文を完了しました。リクエストは予約期間が終了してから1日が経過したため、自動的に完了しました。"
     booking_transaction_automatically_confirmed_v2:
-      order_automatically_confirmed: 
+      order_automatically_confirmed: リクエストは予約期間が終了してから1日が経過したため、自動的に完了しました。
     automatically_confirmed_footer:
       giving_feedback_is_good_idea: これより先、%{other_party_given_name}さんにレビューを書くことが出来ます。レビューを残すことは、いつでもポジティブな面があります。もし全体的に満足できた場合は、%{other_party_given_name}さんが信頼できる方であると、他の皆さんにお知らせするのが良いでしょう。仮に問題が発生していた場合でも、その情報はきっと、今後その方のサービス向上のために役立つでしょう。
       give_feedback_to: "%{other_party_given_name}さんへレビューを書く"
@@ -355,7 +361,7 @@ ja:
     confirmation_instructions_v2:
       headline: "%{service_name} に参加するためにはメールアドレスを確認してください。"
       need_to_confirm: メールアドレスを確認し、%{service_name} のアカウントを完成させます。簡単にできます、下のボタンをクリックしてください！
-      confirmation_link_text: 
+      confirmation_link_text: メールアドレスの確認
     common:
       hey: "%{name}さん　こんにちは、"
       hi: こんにちは、%{name} さん
@@ -385,10 +391,10 @@ ja:
       pay_now: 今すぐ支払う
       remember_to_confirm: リクエストが達成されている場合は、完了済みとしてステータス変更してください。もしリクエストが達成されていない場合、%{days_to_automatic_confirmation}日間、キャンセルの猶予期間があります。何もしない場合は、自動的にステータスが完了済みになります。
     conversation_status_changed_v2:
-      has_accepted_your_request: 
-      has_accepted_your_request_text: 
-      has_rejected_your_request: 残念ながらあなたのリクエストは拒否されました。
-      has_rejected_your_request_text: "%{accepter} は%{listing}のリクエストを拒否しました。"
+      has_accepted_your_request: リクエストが承認されました。
+      has_accepted_your_request_text: "%{accepter}が%{listing}に対するあなたのリクエストを承認しました。"
+      has_rejected_your_request: 残念ながらリクエストは拒否されました。
+      has_rejected_your_request_text: "%{accepter}が%{listing}に対するあなたのリクエストを拒否しました。"
     invitation_to_kassi:
       hi: こんにちは！
       you_have_been_invited_to_kassi: "%{inviter}さんが%{service_name}のサイトに招待しています。"
@@ -404,12 +410,12 @@ ja:
       listing_you_follow_has_a_new_comment: いつも%{service_name}のご利用ありがとうございます。%{author}さんより新しいコメントがありましたのでお知らせいたします。
       has_commented_listing_you_follow_in_kassi: いつも%{service_name}のご利用ありがとうございます。「%{listing}」で%{author}さんより新しいコメントがありましたのでお知らせいたします。
     new_message:
-      view_message: メッセージを閲覧
-      has_sent_you_a_message_in_kassi: 
-      you_have_a_new_message: 
+      view_message: メッセージを見る
+      has_sent_you_a_message_in_kassi: "%{sender}があなたにメッセージを送信しました。返信するには%{service_name}に移動してください。"
+      you_have_a_new_message: "%{sender_name}さんから%{service_name}で新しいメッセージが届いています。"
     new_message_v2:
-      headline: 
-      reply: 
+      headline: メッセージが届いています！
+      reply: "%{sender}に返信するにはここをクリックしてください。"
     new_payment:
       new_payment: 新しいお支払いを受け取りました
       price_per_unit_type: "%{unit_type}ごとの料金"
@@ -436,7 +442,7 @@ ja:
     payment_receipt_to_seller_v2:
       headline: こんにちは。%{payer_name} さんから、%{listing_link} の件で%{payment_sum} 支払われました。
       main_text_stripe: 注文完了までの間、%{service_name} 事務局で代金を預かっています。
-      price_breakdown: 
+      price_breakdown: 価格の内訳
     payment_receipt_to_payer:
       receipt_of_payment: お支払いの領収書
       you_have_made_new_payment: "<b>%{listing_title} </b>の<b>%{payment_sum}  </b>を%{recipient_full_name}
@@ -489,15 +495,15 @@ ja:
       you_can_give_feedback_to: "%{name}さんにまだレビューを書いていません。"
       view_feedback: レビューを閲覧
     new_testimonial_v2:
-      headline: 
+      headline: フィードバックを受け取りました！
     new_update_to_listing:
-      listing_you_follow_has_been_updated: あなたがフォローしている投稿が更新されました
+      listing_you_follow_has_been_updated: あなたがフォローしている出品が更新されました
       has_updated_listing_you_follow_in_kassi: いつも%{service_name}のご利用ありがとうございます。あなたがフォローしている%{author}さんの「%{listing}」ページが更新されましたのでお知らせいたします。
       view_changes: 内容を確認する
     community_updates:
-      added_offer: "%{name_link}さんが投稿を追加しました："
+      added_offer: "%{name_link}さんが出品を追加しました："
       added_request: "%{name_link}さんがリクエストを追加しました："
-      added_listing: "%{name_link}さんが投稿を追加しました："
+      added_listing: "%{name_link}さんが出品を追加しました："
       update_mail_title: "%{title_link}の最新情報"
       title_link_text: "%{community_name}"
       intro_paragraph: こちらは%{time_since_last_update}間に、%{community_link}で更新された情報です。
@@ -509,11 +515,12 @@ ja:
       headline: "%{service_name} の最新のアクティビティをチェックしてください"
       intro_paragraph:
         other: "%{service_name} 過去1週間に登録された最新情報をお届けします。"
+        one: 過去1日間の %{service_name} からハイライトをお届けします。
     newsletter:
       hi: "%{name}さん、こんにちは"
       newest_offers: 他の人が何をオファーしているのか見てみましょう
       newest_requests: 他の人が現在必要なもの
-      text_version_text: 他の人が必要としているかもしれない何かを共有してもらえますか。あるいは、他の人がもてあましているかもしれない何かを必要としますか。オファーまたはリクエストをしてみてください。%{url}で投稿内容をすべてチェックできます。
+      text_version_text: 他の人が必要としているかもしれない何かを共有してもらえますか。あるいは、他の人がもてあましているかもしれない何かを必要としますか。オファーまたはリクエストをしてみてください。%{url}で出品内容をすべてチェックできます。
     reset_password_instructions:
       change_my_password: パスワードの変更
       reset_password_instructions: "<p>あなたは%{service_name} のサービスにおいてパスワードまたはユーザー名のいずれかの再発行手続き中です。</p><p>パスワードの再設定が必要な場合は次のリンクをクリックしてください%{password_reset_link}
@@ -522,9 +529,9 @@ ja:
       remember_to_give_feedback_to: リマインダー：%{name}さんにレビューを書いてみませんか。
       you_have_not_given_feedback_yet: "%{name}さんに「%{event}」の件でまだレビューを書いていないようです。この機会に、%{given_name}さんのレビューを是非お願いします。"
     testimonial_reminder_v2:
-      headline: 
-      you_have_not_given_feedback_yet: 
-      leave_feedback: 
+      headline: "%{other_name}にフィードバックを残すのを忘れないでください！"
+      you_have_not_given_feedback_yet: フィードバックを残すことは常に良いアイデアです。すべてがうまくいった場合は、他の人に%{name}が信頼できると知らせてください。問題があった場合はそれもメンションすると良いでしょう。
+      leave_feedback: "%{other_party_name}に対してフィードバックを残す"
     transaction_preauthorized:
       subject: "%{requester}さんは%{listing_title}に対してリクエストをし、お支払いが完了しました。"
       transaction_requested_by_user: "%{requester}さんは「%{listing_title}」に対してリクエストをし、お支払いが完了しました。"
@@ -543,74 +550,76 @@ ja:
       one_day_left: １日以内に承認しない場合は自動的にキャンセルとなりますのでご注意ください。
       click_here_to_reply: リクエストを確認する
     transaction_preauthorized_reminder_v2:
-      headline: 
+      headline: "%{requester} さんからの %{listing_link} についてのリクエストを承認することを忘れないでください。"
       remember_to_accept: "%{requester} さんは既にお支払い手続きを完了しています。支払代金を受け取るにはリクエストの承認が必要です。"
     welcome_email:
       welcome_email_subject: "%{service_name}へようこそ"
       welcome_to_marketplace: "%{service_name}へようこそ！よくお越しくださいました。"
       love_marketplace_crew: それではまた、<br /><i>%{service_name}チーム
       welcome_email_footer_text: "%{settings_link}"
-      settings_link_text: 
+      settings_link_text: メール設定を編集する
     new_listing_by_followed_person:
-      subject: "%{service_name}で%{author_name}さんが新しいリストを投稿しました"
-      has_posted_a_new_listing: "%{author_name}さんが新しい投稿を投稿をしました："
+      subject: "%{service_name}で%{author_name}さんが新しいリストを出品しました"
+      has_posted_a_new_listing: "%{author_name}さんが新しい出品を出品をしました："
       you_are_receiving_this_because: あなたが%{author_name}さんをフォローしているので、このお知らせを送らせていただいております。
-      view_listing: 投稿を見る
+      view_listing: 出品を見る
     new_listing_by_followed_person_v2:
-      headline: 
-      has_posted_a_new_listing: 
-      you_are_receiving_this_because: 
-      view_listing: 
-      cant_click: ボタンをクリックできませんか？こちらに参考リンクがあります：
+      headline: "%{author}が新しいリスティングを追加しました！"
+      has_posted_a_new_listing: "%{author_name}が新しいリスティングを投稿しました:"
+      you_are_receiving_this_because: あなたは%{author_name}をフォローしているため、この通知を受け取りました。
+      view_listing: "%{title}を見る"
+      cant_click: 'ボタンをクリックできない場合は、こちらのリンクをご利用ください:'
     new_ident_notification:
-      subject: 
-      h1_body: 
-      p_line1: 
-      p_line2: 
-      p_line3: 
-      p_line4: 
-      p_line5: 
-      button: 
+      subject: マーケットプレイスのアドレスが変更されました
+      h1_body: "%{community_name} の URL アドレスが変更されました。"
+      p_line1: マーケットプレイスのアドレスが変更されました。
+      p_line2: '旧 URL: %{link}'
+      p_line3: '新 URL: %{link}'
+      p_line4: '新しい管理画面 URL: %{link}'
+      p_line5: 以前と同じアカウントでマーケットプレイスにログインできます。
+      button: "%{text} へ"
     new_member_notification:
-      subject: 
+      subject: "%{community}に新しいメンバーが参加しました"
       new_member_has_joined: "%{community}に新しいメンバーが参加しました。新メンバーは、メールアドレスを認証する必要があります。"
       this_is_automatic_message: これは%{community}の管理者に自動送信されるメッセージです。
       person_name: お名前：
       person_email: メールアドレス：
     new_member_notification_v2:
-      headline: 
-      new_member_has_joined: 
-      view_profile: 
+      headline: "%{user_name}が%{community}に参加しました。"
+      new_member_has_joined: "%{name}（%{email}）が%{community}に参加しました。まだメールアドレスの確認が必要かもしれません。"
+      view_profile: プロフィールを見る
     listing_submited_for_review:
-      subject: 
-      there_is_a_new_listing_to_review: 
-      review_the_listing: 
-      this_is_automatic_message: 
+      subject: '新しいリスティングをレビューする: "%{listing_title}" by %{author_name} in %{community}'
+      there_is_a_new_listing_to_review: '新しいリスティングをレビューする必要があります: "%{listing_title}"
+        by %{author_name}。これを承認または拒否する必要があります。'
+      review_the_listing: 新しいリスティングをレビューする
+      this_is_automatic_message: これは%{community}の管理者に送られる自動メッセージです。
     listing_approved:
-      subject: 
-      listing_has_been_approved: 
+      subject: "%{community}チームがあなたのリスティング「%{listing_title}」を承認しました"
+      listing_has_been_approved: おめでとうございます！あなたのリスティング「%{listing_title}」が%{community}チームによってレビューされ、承認されました。公開されました。
       view_the_listing: リスティングを見る
     listing_rejected:
-      subject: 
-      listing_has_been_rejected: 
-      contact_link: "%{community} へ問い合わせる"
-      edit_the_listing: リスティングの編集
+      subject: "%{community}チームがあなたのリスティング「%{listing_title}」を拒否しました"
+      listing_has_been_rejected: 残念ながら、%{community}チームが慎重に審査した結果、あなたのリスティング「%{listing_title}」を拒否しました。詳細を知るか、リスティングを編集して再レビューを依頼するには%{contact_link}してください。
+      contact_link: "%{community}チームに連絡する"
+      edit_the_listing: リスティングを編集する
     edited_listing_submited_for_review:
-      subject: 
-      there_is_a_edited_listing_to_review: 
-      review_the_listing: 
+      subject: '編集されたリスティングをレビューする: "%{listing_title}" by %{author_name} in %{community}'
+      there_is_a_edited_listing_to_review: '編集されたリスティングをレビューする必要があります: "%{listing_title}"
+        by %{author_name}。これを承認または拒否する必要があります。'
+      review_the_listing: 編集されたリスティングをレビューする
     new_transaction:
       subject: "%{service_name} での新しい取引"
-      there_is_a_new_transaction: 
-      a_new_transaction: 
+      there_is_a_new_transaction: "%{service_name}に新しい取引があります: %{link}"
+      a_new_transaction: 新しい取引
       listing: '商品名：%{title} '
       sum: '合計：%{amount} '
       starter: '購入者：%{name} '
       provider: '販売者：%{name} '
     new_transaction_v2:
-      subject: "%{service_name} での新しい取引"
-      there_is_a_new_transaction: 
-      a_new_transaction: 
+      subject: "%{service_name}で新しい取引があります"
+      there_is_a_new_transaction: "%{service_name}に新しい取引があります: %{link}"
+      a_new_transaction: 新しい取引
       listing: 商品名：
       sum: 合計：
       starter: 購入者：
@@ -618,9 +627,9 @@ ja:
       view_transaction: 取引をみる
     transaction_cancel_flow:
       the_order_about: "%{listing_title} の注文について"
-      you_can_contact_the_marketplace_team: 
-      you_can_now_give_feedback: 
-      give_feedback_to: 
+      you_can_contact_the_marketplace_team: もし何か他に問題がある場合は、%{service_name}チームに連絡することができます。
+      you_can_now_give_feedback: これで%{name}にフィードバックを送ることができます。フィードバックをすることは常に良いアイデアです。すべてがうまくいった場合は、他の人に%{name}が信頼できると伝えるべきです。何か問題があった場合は、それも言及すると良いでしょう。
+      give_feedback_to: "%{name}にフィードバックをする"
     transaction_disputed:
       subject: リクエストはキャンセルされました。%{service_name} 事務局は状況を確認しています。
       subject_admin: 取引に異議が申し立てられたので、この後どうするかを決めなければいけません。
@@ -634,20 +643,19 @@ ja:
       learn_more_about: なにするかについては、こちらをご覧ください。
       review_the_transaction: 取引を確認する
     transaction_refunded:
-      subject: 
-      marketplace_team_has_approved_the_cancellation: "%{service_name} チームは%{transaction_link}
-        に関するあなたの異議申し立てを承認し、支払いを返金しました。"
-      you_should_receive_a_refund_soon: 
+      subject: 注文が返金されました - %{buyer}さんからの紛争が%{service_name}チームによって承認されました
+      marketplace_team_has_approved_the_cancellation: "%{transaction_link}の紛争が%{service_name}チームによって承認され、支払いが返金されました。"
+      you_should_receive_a_refund_soon: 返金を受け取るはずです。何か問題がある場合は、%{service_name}チームに連絡できます。
     transaction_cancellation_dismissed:
-      subject: 
-      marketplace_team_has_rejected_the_cancellation: 
+      subject: 注文の紛争が却下されました - %{buyer}さんからの紛争が%{service_name}チームによって拒否されました
+      marketplace_team_has_rejected_the_cancellation: "%{transaction_link}の紛争が%{service_name}チームによって拒否されました。"
     transaction_commission_charge_failed:
-      subject: 
-      transaction_about: 
-      the_commission_of_the_transaction: 
-      this_usually_means: 
-      if_you_would_like_to_investigate: 
-      contact_the_seller: 販売者に問い合わせる
+      subject: マーケットプレイスの手数料がPayPalアカウントに転送されませんでした
+      transaction_about: "%{listing_title}に関する取引"
+      the_commission_of_the_transaction: "%{transaction_link}の手数料が%{seller}からあなたのPayPalアカウントに転送されませんでした。"
+      this_usually_means: 通常、これは売り手のPayPalアカウントから手数料を転送する際に何かしらの問題があることを意味します。ほとんどの場合、問題は売り手が有効で確認された資金源をPayPalアカウントに接続していないことです。
+      if_you_would_like_to_investigate: もっと詳しく調査したい場合は、まず売り手に連絡することが良い第一歩です。
+      contact_the_seller: 売り手に連絡する
   admin:
     communities:
       manage_members:
@@ -694,7 +702,7 @@ ja:
           open: 公開
           closed: 非公開
           expired: 期限切れ
-          approval_pending: 
+          approval_pending: 保留
           approval_rejected: 却下されました
         headers:
           author: 作成者
@@ -706,7 +714,7 @@ ja:
         open: 公開
         closed: 非公開
         expired: 期限切れ
-        approved: 
+        approved: 承認
         approval_pending: 保留中
         approval_rejected: 却下されました
       landing_pages:
@@ -717,7 +725,7 @@ ja:
       booking_failed_payment_voided: 問題が起きたため取引リクエストが完了しませんでした、再度お試しください。お支払いも実行されませんでしたのでご安心ください。
       double_booking_payment_voided: 残念ながら選択された日付は利用できなくなってしまいました、違う日付をご選択ください。お支払いも実行されませんでしたのでご安心ください。
     onboarding:
-      server_rendering: 
+      server_rendering: スタートガイドの読み込みに失敗しました。問題を確認済みで修正中です。
     listings:
       departure_time: 出発時間は、現在から１年後の間にしてください。
       share_type: どれか選択してください。
@@ -734,8 +742,9 @@ ja:
       buyer_cannot_pay_error: 支払いがPayPalによって拒否されました。詳細については、カスタマーサービス%{customer_service_link}
         にお問い合わせください。
       pending_review_error: お支払いが送信されましたが、PayPalによって「レビューが必要」としてフラグが立てられました。 PayPalがレビューを完了すると、支払いは自動的に承認されます。
-      seller_express_checkout_disabled: 
-      seller_express_checkout_disabled_no_free: 
+      seller_express_checkout_disabled: リスティング作成者のPayPalアカウントではPayPal Express Checkoutが無効になっています。PayPalアカウントに問題があることをリスティング作成者に連絡し、PayPalカスタマーサービスに連絡するようアドバイスしてください。
+      seller_express_checkout_disabled_no_free: リスティング作成者のPayPalアカウントではPayPal Express
+        Checkoutが無効になっています。%{service_name}チームに連絡し、リスティング作成者にPayPalカスタマーサービスへの連絡をアドバイスしてください。
       generic_error: お支払い手続き中にエラーが発生しました。PayPalのお支払いが完了できませんでした。
       cancel_error: キャンセル手続き中にエラーが発生しました。キャンセルが完了できませんでした。
       accept_authorization_error: 事前に指定したPaypal口座からの自動引き落とし手続き中にエラーが発生しました。再度お手続きをしてください。
@@ -743,7 +752,7 @@ ja:
     stripe:
       generic_error: 支払い処理中にエラーが発生しました。 Stripeの支払いを完了できませんでした。
       accept_authorization_error: 事前に承認されたStripeの支払いを受け入れるときにエラーが発生しました。もう一度やり直してください。
-      reject_authorization_error: 
+      reject_authorization_error: Stripeの事前承認済み支払いを拒否しようとしてエラーが発生しました。もう一度お試しください。
       card_declined: あなたのカードは拒否されました。
       expired_card: このカードは有効期限が切れているため、支払いに失敗しました。
   error_pages:
@@ -756,7 +765,7 @@ ja:
     error_410:
       page_removed: ページは削除されました
       page_you_requested_has_been_removed: ご指定のページは削除されました。
-      page_removed_reason: これにはいくつかの理由が考えられます。例えば、ユーザーがアカウントや投稿を削除してしまった可能性があります。
+      page_removed_reason: これにはいくつかの理由が考えられます。例えば、ユーザーがアカウントや出品を削除してしまった可能性があります。
     error_410_title: ページは削除されました
     error_500:
       temporary_unavailable: マーケットプレイスは一時的にご利用できません
@@ -784,13 +793,13 @@ ja:
       after: "%{restriction}より後でなければなりません"
       on_or_after: "%{restriction}以後でなければなりません"
       positive_number: 数字を入力。
-      from_must_be_less_than_till: 
-      section_with_this_id_already_exists: このセクションの固有の名前はすでに使用されています。別の名前を選んでください。
-      listing_with_this_id_does_not_exist: 
-      presence: 空白は使えません。
-      username_is_invalid: このユーザー名は無効または使用することができません
-      domain_name_is_invalid: 
-      only_supported_variables: 
+      from_must_be_less_than_till: "「開始時間」は「終了時間」よりも前に設定してください。"
+      section_with_this_id_already_exists: このセクションのユニークな名前はすでに使用されています。別の名前を選択してください。
+      listing_with_this_id_does_not_exist: このリスティングIDはあなたのマーケットプレイスに存在しません。タイプミスではありませんか？確認してもう一度試してください。
+      presence: 入力必須です。
+      username_is_invalid: このユーザー名は無効または使用できません。
+      domain_name_is_invalid: このドメイン名は無効または使用できません。
+      only_supported_variables: サポートされている変数のみ追加してください。
   event_feed_events:
     accept:
       has_accepted_lend_item: "%{time_ago}に%{offerer_name}さんは%{requester_name}さんに%{listing_title}を貸すことに同意しました。"
@@ -820,7 +829,7 @@ ja:
     about: このサイトについて
     home: ホーム
     members: コミュニティ
-    new_listing: あたらしい投稿
+    new_listing: あたらしい出品
     mobile_version: モバイル版
     offers: オファー
     requests: リクエスト
@@ -828,7 +837,7 @@ ja:
     create_new_marketplace: 新規マーケットプレイスを作成
     contact_us: お問い合わせ
     profile: プロフィール
-    manage_listings: 投稿を管理する
+    manage_listings: 出品を管理する
     invite: メンバーを招待
     login: ログイン
     signup: 新規登録
@@ -875,10 +884,10 @@ ja:
       processing_uploaded_image: "(画像をアップロード中...)"
     index:
       no_listings_with_your_search_criteria: 一致する情報は見つかりませんでした。
-      no_listings_notification: 投稿がありません。%{add_listing_link}。
-      add_listing_link_text: 新しい投稿を追加する
-      open_listing: 投稿を公開
-      open_listings: 公開された投稿
+      no_listings_notification: 出品がありません。%{add_listing_link}。
+      add_listing_link_text: 新しい出品を追加する
+      open_listing: 出品を公開
+      open_listings: 公開された出品
       private_listing_notification_log_in: ログイン
       is: は
       are: です
@@ -917,7 +926,7 @@ ja:
     list_item:
       review: レビュー
       reviews: レビュー
-      distance_away: 
+      distance_away: "%{distance} %{distance_unit} 先"
     news_item:
       show_less: 表示を少なくする
       show_more: さらに表示
@@ -938,7 +947,7 @@ ja:
       map_button: マップ
       grid_button: 画像
       list_button: リスト
-      all_listing_types: 全ての投稿の種類
+      all_listing_types: 全ての出品の種類
       all_categories: すべてのカテゴリー
     errors:
       search_engine_not_responding: 現在検索が使用できません。今しばらくお待ちください。
@@ -964,7 +973,7 @@ ja:
     branding:
       powered_by: "%{service_name} is powered by the %{sharetribe_link} marketplace
         platform."
-      create_own: 
+      create_own: "%{service_name}のようなオンラインマーケットプレイスを作成したいですか？ %{learn_more}。"
       learn_more: さらに
     no_tribe:
       inbox: メール受信箱
@@ -1018,22 +1027,22 @@ ja:
     logged_in_notifications_icon:
       notifications: メール通知
     markdown_help:
-      title: 
-      description: 
-      formatting: 
-      result: 
-      h1: H1
-      h2: H2
-      h3: H3
-      italic: 斜体
+      title: Markdownを使った書式設定のヘルプ
+      description: Markdownは、どんなデバイスでも素晴らしい見た目のテキストをシンプルに書式設定する方法です。フォントサイズ、色、タイプを変更するなどの高度な機能はありませんが、キーボードの記号を使って基本的な設定ができます。
+      formatting: 書式設定
+      result: 結果
+      h1: ここにH1のテキストを入力します
+      h2: ここにH2のテキストを入力します
+      h3: ここにH3のテキストを入力します
+      italic: イタリック
       bold: 太字
       underline: 下線
-      strikethrough: 
-      inline_link: 
-      list: 
-      one: 
-      two: 
-      three: 
+      strikethrough: 取り消し線
+      inline_link: インラインリンク
+      list: リスト
+      one: 1. 一つ
+      two: 2. 二つ
+      three: 3. 三つ
     mobile_logged_in:
       admin: サイト管理
       go_to_your_profile_page: プロフィール
@@ -1045,7 +1054,7 @@ ja:
       settings: 設定
       sign_up: 新規登録
     notifications:
-      recaptcha_verification_failure: 
+      recaptcha_verification_failure: reCAPTCHAの検証に失敗しました
       listing_could_not_be_saved: リストは保存できませんでした。もう一度お試しください。問題が続くようでしたら、%{contact_admin_link}。
       contact_admin_link_text: サイト管理者にお問い合わせ
       test_welcome_email_delivered_to: テストメールを%{email}へお送りしました。
@@ -1058,9 +1067,9 @@ ja:
       comment_sent: コメントを送信しました
       confirmation_link_is_wrong_or_used: 認証リンクがすでに使用されていたか、壊れていたようです。ログインを試してみて、問題が解決しない場合はサイト管理者にお問い合わせください。
       additional_email_confirmed: 入力したメールアドレスは承認されました。
-      could_not_get_email_from_social_network: 
-      social_network_email_unconfirmed: 
-      create_new_listing: 続けて投稿する
+      could_not_get_email_from_social_network: "%{provider}からメールアドレスを取得できませんでした。メールアドレスなしでアカウントを作成することはできません。"
+      social_network_email_unconfirmed: '%{provider}アカウントに関連付けられたメールアドレス"%{email}"はすでに使用されていますが、まだ確認されていません。%{provider}でログインする前にメールアドレスを確認してください。'
+      create_new_listing: 続けて出品する
       create_one_here: こちらでご登録
       email_confirmation_sent_to_new_address: 新しいメールアドレスへ認証メールを送りました。
       email_not_found: ご記入いただいたメールアドレスは、%{service_name}に存在しません。
@@ -1090,17 +1099,16 @@ ja:
       offer_accepted: オファーを受諾しました
       offer_confirmed: オファーは確定しました
       offer_closed: オファーはクローズしました
-      listing_created_successfully: 投稿が掲載されました。%{new_listing_link}
+      listing_created_successfully: 出品が掲載されました。%{new_listing_link}
       offer_rejected: オファーは却下されました
       offer_canceled: オファーはキャンセルされました
       listing_updated_successfully: 更新されました
-      listing_updated_availability_management_enabled: 投稿は正常に更新されました。空き状況の管理が有効になりました。
+      listing_updated_availability_management_enabled: 出品は正常に更新されました。空き状況の管理が有効になりました。
       listing_updated_availability_management_disabled: リスティングは正常に更新されました。在庫管理が無効になりました。
-      listing_deleted: 
-      only_kassi_administrators_can_access_this_area: このエリアにアクセスするには管理者アカウントでログイン
-        し て ください
-      only_listing_author_can_close_a_listing: 投稿者のみがこの投稿を編集出来ます
-      only_listing_author_can_edit_a_listing: 投稿者のみがこの投稿を編集出来ます
+      listing_deleted: リストが削除されました
+      only_kassi_administrators_can_access_this_area: このエリアにアクセスするには管理者アカウントでログインしてください
+      only_listing_author_can_close_a_listing: 出品者のみがこの出品を編集出来ます
+      only_listing_author_can_edit_a_listing: 出品者のみがこの出品を編集出来ます
       payment_successful: お支払い手続きが完了しました
       payment_canceled: お支払いはキャンセルされました
       error_in_payment: お支払い時にエラー発生。お支払いを完了していない場合、再試行してください。完了している場合は、お問い合わせにご連絡ください。
@@ -1122,7 +1130,7 @@ ja:
       reply_cannot_be_empty: 空のメッセージを送れません
       reply_sent: 送信しました
       request_accepted: リクエストは受諾されました
-      request_accepted_and_closed: 
+      request_accepted_and_closed: リクエストが承諾され、リストが終了しました
       request_confirmed: リクエストは完了しました
       request_rejected: リクエストにお応えすることができませんでした
       request_canceled: リクエストはキャンセルされました
@@ -1134,15 +1142,15 @@ ja:
       you_are_not_allowed_to_give_feedback_on_this_transaction: この取引のレビューを書くことが認められませんでした
       you_are_not_authorized_to_do_this: これを実行する権限がありません
       you_are_not_authorized_to_view_this_content: このコンテンツを閲覧することは認められませんでした
-      listing_closed: 投稿を閉じました
+      listing_closed: 出品を閉じました
       send_instructions: あなたのパスワードのリセット方法が記載されたメールが、まもなく届きます。
       you_cannot_reply_to_a_closed_offer: クローズ済みのオファーに対し返信できません
       you_cannot_send_message_to_yourself: あなた自身へメッセージを送れません
-      you_followed_listing: 投稿をフォロー中です
+      you_followed_listing: 出品をフォロー中です
       you_have_already_given_feedback_about_this_event: 既にこの取引に関してレビューを書いています
       you_are_now_member: "%{service_name}へようこそ！"
       you_are_already_member: あなたはすでに%{service_name}のメンバーです。おかえりなさい！
-      you_must_log_in_to_create_new_listing: 新しく投稿するには%{service_name}へのログインが必要です。初めての方は、%{sign_up_link}お願いいたします。
+      you_must_log_in_to_create_new_listing: 新しく出品するには%{service_name}へのログインが必要です。初めての方は、%{sign_up_link}お願いいたします。
       additional_email_confirmed_dashboard: メールアドレスが認証されました。
       you_must_log_in_to_give_feedback: フィードバックを書くにはログインをしてください
       you_must_log_in_to_invite_new_users: "%{service_name}に新しいユーザを招待するにはログインしていなければなりません"
@@ -1159,24 +1167,25 @@ ja:
       you_must_log_in_to_confirm_or_cancel: お取引をキャンセルか、承認するにはログインしてください
       you_need_to_confirm_your_account_first: メールアドレスを認証してください。
       you_must_fill_all_the_fields: 空欄を埋めてください
-      you_unfollowed_listing: 投稿のフォローをやめました
+      you_unfollowed_listing: 出品のフォローをやめました
       joining_community_failed: 参加失敗
       can_not_delete_email: メールアドレスを削除できません
       user_does_not_have_email_to_delete: 削除しようとしていたメールアドレスは、正しくありません。
       email_deleted: メールアドレスは削除されました
-      listing_author_payment_details_missing: この投稿の作成者はお支払い詳細を追加していないので、現在のところお支払いを受け取れません。「問合せ」ボタンをクリックして、このリストの作者に直接連絡を取ってください。
+      listing_author_payment_details_missing: この出品の作成者はお支払い詳細を追加していないので、現在のところお支払いを受け取れません。「問合せ」ボタンをクリックして、このリストの作者に直接連絡を取ってください。
       listing_author_payment_details_missing_no_free: "%{service_name} 事務局に問い合わせ、リストの作成者へ報酬を受け取るために支払いの詳細を更新するように依頼してください。"
       images_are_processing: 現在画像を処理中です、今しばらくお待ちください。
       maintenance_mode:
         zero: メンテナンスのため、このウェブサイトは只今より一時的にオフラインになります
         other: このウェブサイトはメンテナンスのため%{count}分後にオフラインになります
+        one: メンテナンスのため %{count} 分後にサイトがオフラインになります
       automatically_logged_out_please_sign_in: セッションの期限が切れました。もう一度ログインしてください
       stripe_you_account_balance_is_not_0: あなたの口座残高は0ではないため削除できません。これは、取引が完了するのを待っているか、銀行口座に支払われるのを待っているお金があることを意味します。詳細については、%{service_name}
         チームにお問い合わせください。
-      stripe_balance_for_username_is_not_0: 
+      stripe_balance_for_username_is_not_0: "%{username}のStripeの残高が0ではないため、アカウントを削除できません。これは、未完了の取引があるか、銀行口座への支払い待ちの可能性があることを意味します。詳細についてはStripeダッシュボードを確認してください。"
       visit_admin: "%{link} をご希望ですか？"
       visit_admin_link: 管理パネルにアクセスしてください
-      an_error_occurred_when_saving_your_information: 
+      an_error_occurred_when_saving_your_information: 情報の保存中にエラーが発生しました：" %{message}"。すべての情報が正しいことを確認して、もう一度お試しください。
     settings:
       account: ご登録情報
       notifications: メール通知
@@ -1191,7 +1200,7 @@ ja:
       transactions: 取引
   listings:
     bubble_listing_not_visible:
-      listing_not_visible: 投稿を閲覧する権限がありません。
+      listing_not_visible: 出品を閲覧する権限がありません。
     comment:
       wrote: 書き込む
       send_private_message: "%{person}さんにプライベートメッセージを送信する"
@@ -1206,30 +1215,30 @@ ja:
       you_cannot_send_a_new_comment_because_listing_is_closed: 公開停止中のため新しいコメントの送信はできません。
       you_must: コメントを送信するには
       subscribe_to_comments: 新しいコメントがあった場合通知する
-    deleting_a_listing_cannot_be_undone: 
+    deleting_a_listing_cannot_be_undone: リストの削除は元に戻せません。本当に続行しますか？
     edit:
       edit_listing: 編集する
     edit_links:
-      close_listing: 投稿を非公開にする
+      close_listing: 出品を非公開にする
       edit_listing: 編集する
-      reopen_listing: 投稿を再公開する
+      reopen_listing: 出品を再公開する
       move_to_top: ホームページトップに移動する
       show_in_updates_email: このリストを次の自動メールで紹介
       show_in_updates_email_loading: 読み込み中...
       show_in_updates_email_error: サーバに接続できませんでした。ページを読み込んだ後、再度お試しください。
       show_in_updates_email_success: このリストはユーザに送信される、次回の自動お知らせメールに掲載されます。
-      listing_is_pending: 
-      listing_is_rejected: 
-      approve_listing: 
-      reject_listing: 
-      delete_listing: 投稿を削除する
+      listing_is_pending: リストは承認待ちです
+      listing_is_rejected: リストは却下されました
+      approve_listing: リストを承認する
+      reject_listing: リストを却下する
+      delete_listing: 出品を削除する
     map:
       open_in_google_maps: Googleマップで表示する
     error:
       something_went_wrong: 何か不具合がありました。 エラーコード： %{error_code}
       something_went_wrong_plain: 問題がおきました
-      create_failed_to_connect_to_booking_service: 投稿に失敗しました、もう一度お試しください。
-      update_failed_to_connect_to_booking_service: 投稿のアップデートに失敗しました、もう一度お試しください。
+      create_failed_to_connect_to_booking_service: 出品に失敗しました、もう一度お試しください。
+      update_failed_to_connect_to_booking_service: 出品のアップデートに失敗しました、もう一度お試しください。
     follow_links:
       follow: 新しいコメントがあった場合メールを受け取る
       unfollow: 新しいコメントがあった場合メールを受け取らない
@@ -1252,7 +1261,7 @@ ja:
         favor: サービス
         housing: スペース
         item: もの
-        offer_something: 何かを投稿する
+        offer_something: 何かを出品する
         request_something: 何かをリクエストする
         rideshare: ライド
         i_want_to_offer: "...をオファーしたい"
@@ -1303,12 +1312,12 @@ ja:
       origin:
         location: 場所
         origin: 起点となる場所
-        the_exact_location: 
+        the_exact_location: 正確な位置情報は他のユーザーには表示されません。
       send_button:
         save_listing: 出品する
-        submit_for_review: 投稿確認を依頼する
-        will_be_reviewed: "%{service_name} における全ての投稿は、公開前に運営の承認が必要です。承認が下りるとメールにて通知が届き、プラットフォーム上で投稿が公開されます。"
-        we_noticed_youre_an_admin: 
+        submit_for_review: 出品確認を依頼する
+        will_be_reviewed: "%{service_name} における全ての出品は、公開前に運営の承認が必要です。承認が下りるとメールにて通知が届き、プラットフォーム上で出品が公開されます。"
+        we_noticed_youre_an_admin: "%{service_name}の管理者であることに気づきました。あなたの変更は自動的に適用され、承認またはレビューは必要ありません。"
       share_type:
         select: 選択
         borrow: 借りる
@@ -1351,7 +1360,7 @@ ja:
       housing: スペース
       items: 品目
       list_view: リスト表示
-      listings: 投稿
+      listings: 出品
       map_view: 地図表示
       offer_something: 皆さんにお知らせする！
       offer_type: オファーの種類
@@ -1388,21 +1397,21 @@ ja:
       select_one: 一つ選択してください。
       start_time: 開始時間
       end_time: 終了時刻
-      marketplace_fees_may_apply: 
+      marketplace_fees_may_apply: "%{service_name}の手数料が適用される場合があります"
     new:
-      listing: 投稿
+      listing: 出品
       selected_category: カテゴリー： %{category}
       selected_subcategory: サブカテゴリー： %{subcategory}
       selected_transaction_type: 取引の種類： %{transaction_type}
       select_category: カテゴリを選択
       select_subcategory: サブカテゴリーを選択
       select_transaction_type: 取引の種類を選択
-      you_need_to_fill_payout_details_before_accepting: リストを投稿する前に、お支払い情報の入力を完了している必要があります。%{payment_settings_link}で、情報入力をお願いします。
+      you_need_to_fill_payout_details_before_accepting: リストを出品する前に、お支払い情報の入力を完了している必要があります。%{payment_settings_link}で、情報入力をお願いします。
       contact_admin_link_text: サイト管理者にお問い合わせください。
-      community_not_configured_for_payments: "%{service_name}はお支払いを確定できませんでしたので、まだ新しい投稿を掲載が出来ていません。%{contact_admin_link}から詳細についてお問い合わせください。"
+      community_not_configured_for_payments: "%{service_name}はお支払いを確定できませんでしたので、まだ新しい出品を掲載が出来ていません。%{contact_admin_link}から詳細についてお問い合わせください。"
       payment_settings_link: お支払い設定
-      community_not_configured_for_payments_admin: "%{service_name}はお支払いを確定できませんでしたので、まだ新しい投稿の掲載が出来ていません。%{payment_settings_link}で、お支払いの詳細について記入してください。"
-      you_are_now_posting_a_listing_on_behalf_of: 現在、%{name} に代わってリスティングを投稿しています
+      community_not_configured_for_payments_admin: "%{service_name}はお支払いを確定できませんでしたので、まだ新しい出品の掲載が出来ていません。%{payment_settings_link}で、お支払いの詳細について記入してください。"
+      you_are_now_posting_a_listing_on_behalf_of: 現在、%{name} に代わってリスティングを出品しています
     quantity:
       hour: 時間数：
       day: 日数：
@@ -1411,11 +1420,11 @@ ja:
       month: 月間：
       unit: '数量:'
       custom: 数量：
-      person: 
+      person: 人数：
     quantity_placeholder: 数量
     please_comment: コメント
     reply_link:
-      listing_closed: 投稿は非公開となりました
+      listing_closed: 出品は非公開となりました
     show:
       add_your_phone_number: あなたの電話番号を追加
       add_profile_picture: プロフィール画像を追加する
@@ -1427,7 +1436,7 @@ ja:
       inquiry: 質問
       item_offer_trade: 交換の提案
       item_request_trade: 交換のリクエスト
-      no_description: 投稿の詳細情報はありません
+      no_description: 出品の詳細情報はありません
       no_image: イメージ画像がありません
       no_reviews: まだレビューがありません
       offer: オファー
@@ -1463,7 +1472,7 @@ ja:
       week: 週
       month: 月
       unit: 個
-      person: 
+      person: 人
     verification_required:
       verification_required: 認証が必要です
   listing_conversations:
@@ -1474,7 +1483,7 @@ ja:
       by: "%{author}さんの%{listing}"
       payment: お支払い
       exp: 有効期限：
-      you_will_be_charged: "%{author}さんが取引を受け入れた場合のみ、その後あなたに請求がされます。%{author}さんが%{expiration_period}日以内に取引を受け入れる必要があります。%{author}さんがこの件に関して拒否したり、返事をしない場合はお支払いは完了しません。"
+      you_will_be_charged: "%{author}さんが質問に応じた場合のみ、あなたに請求がされます。<br>%{expiration_period}日以内に質問リクエストを受け入れられない場合はこの質問は自動で取り下げとなります。"
       day: 日
       days: 日
       night: 泊
@@ -1526,12 +1535,13 @@ ja:
     payout_info_paypal: "%{service_name}では代金決済方法としてPayPalを採用しています。Paypalでの決済を可能とするには、%{create_paypal_account_link}からPayPalアカウントを登録し、%{service_name}へ接続する必要があります。"
     paypal_billing_agreement_made: "<del>2. %{service_name}からの取引手数料のお支払いを許可する</del>
       完了しました！"
-    commission_permission_needed: 
+    commission_permission_needed: また、%{service_name} に取引手数料を請求する許可を与える必要があります。
     create_paypal_account_link_text: PayPalアカウント
     connected_account: PayPalアカウントと「%{email}」は接続されました。
     paypal_receive_funds_info_label_australia_only: あなたのPayPalアカウントは、支払いの受け取りを可能とするため、プレミアアカウントかビジネスアカウントが必要です。
     paypal_receive_funds_info_label: あなたのPayPalアカウントは、支払いの受け取りを可能とするため、ビジネスアカウントが必要です。
-    paypal_receive_funds_info_australia_only: 
+    paypal_receive_funds_info_australia_only: "%{service_name} にアカウントを接続しようとしたときにエラーが表示される場合は、%{upgrade_paypal_account_link}
+      するか、個人の場合は新しいプレミアアカウントを作成してください。どちらのアカウントタイプも完全に無料です。"
     paypal_receive_funds_info: もしPaypalアカウントと%{service_name}を接続する際にエラーが出る場合には、PayPalアカウントを%{upgrade_paypal_account_link}からアップグレードして下さい。アップグレードは無料で手続きは簡単です。あなたが個人であれば、氏名を事業者名として使用することを推奨します。
     upgrade_paypal_account_link_text: ログインしてアップグレードのリンクをクリックする
     admin_account_not_connected: 支払いが設定されていないため、支払いを受け取るために%{service_name} の支払いシステムを使用することはできません。詳しくは%{contact_admin_link}
@@ -1563,7 +1573,8 @@ ja:
       paypal_account_billing_agreement_info_both: "%{service_name}内で売り上げ後: 送料を除いた%{commission_from_seller}のご利用手数料が、最低でも%{minimum_commission}があなたのPayPalの口座より、差し引かれます。%{service_name}内でのお支払いを受け入れるには、お支払い手数料の請求に同意する必要があります。なお、手数料は%{paypal_info_link}を含みません。"
       paypal_account_billing_agreement_info_fixed: "%{service_name}内で売り上げ後、最低でも%{minimum_commission}があなたのPayPalの口座より、差し引かれます。%{service_name}内でのお支払いを受け入れるには、お支払い手数料の請求に同意する必要があります。なお、手数料は%{paypal_info_link}を含みません。"
       paypal_account_billing_agreement_info_relative: "%{service_name}内で売り上げ後、送料を除いた合計金額の%{commission_from_seller}の手数料があなたのPayPalの口座より、差し引かれます。%{service_name}内でのお支払いを受け入れるには、お支払い手数料の請求に同意する必要があります。なお、手数料は%{paypal_info_link}を含みません。"
-      paypal_account_billing_agreement_info_none: 
+      paypal_account_billing_agreement_info_none: "%{service_name} は現在、サービス料を徴収していません。サービス料が有効になった場合、支払いを受け取るには
+        %{service_name} にサービス料を請求する許可を与える必要があります。手数料には %{paypal_info_link} は含まれていません。"
       paypal_info_link_text: PayPalのご利用手数料
       billing_agreement_description: "%{service_name}に対する取引手数料の支払いを承認してください"
       billing_agreement: 承認する
@@ -1579,8 +1590,8 @@ ja:
     paypal_account_connected_title: ペイパルアカウントに接続しました。
     paypal_account_connected: PayPalのアカウント%{email} は%{service_name} と接続されました。
     change_account: Paypalアカウントの変更
-    missing: 
-    from_your_payment_settings_link_text: 
+    missing: 出品物を購入または予約できません。取引を有効にするには %{settings_link} を設定してください。
+    from_your_payment_settings_link_text: 決済を設定する
     redirect_message: ペイパルにリダイレクトしています。何も起きない場合は%{redirect_link} をクリックして下さい。
     redirect_link_text: こちら
     paypal_account_all_set_up: すべてのセットアップが完了しました！
@@ -1620,6 +1631,7 @@ ja:
       invalid_username_or_email: ユーザー名またはメールは無効でありまたはすでに利用されている
       email_restriction_instructions:
         other: "%{service_name}へのアクセスが制限されました。参加しなおすには、ご登録時のメールアドレスが必要です。"
+        one: "%{service_name} へのアクセスは制限されています。参加するには '%{allowed_emails}' のメールアドレスが必要です。"
       family_name: 名
       given_name: 姓
       i_accept_the_terms_and_privacy: 私は%{terms} と%{privacy} を受け入れます。
@@ -1638,13 +1650,13 @@ ja:
       create_account_with_provider: "%{provider} で新規登録する"
       OR: または
       signup_with_email: メールアドレスで新規登録する
-      this_field_will_be_publicly_visible: 
+      this_field_will_be_publicly_visible: "(このフィールドは一般公開されます)"
     profile_feedback:
       grade: 評価：
       and_gave_following_feedback: 次のレビューを書く
     profile_listings:
       no_image: 写真なし
-      manage_listings: すべての投稿を管理する
+      manage_listings: すべての出品を管理する
     show:
       contact: "%{person}さんに連絡する"
       about_me: 私について：
@@ -1655,7 +1667,7 @@ ja:
       as_expected: 期待通り
       edit_profile_info: プロフィールを編集する
       exceeded_expectations: 期待を超えました
-      positive: 高評価
+      positive: 満足
       hide_description: 表示を少なくする
       less_than_expected: 期待以下
       phone_number: 電話番号：
@@ -1665,20 +1677,20 @@ ja:
       slightly_better_than_expected: 期待を超えました
       slightly_less_than_expected: 期待以下
       what_are_these: これらは何ですか。
-      review: 受信したレビュー
-      reviews: 受信したレビュー
-      listing: 投稿
-      listings: 投稿
-      open_listing: 投稿を公開
-      open_listings: 公開された投稿
-      no_listings: 投稿がありません
-      no_open_listings: 公開された投稿はありません
+      review: レビュー
+      reviews: レビュー
+      listing: 出品
+      listings: 出品
+      open_listing: 出品を公開
+      open_listings: 公開された出品
+      no_listings: 出品がありません
+      no_open_listings: 公開された出品はありません
       no_reviews: レビューがありません
-      show_all_listings: 投稿を表示する
-      show_all_open_listings: 公開された投稿をすべて表示
+      show_all_listings: 出品を表示する
+      show_all_open_listings: 公開された出品をすべて表示
       show_all_reviews: すべてのレビューを表示
       admin_actions: 管理者アクション
-      post_listing_as: リスティングとして投稿
+      post_listing_as: リスティングとして出品
     followed_people:
       you_follow_plural: あなたは%{count}人フォロー中です。
       you_follow_singular: あなたは%{count}人フォロー中です。
@@ -1705,7 +1717,7 @@ ja:
       facebook_cancel_link_text: キャンセル
       log_in_with_your_provider_account: "%{provider} でログインする"
       or_sign_up_with_your_username: または、ユーザー名 or メールアドレスで：
-      we_will_not_post_without_asking_you: あなたに断りなくFacebookに投稿することは、決してありません。
+      we_will_not_post_without_asking_you: あなたに断りなくFacebookに出品することは、決してありません。
     password_forgotten:
       email: メールアドレス
       password_recovery_instructions: メールアドレスを入力して、パスワード再設定を行います。
@@ -1720,8 +1732,8 @@ ja:
       confirm_your_email: メールアドレスを認証してください
       account_confirmation_instructions: ご記入いただいたメールアドレス宛に、認証手続き用のリンクが、まもなく届きます。認証後、%{service_name}に参加できます。
       account_confirmation_instructions_title_admin: あなたのマーケットプレイスへようこそ！
-      before_full_access_you_need_to_confirm_email: 
-      before_confirmation_only_access_admin_dashboard: 
+      before_full_access_you_need_to_confirm_email: マーケットプレイスへの完全なアクセスを許可する前に、あと一つだけ行う必要があります：メールアドレスの確認
+      before_confirmation_only_access_admin_dashboard: 確認前に、%{admin_dashboard_link}にアクセスできます。
       admin_dashboard_link_text: 管理画面
       account_confirmation_instructions_admin: ご記入いただいたメールアドレス宛に、認証手続き用のリンクが、まもなく届きます。認証後、あなたのマーケットプレイスに参加できます。
       contact_support_link_text: Sharetribeサポートに問い合わせる
@@ -1735,10 +1747,10 @@ ja:
       email_addresses: メールアドレス
       new_email: 新しいメールアドレス
       delete_personal_information: アカウントを削除すると、個人情報 (名前、電話番号、住所、メールアドレス、プロフィール写真など)
-        は永久に削除され、取り戻すことは出来なくなります。すべての作成された投稿も削除されます。アカウントの復旧はできません。
+        は永久に削除され、取り戻すことは出来なくなります。すべての作成された出品も削除されます。アカウントの復旧はできません。
       delete_information_others_involved: "（他のユーザとの会話などの）付随するその他の情報、お取引履歴、レビューなどはあなたのアカウント削除お手続きのとき、すべて削除されます。次のステップに進むということは、あなたのお名前も、サイト上に表示されなくなります。"
       unfinished_transactions: まだやりとりが完了がしていないお取引があるため、削除が出来ないようです。削除前に、すべてのお取引を最後まで完了させてください。
-      only_admin: 
+      only_admin: マーケットプレイスの唯一の管理者であるため、アカウントを削除できません。
       new_password: 新しいパスワード
       save: 保存
       these_fields_are_shown_only_to_you: ユーザ名はあなたの名前を公開している場合を除き、プロフィールに表示されます。他の情報はあなただけに表示されています。
@@ -1763,26 +1775,26 @@ ja:
       newsletters: "☆速報☆"
       community_updates: メルマガ登録
       email_about_confirm_reminders: "...取引完了ボタンをクリックし忘れた時"
-      email_about_new_comments_to_own_listing: "...自分の投稿に新しいコメントがあった時"
+      email_about_new_comments_to_own_listing: "...自分の出品に新しいコメントがあった時"
       email_about_new_messages: "...メッセージを受信したとき"
       email_about_new_received_testimonials: "...レビューを受け取った時"
       email_about_testimonial_reminders: "...レビュー書くのを忘れてしまった時"
-      email_daily_community_updates: 新しい投稿があった場合、<b>毎日</b>最新情報メールを受け取る
-      email_weekly_community_updates: 新しい投稿があった場合、<b>毎週</b>最新情報メールを受け取る
+      email_daily_community_updates: 新しい出品があった場合、<b>毎日</b>最新情報メールを受け取る
+      email_weekly_community_updates: 新しい出品があった場合、<b>毎週</b>最新情報メールを受け取る
       do_not_email_community_updates: 最新情報メールを受け取らない
       email_when_conversation_accepted: "...オファー、またはリクエストが受諾された時"
       email_when_conversation_rejected: "...私のオファー、またはリクエストが受諾された時"
       email_about_completed_transactions: "...誰かが私のオファーかリクエストが完了しているとステータスを変更（マーク）しました"
       email_about_new_payments: "...新しいお支払いを受けとった時"
-      email_about_new_listings_by_followed_people: "...フォロー中のユーザーが新しい投稿をした時"
+      email_about_new_listings_by_followed_people: "...フォロー中のユーザーが新しい出品をした時"
       unsubscribe_succesful: 購読をやめる
       unsubscribe_info_text: これらのメールを今後受け取りません。今一度%{settings_link}から、%{service_name}より受け取りたい種類のメールを選んでください。もしくは%{homepage_link}に戻ります。
       settings_link: メール通知設定
       homepage_link: ホームページ
       unsubscribe_unsuccesful: 購読解除中にエラー発生しました
       unsuccessful_unsubscribe_info_text: 購読解除のリンクが古いか壊れていた可能性があります。お問い合わせよりご連絡ください。サイト管理者に購読解除を代行を依頼するか、あるいはあなたのメール設定を今一度ご確認の上、変更してください。
-      email_listing_new_comment: 
-      email_listing_updated: 
+      email_listing_new_comment: "...自分がフォローしているリストの公開ディスカッションに新しいコメントがあります"
+      email_listing_updated: "...自分がコメントしたリストが更新されました"
     profile:
       about_you: 自己紹介
       city: 市
@@ -1791,7 +1803,7 @@ ja:
       first_name_with_initial: "（他のユーザーには最初の一文字だけ表示されます）"
       first_name_only: "（他のユーザーには表示されません）"
       display_name: 表示名
-      display_name_description: 団体や法人の場合には、その組織名称を表示名として使用することができます。表示名はあなたの氏名の代わりに表示されます。
+      display_name_description: 表示名はあなたの名前もしくはニックネームとしてユーザーに表示されます。リベラルシェフではお互い心地よく交流して頂くために実名での登録を推奨しております。
       location_description: 住所の記載は必要ありませんが、少なくとも国と都市の記載をお願いいたします。地図から所在地を選択することもできます。
       profile_picture_description: プロフィール画像は、正方形（1：1の比率）、たとえば800 x 800ピクセルにする必要があります。それ以外の場合は、収まるようにトリミングされます。
       phone_number: 電話番号
@@ -1811,7 +1823,7 @@ ja:
       format_markdown_link: Markdown記法を使用して文章を整える
       format_markdown: "%{link} ことができます"
       username: ユーザー名
-      username_description: ユーザー名は、あなたのプロフィールページのURLの一部として使用されます。スペースなしの英数字が設定できます。ユーザー名を変更したいときは、URLが自動的に変更になり、以前のURLからリダイレクトされるようになります。古いユーザー名は他のユーザーが使用可能になります。
+      username_description: ユーザー名はあなたのプロフィールページのリンクURLとして使用されます。(スペース無しの英数字)<br>SNSなどに共有する場合にご活用ください。<br>ユーザー名を変更した場合、自動的に以前のURLから転送されるようになります。また、以前のURLは他のユーザーが使用可能になります。
     save_information: 保存する
   shipping_address:
     shipping_address: 届け先住所
@@ -1846,12 +1858,12 @@ ja:
       slightly_better_than_expected: 期待よりまあまあ良い
       slightly_less_than_expected: 期待より少しだけ悪い
       textual_feedback: 実際、いかがでしたか。
-      this_will_be_shown_in_profile: レビューは、他のメンバーに%{person}さんのプロフィールページにて公開されます。%{person}さんが信頼できる方かどうかの判断材料になりますので、正確な情報記入のご協力をお願いします。
-      positive: 高評価
-      negative: 低評価
+      this_will_be_shown_in_profile: レビューは%{person}さんのプロフィールページに公開されます。的確でないレビューに関しては運営側で削除する事もございますので予めご了承ください。
+      positive: 満足
+      negative: 不満
       default_textual_feedback: すべてはスムーズに進行しました、誠にありがとうございます！
     testimonial:
-      about_listing: さんから以下の件でレビューいただきました
+      about_listing: さんからレビューいただきました
   date:
     formats:
       long_with_abbr_day_name: "%Y %m %d %a"
@@ -1915,7 +1927,7 @@ ja:
       short: "%Y年 %b %e日 %H:%M"
       shorter: "%m/%e %H:%M"
       short_date: "%Y/%m/%e"
-      hours_only: 
+      hours_only: "%l:%M %P"
   timestamps:
     day_ago: "%{count}日前"
     days_ago: "%{count}日前"
@@ -1930,15 +1942,20 @@ ja:
     years_ago: "%{count}年前"
     days_since:
       other: "%{count}日"
+      one: "%{count} 日前"
     time_to:
       seconds:
         other: "%{count}秒"
+        one: "%{count} 秒"
       minutes:
         other: "%{count}分"
+        one: "%{count} 分"
       hours:
         other: "%{count}時間"
+        one: "%{count} 時間"
       days:
         other: "%{count}日"
+        one: "%{count} 日"
   transactions:
     initiate:
       booked_days: 予約日数
@@ -1946,10 +1963,13 @@ ja:
       booked_days_label:
         zero: '予約日:'
         other: '予約日数:'
+        one: 予約日数：
       booked_nights_label:
         other: 予約した宿泊
+        one: 予約泊数：
       booked_hours_label:
         other: 予約時間
+        one: 予約時間：
       price_per_day: 日割り料金
       price_per_night: 1泊あたり
       price_per_hour: 時間あたりの価格
@@ -1960,6 +1980,7 @@ ja:
       stripe-fee: Stripeフィ（見積もり）
       duration_in_hours:
         other: "(%{count} 時間)"
+        one: "（1時間）"
       start_end_time: "%{start_time} ～%{end_time}"
     price_per_quantity: "%{unit_type}ごとの料金："
     price: 料金：
@@ -1975,11 +1996,11 @@ ja:
       errors:
         availability:
           something_went_wrong: 有効な情報を表示できません。ページを再読み込みしてください。
-          saving_failed: 
+          saving_failed: 空き状況の変更を保存できません。ページをリロードしてください。
         working_hours:
           required: 必須
-          overlaps: 
-          covers: 
+          overlaps: 重複しています
+          covers: カバーしています
       pricing_units:
         piece: 点
         hour: 時間
@@ -1989,9 +2010,9 @@ ja:
         month: 月
       edit_availability_header: 利用可能日
       save_and_close_availability_editing: 保存して閉じる
-      confirm_discarding_unsaved_availability_changes_explanation: 
+      confirm_discarding_unsaved_availability_changes_explanation: 未保存の可用性情報の変更があります。進めるとこれらの変更は失われます。
       confirm_discarding_unsaved_availability_changes_question: 変更を破棄してもよろしいですか？
-      edit_listing_availability: 投稿の利用可能日を編集する
+      edit_listing_availability: 出品の利用可能日を編集する
       working_hours:
         default_schedule: デフォルトスケジュール
         i_am_available_on: 利用可能な曜日
@@ -2016,31 +2037,38 @@ ja:
       user: メンバー
       inbox: メール受信箱
       profile: プロフィール
-      manage_listings: 投稿を管理する
+      manage_listings: 出品を管理する
       settings: 設定
       logout: ログアウト
       login: ログイン
       signup: 新規登録
       admin_dashboard: 管理画面
       language: 言語
-      listings: 投稿を管理する
+      listings: 出品を管理する
     utils:
       km: km
       mi: マイル
     branding:
-      powered_by: "%{service_name} is powered by the %{sharetribe_link} marketplace
-        platform."
-      create_own: 
+      powered_by: "%{service_name}は%{sharetribe_link}マーケットプレイスプラットフォームによって支えられています。"
+      create_own: "%{service_name}のような独自のオンラインマーケットプレイスウェブサイトを作成したいですか？%{learn_more}。"
       learn_more: もっと
   will_paginate:
     models:
       person:
         other: ユーザー
+        few: 件のユーザー
+        one: 件のユーザー
+        zero: 件のユーザー
       transaction:
         zero: お支払い履歴
         other: お支払い履歴
+        few: 件の取引
+        one: 件の取引
       listing:
-        other: 
+        few: 件の出品
+        one: 件の出品
+        zero: 件の出品
+        other: 件の出品
     previous_label: "&#8592; 前へ"
     next_label: 次へ &#8594;
     page_gap: "&hellip;"
@@ -2048,8 +2076,11 @@ ja:
       single_page:
         zero: "%{model}は見つかりませんでした"
         other: "%{count}つの%{model}を表示しています"
+        one: "%{model} を 1 件表示中"
       single_page_html:
         other: "<b>すべての&nbsp;%{count}</b>%{model}を表示しています"
+        one: "<b>1</b> 件の %{model} を表示中"
+        zero: "%{model} が見つかりません"
       multi_page: "%{from} - %{to} 全体で%{count}件の%{model}を表示しています"
       multi_page_html: "<b>%{from}&nbsp;-&nbsp;%{to}</b> 全体で<b>%{count}</b>件の%{model}を表示しています"
     person:
@@ -2057,41 +2088,49 @@ ja:
         single_page:
           other: "%{accepted_count} の承認済み%{accepted_model} および%{other_count} その他の%{other_model}
             を表示しています"
+          one: "%{accepted_count} 件の承認済み %{accepted_model} と %{other_count} 件のその他の
+            %{other_model} を表示中"
+          zero: "%{model} が見つかりません"
+        multi_page: 表示中 %{model} %{from} - %{to}（承認済み %{accepted_count} 件） %{accepted_model}
+          および他 %{other_model} %{other_count} 件
+        multi_page_html: 表示中 %{model} <b>%{from}&nbsp;-&nbsp;%{to}</b>（承認済み %{accepted_count}
+          件）%{accepted_model} および他 %{other_model} %{other_count} 件
         single_page_html:
-          other: 
-        multi_page: 
-        multi_page_html: 
+          one: "<b>%{accepted_count}</b> 件の承認済み %{accepted_model} と %{other_count}
+            件のその他の %{other_model} を表示中"
+          zero: "%{model} が見つかりません"
+          other: "<b>%{accepted_count}</b> 件の承認済み %{accepted_model} と %{other_count}
+            件のその他の %{other_model} を表示中"
   stripe_accounts:
-    admin_account_not_connected: 支払いが設定されていないため、支払いを受け取るために%{service_name} の支払いシステムを使用することはできません。詳しくは%{contact_admin_link}
-      をご覧ください。
-    contact_admin_link_text: "%{service_name} へ問い合わせる"
-    you_are_ready_to_accept_payments: あなたは支払いを受け取る準備ができています！
-    commission: "%{commission} ％"
-    pay_with_stripe: "%{card} を使ってStripeで支払う"
-    add_and_pay: お支払い確認
-    card_not_stored: あなたの支払いは安全にStripeによって処理されます。%{service_name} はあなたのクレジットカードやデビットカードの情報を保存していません。
-    missing_payment: 
-    stripe_bank_connected: 銀行口座の詳細が正しく設定されました。
-    stripe_can_accept: これにより銀行口座に入金する準備がすべて整いました。
+    admin_account_not_connected: 支払いを受け取るためには、支払いが設定されていないため、%{service_name}の支払いシステムを使用することはできません。詳細については、%{contact_admin_link}にお問い合わせください。
+    contact_admin_link_text: "%{service_name}チームに連絡する"
+    you_are_ready_to_accept_payments: 支払いを受け取る準備ができています！
+    commission: "%{commission} %"
+    pay_with_stripe: Stripeを使用して%{card}で支払う
+    add_and_pay: 支払いを確定する
+    card_not_stored: "%{service_name}はクレジットカード/デビットカードの情報を保存しません。 決済は代行会社により全て安全に処理されます。"
+    missing_payment: あなたの商品は購入または予約できません。%{settings_link}を有効にしてください。
+    stripe_bank_connected: 銀行口座の詳細が正常に設定されました！
+    stripe_can_accept: 現在、銀行口座にお金を受け取る準備が整っています
     stripe_credit_card: クレジットカード
-    paypal: ペイパル
-    paypal_connected: ペイパルアカウントは正常に接続されました
-    paypal_can_accept: ペイパルアカウントでお金を受け取れるようになりました
-    paypal_connected_give_permission: セットアップを完了してPayPalアカウント%{email} への入金を開始するには、取引手数料を請求する許可を付与してください。
-    stripe_account_restricted: アカウントへのオンライン支払いは制限されているか、まもなく制限されます。
-    stripe_account_restricted_info: 
-    stripe_account_restricted_soon: まもなくアカウントへのオンライン支払いは制限されます。
-    stripe_account_restricted_soon_info: 
-    stripe_account_pending_verification: 
-    stripe_account_pending_verification_info: 
-    seller_account_not_connected: 
-    bank_account_not_connected: 
-    stripe_need_more_information: 
-    stripe_need_more_information_info: 
+    paypal: PayPal
+    paypal_connected: PayPalアカウントが正常に接続されました！
+    paypal_can_accept: 現在、PayPalアカウントにお金を受け取る準備が整っています
+    paypal_connected_give_permission: セットアップを完了し、PayPalアカウント（<%{email}>）に資金を受け取る準備が整いました。トランザクション手数料の請求を許可してください。
+    stripe_account_restricted: アカウントへのオンライン支払いが制限されていますまたは近日中に制限されます！
+    stripe_account_restricted_info: 支払いプロバイダに詳細情報を提供するために銀行口座の詳細を編集してください。
+    stripe_account_restricted_soon: アカウントへのオンライン支払いが近日中に制限されます。
+    stripe_account_restricted_soon_info: 支払いプロバイダに詳細情報を提供するために銀行口座の詳細を編集してください。
+    stripe_account_pending_verification: アカウントの詳細が正常に保存されました。支払いプロバイダからのアカウントの確認を待っています。
+    stripe_account_pending_verification_info: 後で確認して、すべてが正常であることを確認してください。
+    seller_account_not_connected: 販売者アカウントが接続されていません
+    bank_account_not_connected: 銀行口座が接続されていません
+    stripe_need_more_information: Stripe、支払いプロバイダ、より多くの情報を必要としています。
+    stripe_need_more_information_info: 支払いを受け取るためには、アカウントを完成させて確認するためにいくつかの詳細を追加する必要があります。
     form_new:
       need_info: 必要事項ご記載後、送金が可能になります。
       select_country: 国を選択する
-      legal_name: 
+      legal_name: 法的名称
       first_name: 名
       last_name: 姓
       first_name_kana: 名（カナ）
@@ -2100,7 +2139,7 @@ ja:
       last_name_kanji: 姓
       country: 国
       birth_date: 生年月日
-      ssn_last_4: 
+      ssn_last_4: SSN 下4桁
       personal_id_number: パーソナルID番号
       address_country: 国
       address_state: 都道府県
@@ -2128,9 +2167,9 @@ ja:
       address_kanji_line1: 住所２
       male: 男性
       female: 女性
-      individual: 
-      company: 
-      account_type: 
+      individual: 個人です
+      company: 法人を代表しています
+      account_type: アカウントのタイプ
     form_bank:
       bank_account_number: 口座番号
       bank_routing_number: 銀行支店コード
@@ -2138,9 +2177,9 @@ ja:
       bank_routing_2: 支店コード
       bank_currency: 通貨
       update_also_bank_account: 銀行口座も更新する
-      bank_account_same_country: 
-      bank_country: 
-      bank_holder_name: 
+      bank_account_same_country: 居住国にある銀行口座を使用してください
+      bank_country: 銀行口座の国
+      bank_holder_name: 銀行口座名義人名
       messages:
         account_number: 口座番号
         routing_number: ルーティングナンバー
@@ -2154,25 +2193,26 @@ ja:
         clearing_code: コード
         sort_code: ソートコード
         must_match: 次の形式でなければなりません。
-        a_dash: 
+        a_dash: ハイフン
         digits: 数字
         digits_or_chars: 数字またはA〜Zのアルファベット
     form_verification:
       personal_id_number: パーソナルID番号
       document: 本人確認書類
-      document_back: 
+      document_back: 本人確認書類裏面
       send_verification: 認証メールを送信
       need_verification: 追加の確認が必要です
-      additional_document: 
-      additional_document_back: 
-      files_need_to_be: 
+      additional_document: 住所を示す書類、パスポート、現地の ID カード、または有名な公共料金会社からの公共料金請求書のいずれか
+      additional_document_back: 住所を示す書類、パスポート、現地の ID カード、または有名な公共料金会社からの公共料金請求書のいずれか
+        (書類の裏面)
+      files_need_to_be: ファイルは 5MB 未満の JPEG または PNG である必要があります。 PDFの検証はできません。 ファイルはカラーで、画像の右側を上にして回転し、すべての情報がはっきりと判読できる必要があります。
     form_pin:
       social_insurance_number: 社会保険番号 (SIN)
       social_security_number: 社会保障番号（SSN）
-      ssn_last_4: 
-      hong_kong_identity_card: 
-      singapore_identity_card: 
-      mexico_id_number: 
+      ssn_last_4: 社会保険番号（SSN）の下4桁
+      hong_kong_identity_card: 香港身分証明書番号（HKID）
+      singapore_identity_card: 国民登録身分証明書（NRIC）または外国人識別番号（FIN）
+      mexico_id_number: 連邦納税者登録番号（RFC）
       messages:
         social_insurance_number: 有効な社会保険番号（SIN）である必要があります
   payment_settings:
@@ -2189,38 +2229,45 @@ ja:
     invalid_bank_account_number: あなたの銀行アカウントが正しく入力されているか、国がマッチしているかチェックしてください。
     invalid_postal_code: '無効な郵便番号です %{country} '
   seo_sections:
-    you_can_use_variables: 
+    you_can_use_variables: 'You can use the following variables: %{vars}'
     placeholder:
-      search_results: 
-      search_results_for: 
-      listing_description: 
-      listing_description_without_price: 
-      category_description: 
-      profile_title: 
-      profile_description: 
+      search_results: 検索結果 - %{variable}
+      search_results_for: "%{placeholder2} での「%{placeholder1}」の検索結果"
+      listing_description: "%{marketplace} での %{author} の %{title}（%{price}）"
+      listing_description_without_price: "%{marketplace} での %{author} の %{title}"
+      category_description: "%{marketplace} の %{category}"
+      profile_title: "%{user} のプロフィール - %{marketplace}"
+      profile_description: "%{marketplace} で %{user} の詳細を見る"
+    search_results: Search results - %{variable}
+    search_results_for: 'Search results for: %{placeholder1} on %{placeholder2}'
+    listing_description: "%{title} for %{price} by %{author} on %{marketplace}"
+    listing_description_without_price: "%{title} by %{author} on %{marketplace}"
+    category_description: "%{category} on %{marketplace}"
+    profile_title: Profile of %{user} - %{marketplace}
+    profile_description: Learn more about %{user} on %{marketplace}
   activemodel:
     attributes:
       landing_page_version/section/base:
-        id: 
+        id: セクション一意名
         title: タイトル
         paragraph: パラグラフ
         button_title: テキスト
         button_path: URL
         button_path_string: URL
         background_image: 背景画像
-        background_image_variation: 
-        background_color: 
-        background_color_string: 
+        background_image_variation: 背景画像バリエーション
+        background_color: 背景色
+        background_color_string: 背景色
       landing_page_version/section/listings:
-        listing_1_id: 
-        listing_2_id: 
-        listing_3_id: 
+        listing_1_id: 出品 1 ID
+        listing_2_id: 出品 2 ID
+        listing_3_id: 出品 3 ID
       landing_page_version/section/video:
-        text: 
-        youtube_video_id: 
+        text: テキスト
+        youtube_video_id: YouTube 動画 ID
       landing_page_version/section/hero:
-        cta_button_text: 
-        cta_button_url: 
+        cta_button_text: テキスト
+        cta_button_url: URL
   canada_states:
     AB: Alberta
     BC: British Columbia
@@ -2235,3 +2282,7 @@ ja:
     QC: Quebec
     SK: Saskatchewan
     YT: Yukon Territory
+  messages:
+    content_hidden_sender_removed: このメッセージは安全上の理由から非表示になっています。
+  comments:
+    content_hidden_author_removed: このコメントは安全上の理由から非表示になっています。
