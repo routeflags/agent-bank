@@ -15,32 +15,40 @@
  */
 import React from 'react';
 
-const ChatMessage = ({ role, content, isStreaming, total_tokens, created_at }) => {
-  const roleClass = `chatMessage--${role || 'user'}`;
-  const timeStr = created_at
-    ? new Date(created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : null;
+class ChatMessage extends React.Component {
+  render() {
+    var role = this.props.role;
+    var content = this.props.content;
+    var isStreaming = this.props.isStreaming;
+    var totalTokens = this.props.total_tokens;
+    var createdAt = this.props.created_at;
 
-  return (
-    <div className={`chatMessage ${roleClass}`}>
-      <div className="chatMessage__bubble">
-        {content || ''}
-        {isStreaming && <span className="chatMessage__streaming" />}
-      </div>
+    var roleClass = 'chatMessage--' + (role || 'user');
+    var timeStr = createdAt
+      ? new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : null;
 
-      {/* Show token usage for completed assistant messages */}
-      {role === 'assistant' && total_tokens > 0 && (
-        <span className="chatMessage__tokens">
-          {total_tokens} tokens
-        </span>
-      )}
+    return (
+      React.createElement('div', { className: 'chatMessage ' + roleClass },
+        React.createElement('div', { className: 'chatMessage__bubble' },
+          content || '',
+          isStreaming && React.createElement('span', { className: 'chatMessage__streaming' })
+        ),
 
-      {/* Timestamp */}
-      {timeStr && role !== 'system' && (
-        <span className="chatMessage__meta">{timeStr}</span>
-      )}
-    </div>
-  );
-};
+        // Show token usage for completed assistant messages
+        role === 'assistant' && totalTokens > 0 && (
+          React.createElement('span', { className: 'chatMessage__tokens' },
+            totalTokens + ' tokens'
+          )
+        ),
+
+        // Timestamp
+        timeStr && role !== 'system' && (
+          React.createElement('span', { className: 'chatMessage__meta' }, timeStr)
+        )
+      )
+    );
+  }
+}
 
 export default ChatMessage;
