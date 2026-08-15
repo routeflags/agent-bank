@@ -120,6 +120,25 @@ class Listing < ApplicationRecord
 
   scope :exist, -> { where(deleted: false) }
 
+  # --- AI Persona Search Scopes ---
+
+  # Returns only listings whose default run mode is 'run_online'.
+  scope :run_online, -> { where(default_run_mode: 'run_online') }
+
+  # Returns only listings whose default run mode is 'download'.
+  scope :download_mode, -> { where(default_run_mode: 'download') }
+
+  # Returns only listings whose default run mode is 'free'.
+  scope :free_mode, -> { where(default_run_mode: 'free') }
+
+  # Returns listings that are associated with a specific AI model via listing_ai_models.
+  scope :with_ai_model, ->(ai_model_id) {
+    joins(:listing_ai_models).where(listing_ai_models: { ai_model_id: ai_model_id })
+  }
+
+  # Returns listings that have a non-blank default_run_mode (i.e. are AI personas).
+  scope :persona_only, -> { where.not(default_run_mode: [nil, '']) }
+
   scope :search_title_author_category, ->(pattern) do
     joins(:author)
       .joins(:category => :translations)

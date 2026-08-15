@@ -493,6 +493,25 @@ FactoryBot.define do
 
   # -- Capafy AI: Chat Session & Message factories --
 
+  factory :ai_provider do
+    sequence(:name) { |n| "Provider #{n}" }
+    sequence(:slug) { |n| "provider-#{n}" }
+  end
+
+  factory :ai_model do
+    ai_provider
+    sequence(:name) { |n| "Model #{n}" }
+    sequence(:slug) { |n| "model-#{n}" }
+    sequence(:model_id) { |n| "model-#{n}" }
+    is_active { true }
+  end
+
+  factory :listing_ai_model do
+    listing
+    ai_model
+    is_default { false }
+  end
+
   factory :chat_session do
     person_id { SecureRandom.urlsafe_base64 }
     listing

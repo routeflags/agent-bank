@@ -2,7 +2,7 @@ module ListingIndexService::Search::Converters
   module_function
 
   def listing_hash(l, includes, meta={})
-    {
+    base = {
       id: l.id,
       title: l.title,
       description: l.description,
@@ -16,10 +16,18 @@ module ListingIndexService::Search::Converters
       quantity: l.quantity,
       shape_name_tr_key: l.shape_name_tr_key,
       listing_shape_id: l.listing_shape_id
-    }.merge(meta)
-      .merge(location_hash(l, includes))
-      .merge(author_hash(l, includes))
-      .merge(listing_images_hash(l, includes))
+    }
+
+    # Include persona card when the listing has a default_run_mode set,
+    # indicating it is an AI Persona listing.
+    if l.respond_to?(:default_run_mode) && l.default_run_mode.present?
+      base[:persona_card] = l.persona_card
+    end
+
+    base.merge(meta)
+        .merge(location_hash(l, includes))
+        .merge(author_hash(l, includes))
+        .merge(listing_images_hash(l, includes))
   end
 
   def location_hash(l, includes)

@@ -19,6 +19,13 @@ module ListingIndexService::Search::DatabaseSearchHelper
     scope = Listing
     scope = scope.use_homepage_index if !search[:include_closed] && !search[:author_id]
     scope = scope.currently_open unless search[:include_closed]
+
+    # AI Persona filters
+    scope = scope.run_online if search[:run_mode] == 'run_online'
+    scope = scope.download_mode if search[:run_mode] == 'download'
+    scope = scope.with_ai_model(search[:ai_model_id]) if search[:ai_model_id].present?
+    scope = scope.persona_only if search[:has_persona].present?
+
     listings = scope.where(where_opts)
                  .includes(included_models)
                  .order("listings.sort_date DESC")
@@ -33,6 +40,10 @@ module ListingIndexService::Search::DatabaseSearchHelper
     search[:author_id].present? || search[:include_closed] == true
   end
 
+  # Determines whether the search request must go through the external
+  # search engine (Sphinx).  Persona-related filters (:run_mode,
+  # :ai_model_id, :has_persona) are intentionally excluded here so they
+  # are always handled by the DB query path in #fetch_from_db.
   def needs_search?(search)
     [
       :keywords,
