@@ -50,15 +50,17 @@ module Ai
       http = build_http
       request = build_request(headers, body)
 
-      response = http.request(request)
-
-      case response
-      when Net::HTTPSuccess
-        parse_sse_stream(response, &block)
-      when Net::HTTPRedirection
-        raise ConnectionError, "Redirect to #{response["location"]} not supported"
-      else
-        raise StreamingError, "HTTP #{response.code}: #{response.message}"
+      # Use http.request with a block to stream the response body.
+      # This avoids the "read_body called twice" error.
+      http.request(request) do |response|
+        case response
+        when Net::HTTPSuccess
+          parse_sse_stream(response, &block)
+        when Net::HTTPRedirection
+          raise ConnectionError, "Redirect to #{response["location"]} not supported"
+        else
+          raise StreamingError, "HTTP #{response.code}: #{response.message}: #{response.body&.truncate(200)}"
+        end
       end
     rescue Net::OpenTimeout, Net::ReadTimeout => e
       raise TimeoutError, "Read timeout: #{e.message}"
@@ -89,7 +91,7 @@ module Ai
     def build_request(headers, body)
       request = Net::HTTP::Post.new(@uri.request_uri)
       headers.each { |key, value| request[key] = value }
-      request.body = body.to_json
+      request.body = body.is_a?(String) ? body : body.to_json
       request
     end
 
@@ -109,34 +111,19 @@ module Ai
       buffer = ""
       stream_done = false
 
-      response.read_body do |chunk|
-        break if stream_done
-        buffer += chunk
+      # Use response.body directly (already read by http.request block form)
+      body_text = response.body.to_s
 
-        # Process complete lines (delimited by \n)
-        while (line_end = buffer.index("\n"))
-          line = buffer.slice!(0, line_end + 1).strip
-          next if line.empty?
+      body_text.each_line do |line|
+        line = line.strip
+        next if line.empty?
 
-          if line.start_with?("data: ")
-            data = line[6..] # Remove "data: " prefix
-            if data == "[DONE]"
-              stream_done = true
-              break
-            end
-
-            yield data
+        if line.start_with?("data: ")
+          data = line[6..]
+          if data == "[DONE]"
+            break
           end
-          # Ignore event:, id:, retry: lines and comments
-        end
-      end
-
-      # Process any remaining data in the buffer (only if stream didn't end with [DONE])
-      unless stream_done || buffer.strip.empty?
-        remaining = buffer.strip
-        if remaining.start_with?("data: ")
-          data = remaining[6..]
-          yield data unless data == "[DONE]"
+          yield data
         end
       end
     end

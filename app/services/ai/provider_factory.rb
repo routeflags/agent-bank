@@ -10,11 +10,11 @@
 #   adapter.stream(messages) { |chunk| ... }
 module Ai
   class ProviderFactory
-    # Mapping from provider slug to adapter class.
-    # Add new providers here as they are supported.
+    # Mapping from provider slug to adapter class name.
+    # Resolved lazily to avoid autoload timing issues.
     ADAPTER_MAP = {
-      "openai" => OpenAiAdapter,
-      "anthropic" => AnthropicAdapter
+      "openai" => "Ai::OpenAiAdapter",
+      "anthropic" => "Ai::AnthropicAdapter"
     }.freeze
 
     # Raised when a listing has no default AI model configured,
@@ -42,13 +42,14 @@ module Ai
       ai_model = listing_ai_model.ai_model
       provider = ai_model.ai_provider
 
-      adapter_class = ADAPTER_MAP[provider.slug]
+      adapter_class_name = ADAPTER_MAP[provider.slug]
 
-      unless adapter_class
+      unless adapter_class_name
         raise ProviderNotConfiguredError,
           "Unsupported AI provider: #{provider.slug} (supported: #{ADAPTER_MAP.keys.join(', ')})"
       end
 
+      adapter_class = adapter_class_name.constantize
       adapter_class.new(ai_model)
     end
   end
