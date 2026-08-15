@@ -491,6 +491,28 @@ FactoryBot.define do
     person_id         {"ABC"}
   end
 
+  # -- Capafy AI: Chat Session & Message factories --
+
+  factory :chat_session do
+    person_id { SecureRandom.urlsafe_base64 }
+    listing
+    status { "active" }
+    billing_model { "token" }
+    started_at { Time.current }
+    total_tokens { 0 }
+  end
+
+  factory :chat_message do
+    chat_session
+    sender_type { "Person" }
+    sender_id { "" }
+    content { "Hello, AI!" }
+    role { "user" }
+    seq { 1 }
+    input_tokens { 0 }
+    output_tokens { 0 }
+  end
+
   factory :landing_page, class: 'LandingPage' do
     community_id      {123}
     enabled           {true}
