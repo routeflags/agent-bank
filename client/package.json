@@ -42,11 +42,13 @@
     "@babel/preset-react": "7.26.3",
     "@babel/register": "7.25.9",
     "@babel/runtime": "7.26.10",
+    "@rails/actioncable": "^7.2.302",
     "axios": "^1.8.4",
     "babel-loader": "8.2.5",
     "check-node-version": "3.3.0",
     "classnames": "2.2.5",
     "css-loader": "4.3.0",
+    "elliptic": ">=6.6.1",
     "es6-shim": "0.35.6",
     "file-loader": "5.1.0",
     "i18n-js": "http://github.com/sharetribe/i18n-js/archive/interpolation-mode.tar.gz",
@@ -84,8 +86,7 @@
     "url-loader": "3.0.0",
     "webpack": "5.84.1",
     "webpack-cli": "^5.1.1",
-    "whatwg-fetch": "3.6.2",
-    "elliptic": ">=6.6.1"
+    "whatwg-fetch": "3.6.2"
   },
   "devDependencies": {
     "babel-eslint": "10.0.1",
