@@ -4,7 +4,7 @@
 #
 # Provides CRUD operations for chat sessions, scoped to the
 # authenticated user. Sessions link a Person to a Listing (persona).
-class Api::V1::ChatSessionsController < ApplicationController
+class API::V1::ChatSessionsController < ApplicationController
   skip_before_action :fetch_community,
                      :fetch_community_plan_expiration_status,
                      :perform_redirect,

@@ -10,7 +10,7 @@
 # - Content-Type: text/event-stream
 # - Cache-Control: no-cache (prevent proxy caching)
 # - X-Accel-Buffering: no (disable nginx buffering)
-class Api::V1::ChatStreamController < ApplicationController
+class API::V1::ChatStreamController < ApplicationController
   include ActionController::Live
 
   skip_before_action :fetch_community,
