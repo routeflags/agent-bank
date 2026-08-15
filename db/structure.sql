@@ -243,8 +243,8 @@ DROP TABLE IF EXISTS `chat_messages`;
 CREATE TABLE `chat_messages` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `chat_session_id` bigint NOT NULL,
-  `sender_type` varchar(255) NOT NULL,
-  `sender_id` varchar(22) NOT NULL,
+  `sender_type` varchar(255) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+  `sender_id` varchar(22) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
   `content` text,
   `role` varchar(255) NOT NULL DEFAULT 'user',
   `seq` int NOT NULL DEFAULT '0',
@@ -1814,6 +1814,7 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20260815000008'),
 ('20260815000007'),
 ('20260815000006'),
 ('20260815000005'),
