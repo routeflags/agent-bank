@@ -184,7 +184,7 @@ class HomepageController < ApplicationController
       search.merge!(location_search_params(params, keyword_search_in_use))
     end
 
-    raise_errors = Rails.env.development?
+    raise_errors = false
 
     if FeatureFlagHelper.feature_enabled?(:searchpage_v1)
       DiscoveryClient.get(:query_listings,

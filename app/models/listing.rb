@@ -429,6 +429,9 @@ class Listing < ApplicationRecord
   def available_run_modes
     return RUN_MODES if supported_run_modes.blank?
 
+    # Handle both Array (Rails serialization) and String (raw JSON) forms
+    return supported_run_modes if supported_run_modes.is_a?(Array)
+
     JSON.parse(supported_run_modes)
   rescue JSON::ParserError
     []
