@@ -1,0 +1,299 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽間 — Listing Detail Page (Skill Detail)
+// ═══════════════════════════════════════════════════════════
+
+body.dark-theme {
+  // ── Breadcrumbs ────────────────────────────────────────
+  .raku-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .raku-breadcrumb__link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+
+    &:hover { color: var(--text-primary); }
+  }
+
+  .raku-breadcrumb__separator {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  .raku-breadcrumb__current {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  // ── Tabs ───────────────────────────────────────────────
+  .raku-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 24px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
+
+  .raku-tabs__item {
+    padding: 14px 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+
+    &:hover {
+      color: var(--text-primary);
+    }
+
+    &.is-active {
+      color: var(--accent-gold);
+      border-bottom-color: var(--accent-gold);
+    }
+  }
+
+  .raku-tabs__count {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+
+  // ── Listing hero ───────────────────────────────────────
+  .raku-listing-hero {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 32px;
+    margin-bottom: 32px;
+  }
+
+  .raku-listing-hero__image {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+    background-color: var(--bg-card);
+  }
+
+  .raku-listing-hero__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  // Price box
+  .raku-price-box {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+  }
+
+  .raku-price-box__amount {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  .raku-price-box__unit {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-left: 4px;
+  }
+
+  .raku-price-box__note {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .raku-price-box__rating {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    font-size: 14px;
+    color: var(--accent-gold);
+  }
+
+  .raku-price-box__rating-count {
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+
+  // CTA buttons
+  .raku-cta-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .raku-cta-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+    text-align: center;
+
+    &--primary {
+      background-color: var(--accent-gold);
+      color: #1a1a1a;
+
+      &:hover {
+        background-color: var(--accent-gold-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+      }
+    }
+
+    &--secondary {
+      background-color: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+
+      &:hover {
+        border-color: var(--text-secondary);
+        background-color: rgba(255, 255, 255, 0.03);
+      }
+    }
+
+    &--ghost {
+      background-color: transparent;
+      color: var(--text-secondary);
+      border: none;
+      padding: 10px 16px;
+
+      &:hover {
+        color: var(--text-primary);
+      }
+    }
+  }
+
+  // Seller card
+  .raku-seller-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .raku-seller-card__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: var(--bg-secondary);
+    flex-shrink: 0;
+  }
+
+  .raku-seller-card__name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .raku-seller-card__badge {
+    font-size: 12px;
+    color: var(--accent-gold);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  // Feature bullets
+  .raku-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+  }
+
+  .raku-features__item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background-color: rgba(76, 175, 80, 0.1);
+    border-radius: 16px;
+    font-size: 13px;
+    color: var(--badge-success);
+  }
+
+  .raku-features__check {
+    font-size: 14px;
+  }
+
+  // ── Listing detail panel ───────────────────────────────
+  .raku-detail-panel {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+  }
+
+  .raku-detail-panel__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 16px;
+  }
+
+  .raku-detail-panel__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .raku-detail-panel__item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .raku-detail-panel__label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .raku-detail-panel__value {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+}
+
+// ── Mobile ────────────────────────────────────────────
+@media (max-width: 991px) {
+  body.dark-theme .raku-listing-hero {
+    grid-template-columns: 1fr;
+  }
+}

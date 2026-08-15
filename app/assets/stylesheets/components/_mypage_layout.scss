@@ -1,0 +1,36 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽間 — My Page Layout
+// ═══════════════════════════════════════════════════════════
+
+body.dark-theme {
+  .raku-mypage {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 20px;
+  }
+
+  .raku-mypage__main {
+    min-width: 0;
+  }
+
+  .raku-table-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 16px;
+  }
+}
+
+// ── Mobile ────────────────────────────────────────────
+@media (max-width: 991px) {
+  body.dark-theme .raku-mypage {
+    grid-template-columns: 1fr;
+  }
+
+  body.dark-theme .raku-sidebar {
+    position: static;
+  }
+}

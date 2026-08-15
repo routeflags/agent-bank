@@ -1,0 +1,164 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽間 — Skill Table (My Page)
+// ═══════════════════════════════════════════════════════════
+
+body.dark-theme {
+  .raku-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .raku-table thead {
+    background-color: var(--bg-secondary);
+  }
+
+  .raku-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+  }
+
+  .raku-table td {
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+  }
+
+  .raku-table tbody tr {
+    transition: background-color var(--transition-fast);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  // Skill name cell with thumbnail
+  .raku-table__skill {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .raku-table__skill-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    background-color: var(--bg-secondary);
+    flex-shrink: 0;
+  }
+
+  .raku-table__skill-name {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .raku-table__skill-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  // Status badge
+  .raku-table__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+
+    &--active {
+      background-color: rgba(76, 175, 80, 0.15);
+      color: var(--badge-success);
+    }
+
+    &--draft {
+      background-color: rgba(255, 152, 0, 0.15);
+      color: var(--badge-warning);
+    }
+
+    &--paused {
+      background-color: rgba(153, 153, 153, 0.15);
+      color: var(--text-secondary);
+    }
+  }
+
+  .raku-table__status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  // Star rating
+  .raku-table__rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--accent-gold);
+  }
+
+  // Action menu
+  .raku-table__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .raku-table__action-btn {
+    padding: 6px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all var(--transition-fast);
+
+    &:hover {
+      color: var(--text-primary);
+      border-color: var(--text-secondary);
+    }
+  }
+
+  // Empty state
+  .raku-table__empty {
+    padding: 48px 16px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  .raku-table__empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+}
+
+@media (max-width: 991px) {
+  body.dark-theme .raku-table {
+    display: block;
+    overflow-x: auto;
+  }
+}

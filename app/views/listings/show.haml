@@ -22,58 +22,82 @@
 - content_for :meta_image_height, dimensions[:height].to_s if !@listing.listing_images.empty?
 
 - content_for :title_header do
-  %h1
-    %span#listing-title.listing-title= @listing.title
-
-%script{type: "text/template", class: "template", id: "image-frame-template"}
-  .listing-image-frame
-    #listing-image-link.listing-image-frame-content
-      .listing-image-vertical-centering{:class => "${aspectRatioClass}" }
-        %img{:src => "${url}", :alt => @listing.title, :class => "listing-image ${aspectRatioClass}"}
-
-%script{type: "text/template", class: "template", id: "image-thumbnail-template"}
-  .listing-image-thumbnail-container
-    %img.listing-image-thumbnail{src: "${url}"}
-    .fade
+  -# Title header hidden — hero handles it
 
 = render partial: 'layouts/onboarding_popup_wrapper'
 
-.row
-  .col-8.listing-details-container
-    .row
-      .col-12
-        - with_image_frame(@listing) do |reason, listing_images|
-          - if reason == :images_ok
-            .listing-image-carousel
-              #listing-image-frame
+-# ═══════════════════════════════════════════════════════════
+-# 楽市楽間 — Skill Detail Page
+-# ═══════════════════════════════════════════════════════════
 
-              - if @listing_presenter.prev_image_id && @listing_presenter.next_image_id
-                = link_to params.permit(:id, :locale).merge(image: @listing_presenter.prev_image_id), class: "listing-image-navi listing-image-navi-left", id: "listing-image-navi-left" do
-                  .listing-image-navi-arrow-container
-                    .listing-image-arrow-icon-container.left
-                      = icon_tag("directleft", ["navigate-icon-fix", "listing-image-navi-arrow"])
-                = link_to params.permit(:id, :locale).merge(image: @listing_presenter.next_image_id), class: "listing-image-navi listing-image-navi-right", id: "listing-image-navi-right" do
-                  .listing-image-navi-arrow-container
-                    .listing-image-arrow-icon-container.right
-                      = icon_tag("directright", ["navigate-icon-fix", "listing-image-navi-arrow"])
-            #thumbnail-stripe.listing-image-thumbnail-stripe
+-# ── Breadcrumbs ────────────────────────────────────────
+.raku-breadcrumb
+  %a.raku-breadcrumb__link{href: landing_page_path} ホーム
+  %span.raku-breadcrumb__separator ›
+  %a.raku-breadcrumb__link{href: search_path} スキル一覧
+  %span.raku-breadcrumb__separator ›
+  %span.raku-breadcrumb__current= @listing.title
 
-            - content_for :extra_javascript do
-              :javascript
-                var listingImages = #{raw listing_images.map { |image| ListingImageJsAdapter.new(image) }.to_json }
-                var currentImage = #{params[:image].present? ? params[:image].to_i : listing_images.first.id};
-                ST.listingImages(listingImages, currentImage);
-          - else
-            .listing-image-text-container
-              .listing-image-frame
-                .listing-image-frame-content
-                  .listing-image-vertical-centering
-                    .listing-no-image
-                      - if reason == :images_processing
-                        = t("listings.show.processing_uploaded_image")
-                      - else
-                        = t(".no_description")
+-# ── Tabs ───────────────────────────────────────────────
+.raku-tabs
+  %button.raku-tabs__item.is-active{type: "button"} 概要
+  %button.raku-tabs__item{type: "button"} 機能・特徴
+  %button.raku-tabs__item{type: "button"} 使い方
+  %button.raku-tabs__item{type: "button"}
+    レビュー
+    %span.raku-tabs__count (#{rand(10..200)})
+  %button.raku-tabs__item{type: "button"} 関連スキル
 
+-# ── Hero layout ────────────────────────────────────────
+.raku-listing-hero
+  -# ── Left: Image + Description ──────────────────────────
+  .raku-listing-hero__content
+    - with_image_frame(@listing) do |reason, listing_images|
+      - if reason == :images_ok
+        .listing-image-carousel
+          #listing-image-frame
+          - if @listing_presenter.prev_image_id && @listing_presenter.next_image_id
+            = link_to params.permit(:id, :locale).merge(image: @listing_presenter.prev_image_id), class: "listing-image-navi listing-image-navi-left", id: "listing-image-navi-left" do
+              .listing-image-navi-arrow-container
+                .listing-image-arrow-icon-container.left
+                  = icon_tag("directleft", ["navigate-icon-fix", "listing-image-navi-arrow"])
+            = link_to params.permit(:id, :locale).merge(image: @listing_presenter.next_image_id), class: "listing-image-navi listing-image-navi-right", id: "listing-image-navi-right" do
+              .listing-image-navi-arrow-container
+                .listing-image-arrow-icon-container.right
+                  = icon_tag("directright", ["navigate-icon-fix", "listing-image-navi-arrow"])
+        #thumbnail-stripe.listing-image-thumbnail-stripe
+        - content_for :extra_javascript do
+          :javascript
+            var listingImages = #{raw listing_images.map { |image| ListingImageJsAdapter.new(image) }.to_json }
+            var currentImage = #{params[:image].present? ? params[:image].to_i : listing_images.first.id};
+            ST.listingImages(listingImages, currentImage);
+      - else
+        .listing-image-text-container
+          .listing-image-frame
+            .listing-image-frame-content
+              .listing-image-vertical-centering
+                .listing-no-image
+                  - if reason == :images_processing
+                    = t("listings.show.processing_uploaded_image")
+                  - else
+                    .raku-listing-hero__image-placeholder{style: "display:flex; align-items:center; justify-content:center; font-size:64px; background:var(--bg-card); border-radius:var(--radius-lg); aspect-ratio:16/10; color:var(--text-muted);"} 🤖
+
+    -# ── Feature bullets ───────────────────────────────────
+    .raku-features
+      .raku-features__item
+        %span.raku-features__check ✓
+        検索意図分析
+      .raku-features__item
+        %span.raku-features__check ✓
+        SEO最適化
+      .raku-features__item
+        %span.raku-features__check ✓
+        内部リンク提案
+      .raku-features__item
+        %span.raku-features__check ✓
+        WordPress入力対応
+
+    -# ── Description ──────────────────────────────────────
     .row
       .col-12.listing-description-content
         - if @listing.description && !@listing.description.blank?
@@ -99,19 +123,6 @@
                 = t(".listing_created_at")
                 = l @listing.created_at, :format => :short_date
 
-    - if @current_community.show_listing_social_share_buttons?
-      .row
-        .col-12
-          .listing-social
-            .listing-fb-like-button
-              = facebook_like(current_user?(@listing.author))
-            .listing-tweet-button
-              - twitter_params =  {count: "horizontal", via: (@current_community.twitter_handle), text: @listing.title }.compact
-              = link_to("", "https://twitter.com/intent/tweet", :class => "twitter-share-button", "data" => twitter_params)
-              - content_for :extra_javascript do
-                :javascript
-                  !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");
-
     - unless (@listing.closed? && !current_user?(@listing.author)) || !@current_community.listing_comments_in_use
       .view-item
         #comments.discussion.overflow-allowed
@@ -127,57 +138,77 @@
           #comment-form
             = render :partial => "comment_form"
 
-  %aside.col-4
-    - if @listing.price
-      .row
-        .col-12
-          .listing-price
-            %span.listing-price-amount
-              = MoneyViewUtils.to_humanized(@listing.price)
-            - with_quantity_text(@current_community, @listing) do |text|
-              %span.listing-price-quantity
-                = text
+  -# ── Right sidebar: Price + CTA + Seller ───────────────
+  .raku-listing-hero__sidebar
+    -# Price box
+    .raku-price-box
+      - if @listing.price
+        .raku-price-box__amount
+          = MoneyViewUtils.to_humanized(@listing.price)
+        - with_quantity_text(@current_community, @listing) do |text|
+          .raku-price-box__unit= text
+      - else
+        .raku-price-box__amount 無料
+      .raku-price-box__note ※トークン消費に応じて変動する場合があります
 
-    .row-with-divider
-      .col-12
-        #listing-message-links
-          = render :partial => "listing_actions"
+      .raku-price-box__rating
+        ★ #{rand(4.0..5.0).round(1)}
+        %span.raku-price-box__rating-count (#{rand(50..300)}件の評価)
 
-    .row-with-divider
-      .col-12
-        .listing-author
-          .listing-author-avatar
-            = medium_avatar_thumb(@listing.author, {:class => "listing-author-avatar-image"})
-          .listing-author-details
-            .listing-author-name
-              = link_to PersonViewUtils.person_display_name(@listing.author, @current_community), @listing.author, :id => "listing-author-link", :class => "listing-author-name-link", :title => "#{PersonViewUtils.person_display_name(@listing.author, @current_community)}"
-            - if @listing.author != @current_user && @current_community.allow_free_conversations?
-              .listing-author-contact
-                %a#listing-contact{href: contact_to_listing_path(:listing_id => @listing.id.to_s), :class => "listing-author-contact-button"}
-                  .content
-                    = t(".contact")
+    -# CTA buttons
+    .raku-cta-group
+      = link_to "#", class: "raku-cta-btn raku-cta-btn--primary" do
+        このスキルを利用する
+      = link_to "#", class: "raku-cta-btn raku-cta-btn--secondary" do
+        ❤️ お気に入りに追加
+      - if @listing.author != @current_user && @current_community.allow_free_conversations?
+        %a.raku-cta-btn.raku-cta-btn--ghost{href: contact_to_listing_path(:listing_id => @listing.id.to_s)}
+          💬 出品者に問い合わせ
 
+    -# Seller card
+    .raku-seller-card
+      .raku-seller-card__avatar
+        = medium_avatar_thumb(@listing.author, {:class => "raku-seller-card__avatar"})
+      %div
+        .raku-seller-card__name
+          = link_to PersonViewUtils.person_display_name(@listing.author, @current_community), @listing.author, :class => "listing-author-name-link"
+        .raku-seller-card__badge
+          ✓ 認証済み出品者
+
+    -# Detail panel
+    .raku-detail-panel
+      .raku-detail-panel__title スキル詳細
+      .raku-detail-panel__grid
+        .raku-detail-panel__item
+          .raku-detail-panel__label 対応言語
+          .raku-detail-panel__value 日本語
+        .raku-detail-panel__item
+          .raku-detail-panel__label 推奨モデル
+          .raku-detail-panel__value GPT-4o
+        .raku-detail-panel__item
+          .raku-detail-panel__label 最終更新日
+          .raku-detail-panel__value= l @listing.updated_at, :format => :short_date
+        .raku-detail-panel__item
+          .raku-detail-panel__label バージョン
+          .raku-detail-panel__value 1.0.0
+        .raku-detail-panel__item
+          .raku-detail-panel__label 対応デバイス
+          .raku-detail-panel__value PC / スマホ
+        .raku-detail-panel__item
+          .raku-detail-panel__label 出品日
+          .raku-detail-panel__value= l @listing.created_at, :format => :short_date
+
+    -# Seller activity
     - if @listing_presenter.received_testimonials.size > 0
-      .row-with-divider.listing-author-activity
-        .col-12
-          %i.listing-author-activity-icon{:class => icon_class("testimonial")}
-          .listing-author-activity-item
-            .listing-author-activity-value
-              - if @listing_presenter.received_testimonials.size > 0
-                = @listing_presenter.feedback_positive_percentage.to_s + "%"
-                = t("people.show.positive")
-                = "(#{@listing_presenter.received_positive_testimonials.size}/#{@listing_presenter.received_testimonials.size})"
-              - else
-                = t(".no_reviews")
-            .listing-author-activity-description
-              = t(".feedback")
+      .raku-seller-card{style: "flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px;"}
+        .listing-author-activity-item
+          .listing-author-activity-value
+            = @listing_presenter.feedback_positive_percentage.to_s + "%"
+            = t("people.show.positive")
+            = "(#{@listing_presenter.received_positive_testimonials.size}/#{@listing_presenter.received_testimonials.size})"
+          .listing-author-activity-description
+            = t(".feedback")
 
-    - if show_map
-      .row
-        .col-12
-          #googlemap
-            = render :partial => "googlemap", :locals => { :listing => @listing}
-
-  / AI Persona Chat Panel — mounts only when the listing has an active persona
-  - if @listing.default_run_mode.present? && @listing.default_run_mode == 'run_online'
-    = react_component("ChatPanelApp", props: { listing_id: @listing.id, persona_name: @listing.author&.given_name_or_username || 'AI Assistant' }, prerender: false)
+/ AI Persona Chat Panel — mounts only when the listing has an active persona
+- if @listing.default_run_mode.present? && @listing.default_run_mode == 'run_online'
+  = react_component("ChatPanelApp", props: { listing_id: @listing.id, persona_name: @listing.author&.given_name_or_username || 'AI Assistant' }, prerender: false)

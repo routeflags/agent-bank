@@ -1,0 +1,77 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽間 — Category Grid
+// ═══════════════════════════════════════════════════════════
+
+body.dark-theme {
+  .raku-categories {
+    max-width: 1200px;
+    margin: 0 auto 48px;
+    padding: 0 20px;
+  }
+
+  .raku-categories__title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 24px;
+  }
+
+  .raku-categories__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+
+  .raku-categories__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 12px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    text-align: center;
+    transition: all var(--transition-normal);
+
+    &:hover {
+      background-color: var(--bg-card-hover);
+      border-color: var(--accent-gold);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+
+  .raku-categories__icon {
+    font-size: 32px;
+    line-height: 1;
+  }
+
+  .raku-categories__name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+
+  .raku-categories__count {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+}
+
+@media (max-width: 767px) {
+  body.dark-theme .raku-categories__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  body.dark-theme .raku-categories__item {
+    padding: 16px 8px;
+  }
+
+  body.dark-theme .raku-categories__icon {
+    font-size: 24px;
+  }
+}

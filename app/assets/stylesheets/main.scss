@@ -2239,3 +2239,318 @@ figure.fluidratio {
 .recaptcha {
   margin-top: 8px;
 }
+
+// ═══════════════════════════════════════════════════════════
+// 楽市楽間 — Dark Theme overrides for Sharetribe core styles
+// ═══════════════════════════════════════════════════════════
+
+body.dark-theme {
+  // Home toolbar
+  .home-toolbar {
+    border-color: #333;
+  }
+
+  .home-toolbar-button-group-button {
+    color: #999;
+    &.selected {
+      color: #d4a853;
+      border-bottom-color: #d4a853;
+    }
+    &:hover {
+      color: #fff;
+    }
+  }
+
+  // Listing grid items
+  .home-fluid-thumbnail-grid-item,
+  .home-listings .list-item {
+    border-color: #333;
+    background-color: #242424;
+    &:hover {
+      border-color: #555;
+    }
+  }
+
+  .listing-title {
+    color: #fff;
+  }
+
+  .listing-description {
+    color: #999;
+  }
+
+  .listing-price-amount {
+    color: #fff;
+  }
+
+  .listing-author-name-link {
+    color: #fff;
+  }
+
+  // Buttons
+  .button {
+    background-color: #333;
+    color: #fff;
+    border-color: #555;
+    &:hover {
+      background-color: #444;
+    }
+
+    &.primary-button,
+    &.action-button {
+      background-color: #c41e3a;
+      color: #fff;
+      border-color: #c41e3a;
+      &:hover {
+        background-color: #a81830;
+      }
+    }
+  }
+
+  .inline-big-button .content {
+    background-color: #c41e3a;
+    color: #fff;
+    border-color: #c41e3a;
+  }
+
+  // Filter toggles
+  .toggle-header {
+    color: #fff;
+  }
+
+  .toggle-menu {
+    background-color: #242424;
+    border-color: #333;
+  }
+
+  .toggle-menu a,
+  .toggle-menu-subitem {
+    color: #999;
+    &:hover {
+      color: #fff;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  // Pagination
+  .autopagination-link {
+    color: #999;
+    background-color: #242424;
+    border-color: #333;
+    &:hover {
+      color: #fff;
+      background-color: #333;
+    }
+
+    &.current {
+      background-color: #c41e3a;
+      color: #fff;
+      border-color: #c41e3a;
+    }
+  }
+
+  // Text inputs on search
+  input[type="text"],
+  input[type="search"] {
+    background-color: #2a2a2a;
+    border-color: #333;
+    color: #fff;
+  }
+
+  // Listing image frame
+  .listing-image-frame {
+    background-color: #1e1e1e;
+  }
+
+  .listing-author {
+    border-color: #333;
+  }
+
+  // Listing actions
+  #listing-message-links {
+    border-color: #333;
+  }
+
+  // Comments
+  .discussion {
+    border-color: #333;
+  }
+
+  .comment-content {
+    color: #ccc;
+  }
+
+  // Forms
+  .form {
+    label {
+      color: #ccc;
+    }
+  }
+
+  // Checkbox & Radio
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: #c41e3a;
+  }
+
+  // ── Force dark on Sharetribe core components ──────────
+  .home-fluid-thumbnail-grid-item,
+  .home-fluid-thumbnail-grid-item-content,
+  .home-listings .list-item,
+  .listing-image-text-container,
+  .home-fluid-thumbnail-grid-item-fixed-height {
+    background-color: #242424 !important;
+    border-color: #333 !important;
+    color: #ccc !important;
+  }
+
+  .thumbnail-text-wrapper {
+    background-color: #242424 !important;
+  }
+
+  .listing-image-frame-content {
+    background-color: #1e1e1e !important;
+  }
+
+  // Home toolbar buttons
+  .home-toolbar-button-group-button {
+    color: #999 !important;
+    &.selected {
+      color: #d4a853 !important;
+      border-bottom-color: #d4a853 !important;
+    }
+    &:hover {
+      color: #fff !important;
+    }
+  }
+
+  // Notification banners
+  .banner {
+    background-color: #2a2a2a !important;
+    color: #ccc !important;
+    border-color: #333 !important;
+  }
+
+  // Cover image
+  .coverimage,
+  .marketplace-cover-small-fade,
+  .marketplace-cover,
+  .marketplace-cover-small {
+    background-color: #1a1a1a !important;
+  }
+
+  // Sidebar categories
+  .home-categories-main,
+  .home-categories-sub {
+    color: #999;
+    &:hover { color: #fff; }
+    &.selected { color: #d4a853; }
+  }
+
+  // Marketplace notification bar
+  .marketplace-lander-content-title {
+    color: #fff;
+  }
+
+  .marketplace-lander-content-description {
+    color: #999;
+  }
+
+  // Listing share buttons
+  .listing-social {
+    border-color: #333;
+  }
+
+  // Listing grid image
+  .home-fluid-thumbnail-grid-item-image-container,
+  .home-fluid-thumbnail-grid-item-image,
+  .listing-grid-image,
+  img.listing-image {
+    background-color: #1e1e1e !important;
+  }
+
+  // Grid item bottom details section
+  .home-fluid-thumbnail-grid-item-details {
+    background-color: #242424 !important;
+    border-top-color: #333 !important;
+  }
+
+  .home-fluid-thumbnail-grid-item-avatar {
+    background-color: #242424 !important;
+  }
+
+  // Author details on listing detail
+  .listing-author-avatar-image,
+  .avatar-image {
+    border-color: #333 !important;
+  }
+
+  .listing-author-contact-button {
+    color: #999;
+    &:hover { color: #fff; }
+  }
+
+  // Admin/Topbar override if present
+  .Topbar {
+    background-color: #1e1e1e !important;
+  }
+
+  #topbar-container {
+    background-color: #1e1e1e !important;
+  }
+
+  // Expiration notice
+  .expiration-notice,
+  .expiration-notice-wrapper {
+    background-color: #2a2a2a;
+    color: #ccc;
+  }
+
+  // Sharetribe footer dark
+  .footer__container--dark {
+    background-color: #1e1e1e;
+    border-top: 1px solid #333;
+    color: #999;
+  }
+
+  // Grid/List view buttons
+  .home-toolbar {
+    border-bottom-color: #333;
+  }
+
+  // Mobile menu items
+  .header-menu-container {
+    color: #999;
+  }
+
+  // Fix all white backgrounds
+  .wrapper {
+    background-color: transparent;
+  }
+
+  // Listing title on grid
+  .home-fluid-thumbnail-grid-item-title,
+  .list-title {
+    color: #fff;
+  }
+
+  // Testimonials
+  #people-testimonials,
+  .listing-main {
+    background-color: transparent;
+  }
+
+  // Empty state
+  .home-no-listings {
+    color: #999;
+  }
+
+  // Listing details container
+  .listing-details-container {
+    background-color: transparent;
+  }
+
+  .listing-description-content {
+    color: #ccc;
+  }
+}

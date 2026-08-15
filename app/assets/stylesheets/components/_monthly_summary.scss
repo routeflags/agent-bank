@@ -1,0 +1,90 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽間 — Monthly Summary (My Page)
+// ═══════════════════════════════════════════════════════════
+
+body.dark-theme {
+  .raku-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .raku-summary__item {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-red), var(--accent-gold));
+      opacity: 0;
+      transition: opacity var(--transition-normal);
+    }
+
+    &:hover::before {
+      opacity: 1;
+    }
+  }
+
+  .raku-summary__label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .raku-summary__icon {
+    font-size: 16px;
+  }
+
+  .raku-summary__value {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  .raku-summary__trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 600;
+
+    &--up {
+      color: var(--badge-success);
+    }
+
+    &--down {
+      color: var(--badge-danger);
+    }
+
+    &--neutral {
+      color: var(--text-muted);
+    }
+  }
+}
+
+@media (max-width: 991px) {
+  body.dark-theme .raku-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 575px) {
+  body.dark-theme .raku-summary {
+    grid-template-columns: 1fr;
+  }
+}

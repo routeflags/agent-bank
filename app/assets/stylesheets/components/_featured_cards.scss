@@ -1,0 +1,144 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽間 — Featured Cards (Horizontal scroll)
+// ═══════════════════════════════════════════════════════════
+
+body.dark-theme {
+  .raku-featured {
+    max-width: 1200px;
+    margin: 0 auto 48px;
+    padding: 0 20px;
+  }
+
+  .raku-featured__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .raku-featured__title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .raku-featured__tabs {
+    display: flex;
+    gap: 4px;
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 3px;
+  }
+
+  .raku-featured__tab {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+
+    &:hover {
+      color: var(--text-primary);
+    }
+
+    &.is-active {
+      background-color: var(--bg-card);
+      color: var(--text-primary);
+    }
+  }
+
+  // Horizontal scroll container
+  .raku-featured__scroll {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--border-color);
+      border-radius: 3px;
+    }
+  }
+
+  .raku-featured__card {
+    flex: 0 0 280px;
+    scroll-snap-align: start;
+
+    .raku-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .raku-card__image {
+      flex: 0 0 auto;
+    }
+
+    .raku-card__body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .raku-card__description {
+      flex: 1;
+    }
+  }
+
+  // "View all" link
+  .raku-featured__view-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--accent-gold);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: color var(--transition-fast);
+
+    &:hover {
+      color: var(--accent-gold-hover);
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+      transition: transform var(--transition-fast);
+    }
+
+    &:hover svg {
+      transform: translateX(3px);
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  body.dark-theme .raku-featured {
+    .raku-featured__header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .raku-featured__card {
+      flex: 0 0 260px;
+    }
+  }
+}

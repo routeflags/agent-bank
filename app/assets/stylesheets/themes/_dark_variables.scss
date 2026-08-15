@@ -1,0 +1,109 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽間 — Dark Theme Variables
+// ═══════════════════════════════════════════════════════════
+
+:root {
+  // ── Background ──────────────────────────────────────────
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #1e1e1e;
+  --bg-card: #242424;
+  --bg-card-hover: #2a2a2a;
+  --bg-input: #2a2a2a;
+  --bg-sidebar: #1e1e1e;
+
+  // ── Accent ──────────────────────────────────────────────
+  --accent-red: #c41e3a;
+  --accent-red-hover: #a81830;
+  --accent-gold: #d4a853;
+  --accent-gold-hover: #c09840;
+  --accent-teal: #59b3a2;
+
+  // ── Text ────────────────────────────────────────────────
+  --text-primary: #ffffff;
+  --text-secondary: #999999;
+  --text-muted: #666666;
+  --text-link: #59b3a2;
+
+  // ── Border ──────────────────────────────────────────────
+  --border-color: #333333;
+  --border-light: #2a2a2a;
+
+  // ── Badge ───────────────────────────────────────────────
+  --badge-success: #4caf50;
+  --badge-warning: #ff9800;
+  --badge-danger: #f44336;
+
+  // ── Shadow ──────────────────────────────────────────────
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  // ── Radius ──────────────────────────────────────────────
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  // ── Transition ──────────────────────────────────────────
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Dark Theme Body Override
+// ═══════════════════════════════════════════════════════════
+body.dark-theme {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+
+  a {
+    color: var(--text-link);
+    &:hover { color: lighten(#59b3a2, 10%); }
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+  }
+
+  // Override Sharetribe default white backgrounds
+  .page-content,
+  .wrapper,
+  .marketplace-lander,
+  .title-container {
+    background-color: transparent;
+  }
+
+  .coverimage {
+    background-color: var(--bg-primary);
+  }
+
+  .marketplace-cover-small-fade {
+    background-color: var(--bg-primary);
+  }
+
+  // Forms
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  textarea,
+  select {
+    background-color: var(--bg-input);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    &:focus {
+      border-color: var(--accent-teal);
+      box-shadow: 0 0 0 2px rgba(89, 179, 162, 0.3);
+    }
+  }
+
+  // Scrollbar
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+    &:hover { background: #555; }
+  }
+}

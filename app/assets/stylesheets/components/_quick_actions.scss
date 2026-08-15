@@ -1,0 +1,41 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽間 — Quick Actions
+// ═══════════════════════════════════════════════════════════
+
+body.dark-theme {
+  .raku-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .raku-quick-actions__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all var(--transition-normal);
+
+    &:hover {
+      background-color: var(--bg-card-hover);
+      border-color: var(--accent-gold);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+}
+
+@media (max-width: 767px) {
+  body.dark-theme .raku-quick-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -1,20 +1,22 @@
 import React from 'react';
+import '../components/ChatPanel/chatPanel.css';
 
 /**
- * ChatPanelApp — AI persona chat panel with full API/Action Cable integration.
+ * ChatPanelApp — AI persona chat panel with 3-column layout.
  *
  * Features:
- *   - Session lifecycle (create / fetch / close)
- *   - Action Cable streaming via PersonaChatChannel
- *   - Real-time message assembly from streaming chunks
- *   - CSRF-protected REST API calls
+ *   - Left: Chat session history sidebar
+ *   - Center: Chat messages + input
+ *   - Right: Execution settings (model, tokens, tone)
+ *   - Markdown rendering for AI responses
+ *   - Disclaimer at the bottom
  *
  * @param {Object} props
  * @param {number} props.listing_id
  * @param {string} props.persona_name
  */
 
-// ─── Utility functions (inlined for Webpack bundle reliability) ───
+// ─── Utility functions ───────────────────────────────────
 
 function csrfToken() {
   var metaTag = document.querySelector('meta[name=csrf-token]');
@@ -39,41 +41,110 @@ function getConsumer() {
   return sharedConsumer;
 }
 
-// ─── Message Bubble ───
+// ─── Simple Markdown renderer (no external deps) ──────────
+
+function renderMarkdown(text) {
+  if (!text) return '';
+
+  var html = text
+    // Code blocks (triple backtick)
+    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    // Bold
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    // Italic
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    // Headers
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // Unordered lists
+    .replace(/^[*-] (.+)$/gm, '<li>$1</li>')
+    // Ordered lists
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    // Blockquotes
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    // Horizontal rule
+    .replace(/^---$/gm, '<hr/>')
+    // Line breaks to paragraphs
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br/>');
+
+  // Wrap adjacent <li> in <ul>
+  html = html.replace(/(<li>[\s\S]*?<\/li>)/g, function(match) {
+    if (!match.startsWith('<ul>') && !match.startsWith('<ol>')) {
+      return '<ul>' + match + '</ul>';
+    }
+    return match;
+  });
+
+  return '<p>' + html + '</p>';
+}
+
+// ─── Message Bubble ──────────────────────────────────────
 
 function MessageBubble(props) {
   var role = props.role;
   var content = props.content;
   var isStreaming = props.isStreaming;
+  var totalTokens = props.total_tokens;
+  var createdAt = props.created_at;
 
   var isUser = role === 'user';
   var isSystem = role === 'system';
+  var isAssistant = role === 'assistant';
 
   var bubbleStyle = {
-    padding: '10px 14px',
+    padding: '12px 16px',
     borderRadius: '16px',
     maxWidth: '85%',
     wordBreak: 'break-word',
-    lineHeight: '1.5',
-    fontSize: '14px',
+    lineHeight: '1.6',
     marginBottom: '8px',
-    alignSelf: isUser ? 'flex-end' : 'flex-start',
-    background: isUser ? '#59b3a2' : isSystem ? '#f0f0f0' : '#f5f5f5',
-    color: isUser ? '#fff' : '#333',
-    border: isSystem ? '1px solid #ddd' : 'none',
+    alignSelf: isUser ? 'flex-end' : isSystem ? 'center' : 'flex-start',
+    background: isUser ? '#c41e3a' : isSystem ? 'rgba(255,255,255,0.05)' : '#242424',
+    color: isUser ? '#fff' : isSystem ? '#999' : '#e0e0e0',
+    border: isAssistant ? '1px solid #333' : isSystem ? '1px solid #333' : 'none',
     fontStyle: isSystem ? 'italic' : 'normal',
     fontSize: isSystem ? '12px' : '14px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   };
 
   var displayContent = content;
   if (isStreaming && content) {
-    displayContent = content + '▌';
+    displayContent = content;
   }
 
-  return React.createElement('div', { style: bubbleStyle }, displayContent || '');
+  var timeStr = createdAt
+    ? new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : null;
+
+  var renderedContent;
+  if (isAssistant) {
+    renderedContent = React.createElement('div', {
+      className: 'chatMessage__markdown',
+      dangerouslySetInnerHTML: { __html: renderMarkdown(displayContent || '') }
+    });
+  } else {
+    renderedContent = displayContent || '';
+  }
+
+  return React.createElement('div', { className: 'chatMessage chatMessage--' + (role || 'user') },
+    React.createElement('div', { className: 'chatMessage__bubble' },
+      renderedContent,
+      isStreaming && React.createElement('span', { className: 'chatMessage__streaming' })
+    ),
+    role === 'assistant' && totalTokens > 0 && (
+      React.createElement('span', { className: 'chatMessage__tokens' }, totalTokens + ' tokens')
+    ),
+    timeStr && role !== 'system' && (
+      React.createElement('span', { className: 'chatMessage__meta' }, timeStr)
+    )
+  );
 }
 
-// ─── ChatPanelApp (main class component) ───
+// ─── ChatPanelApp (main class component) ─────────────────
 
 class ChatPanelApp extends React.Component {
   constructor(props) {
@@ -86,6 +157,13 @@ class ChatPanelApp extends React.Component {
       error: null,
       isConnected: false,
       inputText: '',
+      // Settings
+      selectedModel: 'gpt-4o',
+      tokenLimit: 4000,
+      outputLength: 'standard',
+      tone: 'polite',
+      // History
+      sessionHistory: [],
     };
 
     this.streamingId = null;
@@ -99,6 +177,11 @@ class ChatPanelApp extends React.Component {
     this.handleInputChange = this.handleInputChange.bind(this);
     this.handleSend = this.handleSend.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.handleNewChat = this.handleNewChat.bind(this);
+    this.handleModelChange = this.handleModelChange.bind(this);
+    this.handleTokenChange = this.handleTokenChange.bind(this);
+    this.handleOutputLength = this.handleOutputLength.bind(this);
+    this.handleToneChange = this.handleToneChange.bind(this);
   }
 
   // ─── Session management ───────────────────────────────
@@ -122,10 +205,17 @@ class ChatPanelApp extends React.Component {
       })
       .then(function (data) {
         var session = data.chat_session;
-        self.setState({
-          sessionId: session.id,
-          messages: [],
-          isLoading: false,
+        self.setState(function (prev) {
+          return {
+            sessionId: session.id,
+            messages: [],
+            isLoading: false,
+            sessionHistory: prev.sessionHistory.concat([{
+              id: session.id,
+              title: '新しいチャット',
+              timestamp: new Date().toISOString(),
+            }]),
+          };
         });
         self.subscribeToChannel(session.id);
         return session.id;
@@ -296,8 +386,14 @@ class ChatPanelApp extends React.Component {
     }
   }
 
+  handleNewChat() {
+    this.disconnect();
+    this.closeSession();
+    this.setState({ messages: [], sessionId: null, error: null });
+    this.createSession();
+  }
+
   handleOpen() {
-    var self = this;
     this.setState({ isOpen: true });
     if (!this.state.sessionId) {
       this.createSession();
@@ -310,7 +406,25 @@ class ChatPanelApp extends React.Component {
     this.setState({ isOpen: false });
   }
 
-  // ─── Auto-scroll ──────────────────────────────────────
+  // ─── Settings handlers ────────────────────────────────
+
+  handleModelChange(e) {
+    this.setState({ selectedModel: e.target.value });
+  }
+
+  handleTokenChange(e) {
+    this.setState({ tokenLimit: parseInt(e.target.value, 10) });
+  }
+
+  handleOutputLength(length) {
+    this.setState({ outputLength: length });
+  }
+
+  handleToneChange(tone) {
+    this.setState({ tone: tone });
+  }
+
+  // ─── Lifecycle ────────────────────────────────────────
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.messages !== this.state.messages && this.messagesEndRef) {
@@ -326,9 +440,10 @@ class ChatPanelApp extends React.Component {
 
   render() {
     var state = this.state;
+    var self = this;
     var personaName = this.props.persona_name || 'AI Assistant';
 
-    // Trigger button
+    // ── Trigger button ────────────────────────────────
     if (!state.isOpen) {
       return React.createElement('button', {
         onClick: this.handleOpen,
@@ -338,95 +453,255 @@ class ChatPanelApp extends React.Component {
         style: {
           position: 'fixed', bottom: '24px', right: '24px',
           width: '56px', height: '56px', borderRadius: '50%',
-          background: '#59b3a2', color: '#fff', border: 'none',
-          cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+          background: '#c41e3a', color: '#fff', border: 'none',
+          cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 999,
+          zIndex: 999, fontSize: '24px',
         }
       }, '💬');
     }
 
-    // Chat panel
-    var panelStyle = {
-      position: 'fixed', top: 0, right: 0, width: '400px', height: '100%',
-      background: '#fff', boxShadow: '-2px 0 12px rgba(0,0,0,0.15)',
-      zIndex: 1000, display: 'flex', flexDirection: 'column',
-    };
+    // ── Group history items ────────────────────────────
+    var today = [];
+    var thisWeek = [];
+    var older = [];
+    var now = new Date();
+    state.sessionHistory.forEach(function (item) {
+      var diff = (now - new Date(item.timestamp)) / (1000 * 60 * 60 * 24);
+      if (diff < 1) today.push(item);
+      else if (diff < 7) thisWeek.push(item);
+      else older.push(item);
+    });
 
-    var headerStyle = {
-      padding: '16px', borderBottom: '1px solid #eee',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      background: '#fafafa',
-    };
+    // ── Main 3-column layout ──────────────────────────
+    return React.createElement('div', {
+      className: 'chatPanel__overlay',
+      onClick: this.handleClose,
+    },
+      React.createElement('div', {
+        className: 'chatPanel',
+        onClick: function (e) { e.stopPropagation(); },
+        role: 'dialog',
+        'aria-label': 'AI Chat',
+        style: {
+          display: 'flex',
+          flexDirection: 'row',
+          width: '900px',
+          maxWidth: '100%',
+          height: '100%',
+          background: '#1a1a1a',
+          boxShadow: '-4px 0 24px rgba(0,0,0,0.5)',
+          position: 'relative',
+          color: '#ffffff',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          overflow: 'hidden',
+        },
+      },
 
-    var messagesStyle = {
-      flex: 1, overflowY: 'auto', padding: '16px',
-      display: 'flex', flexDirection: 'column',
-    };
+        // ═══ LEFT: History sidebar ═══
+        React.createElement('div', { className: 'chatPanel__history', style: { width: '240px', background: '#1e1e1e', borderRight: '1px solid #333', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden' } },
+          React.createElement('div', { className: 'chatPanel__historyHeader' },
+            React.createElement('h4', { className: 'chatPanel__historyTitle' }, '履歴'),
+            React.createElement('button', {
+              className: 'chatPanel__newChatBtn',
+              onClick: this.handleNewChat,
+              type: 'button',
+            }, '＋ 新規')
+          ),
+          React.createElement('div', { className: 'chatPanel__historyList' },
+            today.length > 0 && React.createElement('div', { className: 'chatPanel__historyGroup' },
+              React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, '今日'),
+              today.map(function (item) {
+                return React.createElement('div', {
+                  key: item.id,
+                  className: 'chatPanel__historyItem' + (item.id === state.sessionId ? ' is-active' : ''),
+                },
+                  React.createElement('span', { className: 'chatPanel__historyItemIcon' }, '💬'),
+                  React.createElement('span', { className: 'chatPanel__historyItemText' }, item.title)
+                );
+              })
+            ),
+            thisWeek.length > 0 && React.createElement('div', { className: 'chatPanel__historyGroup' },
+              React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, '過去7日'),
+              thisWeek.map(function (item) {
+                return React.createElement('div', {
+                  key: item.id,
+                  className: 'chatPanel__historyItem' + (item.id === state.sessionId ? ' is-active' : ''),
+                },
+                  React.createElement('span', { className: 'chatPanel__historyItemIcon' }, '💬'),
+                  React.createElement('span', { className: 'chatPanel__historyItemText' }, item.title)
+                );
+              })
+            ),
+            older.length > 0 && React.createElement('div', { className: 'chatPanel__historyGroup' },
+              React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, 'それ以前'),
+              older.map(function (item) {
+                return React.createElement('div', {
+                  key: item.id,
+                  className: 'chatPanel__historyItem' + (item.id === state.sessionId ? ' is-active' : ''),
+                },
+                  React.createElement('span', { className: 'chatPanel__historyItemIcon' }, '💬'),
+                  React.createElement('span', { className: 'chatPanel__historyItemText' }, item.title)
+                );
+              })
+            ),
+            state.sessionHistory.length === 0 && React.createElement('div', {
+              style: { color: '#666', fontSize: '13px', textAlign: 'center', padding: '24px 12px' }
+            }, 'まだチャット履歴がありません。')
+          )
+        ),
 
-    var inputAreaStyle = {
-      padding: '12px 16px', borderTop: '1px solid #eee',
-      display: 'flex', gap: '8px', background: '#fafafa',
-    };
+        // ═══ CENTER: Chat area ═══
+        React.createElement('div', { className: 'chatPanel__chat', style: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 } },
+          // Header
+          React.createElement('div', { className: 'chatPanel__header' },
+            React.createElement('div', { style: { display: 'flex', alignItems: 'center' } },
+              React.createElement('h3', { className: 'chatPanel__personaName' }, personaName),
+              React.createElement('span', {
+                className: 'chatPanel__connectionDot' + (state.isConnected ? '' : ' chatPanel__connectionDot--disconnected')
+              })
+            ),
+            React.createElement('button', {
+              onClick: this.handleClose,
+              className: 'chatPanel__closeBtn',
+              'aria-label': 'Close chat',
+              type: 'button',
+            },
+              React.createElement('svg', { width: '20', height: '20', viewBox: '0 0 20 20', fill: 'none' },
+                React.createElement('path', {
+                  d: 'M15 5L5 15M5 5l10 10',
+                  stroke: 'currentColor', strokeWidth: '2',
+                  strokeLinecap: 'round', strokeLinejoin: 'round',
+                })
+              )
+            )
+          ),
 
-    var inputStyle = {
-      flex: 1, padding: '10px 14px', border: '1px solid #ddd',
-      borderRadius: '20px', fontSize: '14px', outline: 'none',
-    };
+          // Error
+          state.error && React.createElement('div', { className: 'chatPanel__error' }, state.error),
 
-    var sendBtnStyle = {
-      padding: '10px 20px', borderRadius: '20px', border: 'none',
-      background: '#59b3a2', color: '#fff', cursor: 'pointer',
-      fontSize: '14px', fontWeight: 'bold',
-    };
+          // Loading
+          state.isLoading && React.createElement('div', { className: 'chatPanel__loading' }, '接続中...'),
 
-    return React.createElement('div', { style: panelStyle },
-      // Header
-      React.createElement('div', { style: headerStyle },
-        React.createElement('h3', { style: { margin: 0, fontSize: '16px' } }, personaName),
-        React.createElement('button', {
-          onClick: this.handleClose,
-          style: { border: 'none', background: 'none', cursor: 'pointer', fontSize: '20px', padding: '4px' },
-        }, '✕')
-      ),
+          // Messages
+          React.createElement('div', { className: 'chatPanel__messages' },
+            state.messages.length === 0 && !state.isLoading
+              ? React.createElement('div', { className: 'chatPanel__emptyState' },
+                  React.createElement('div', { className: 'chatPanel__emptyStateIcon' }, '🤖'),
+                  personaName + ' にメッセージを送信してください。'
+                )
+              : state.messages.map(function (msg) {
+                  return React.createElement(MessageBubble, {
+                    key: msg.id, role: msg.role, content: msg.content,
+                    isStreaming: msg.isStreaming,
+                    total_tokens: msg.total_tokens,
+                    created_at: msg.created_at,
+                  });
+                }),
+            React.createElement('div', { ref: function (el) { self.messagesEndRef = el; } })
+          ),
 
-      // Error banner
-      state.error ? React.createElement('div', {
-        style: { padding: '8px 16px', background: '#fff3cd', color: '#856404', fontSize: '13px' },
-      }, state.error) : null,
-
-      // Loading indicator
-      state.isLoading ? React.createElement('div', {
-        style: { padding: '8px 16px', color: '#999', fontSize: '13px', textAlign: 'center' },
-      }, '接続中...') : null,
-
-      // Messages
-      React.createElement('div', { style: messagesStyle },
-        state.messages.length === 0 && !state.isLoading
-          ? React.createElement('div', {
-              style: { color: '#999', textAlign: 'center', paddingTop: '40px', fontSize: '14px' },
-            }, personaName + ' にメッセージを送信してください。')
-          : state.messages.map(function (msg) {
-              return React.createElement(MessageBubble, {
-                key: msg.id, role: msg.role, content: msg.content,
-                isStreaming: msg.isStreaming,
-              });
+          // Input
+          React.createElement('div', { className: 'chatPanel__inputArea' },
+            React.createElement('textarea', {
+              className: 'chatPanel__input',
+              value: state.inputText,
+              onChange: this.handleInputChange,
+              onKeyDown: this.handleKeyDown,
+              placeholder: 'メッセージを入力...',
+              rows: 1,
+              disabled: state.isLoading,
+              'aria-label': 'Chat message input',
             }),
-        React.createElement('div', { ref: function (el) { this.messagesEndRef = el; }.bind(this) })
-      ),
+            React.createElement('button', {
+              className: 'chatPanel__sendBtn',
+              onClick: this.handleSend,
+              disabled: state.isLoading || !state.inputText.trim(),
+              'aria-label': 'Send message',
+              type: 'button',
+            },
+              React.createElement('svg', { width: '18', height: '18', viewBox: '0 0 18 18', fill: 'none' },
+                React.createElement('path', {
+                  d: 'M3 15L15 9L3 3V7.5L11 9L3 10.5V15Z',
+                  fill: 'currentColor',
+                })
+              )
+            )
+          ),
 
-      // Input area
-      React.createElement('div', { style: inputAreaStyle },
-        React.createElement('input', {
-          type: 'text', placeholder: 'メッセージを入力...',
-          style: inputStyle, value: state.inputText,
-          onChange: this.handleInputChange, onKeyDown: this.handleKeyDown,
-          disabled: state.isLoading,
-        }),
-        React.createElement('button', {
-          style: sendBtnStyle, onClick: this.handleSend,
-          disabled: state.isLoading || !state.inputText.trim(),
-        }, '送信')
+          // Disclaimer
+          React.createElement('div', { className: 'chatPanel__disclaimer' },
+            '⚠️ AIの回答は必ずしも正確とは限りません。重要な判断はご自身で確認してください。'
+          )
+        ),
+
+        // ═══ RIGHT: Settings panel ═══
+        React.createElement('div', { className: 'chatPanel__settings', style: { width: '220px', background: '#1e1e1e', borderLeft: '1px solid #333', display: 'flex', flexDirection: 'column', flexShrink: 0, padding: '16px', overflowY: 'auto' } },
+          React.createElement('h4', { className: 'chatPanel__settingsTitle' }, '⚙️ 実行設定'),
+
+          // Model selection
+          React.createElement('div', { className: 'chatPanel__settingsGroup' },
+            React.createElement('label', { className: 'chatPanel__settingsLabel' }, 'モデル'),
+            React.createElement('select', {
+              className: 'chatPanel__settingsSelect',
+              value: state.selectedModel,
+              onChange: this.handleModelChange,
+            },
+              React.createElement('option', { value: 'gpt-4o' }, 'GPT-4o'),
+              React.createElement('option', { value: 'gpt-4o-mini' }, 'GPT-4o Mini'),
+              React.createElement('option', { value: 'claude-sonnet' }, 'Claude Sonnet'),
+              React.createElement('option', { value: 'claude-haiku' }, 'Claude Haiku')
+            )
+          ),
+
+          // Token limit
+          React.createElement('div', { className: 'chatPanel__settingsGroup' },
+            React.createElement('label', { className: 'chatPanel__settingsLabel' }, 'トークン上限'),
+            React.createElement('input', {
+              type: 'range',
+              className: 'chatPanel__settingsSlider',
+              min: '1000',
+              max: '8000',
+              step: '500',
+              value: state.tokenLimit,
+              onChange: this.handleTokenChange,
+            }),
+            React.createElement('div', { className: 'chatPanel__settingsValue' },
+              state.tokenLimit.toLocaleString() + ' トークン'
+            )
+          ),
+
+          // Output length
+          React.createElement('div', { className: 'chatPanel__settingsGroup' },
+            React.createElement('label', { className: 'chatPanel__settingsLabel' }, '出力の長さ'),
+            React.createElement('div', { className: 'chatPanel__toneButtons' },
+              ['short', 'standard', 'long'].map(function (length) {
+                var labels = { short: '短め', standard: '標準', long: '長め' };
+                return React.createElement('button', {
+                  key: length,
+                  className: 'chatPanel__toneBtn' + (state.outputLength === length ? ' is-active' : ''),
+                  onClick: function () { self.handleOutputLength(length); },
+                  type: 'button',
+                }, labels[length]);
+              })
+            )
+          ),
+
+          // Tone
+          React.createElement('div', { className: 'chatPanel__settingsGroup' },
+            React.createElement('label', { className: 'chatPanel__settingsLabel' }, 'トーン'),
+            React.createElement('select', {
+              className: 'chatPanel__settingsSelect',
+              value: state.tone,
+              onChange: function (e) { self.handleToneChange(e.target.value); },
+            },
+              React.createElement('option', { value: 'polite' }, '丁寧に'),
+              React.createElement('option', { value: 'casual' }, 'カジュアル'),
+              React.createElement('option', { value: 'professional' }, 'ビジネス'),
+              React.createElement('option', { value: 'friendly' }, 'フレンドリー')
+            )
+          )
+        )
       )
     );
   }
