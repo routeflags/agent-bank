@@ -137,14 +137,9 @@
                   ★ 0.0
               %td ¥0
               %td
-                - if !listing.open?
-                  .raku-table__status.raku-table__status--draft
-                    %span.raku-table__status-dot
-                    下書き
-                - else
-                  .raku-table__status.raku-table__status--active
-                    %span.raku-table__status-dot
-                    公開中
+                .raku-table__status.raku-table__status--active
+                  %span.raku-table__status-dot
+                  公開中
               %td
                 .raku-table__actions
                   %a.raku-table__action-btn{href: edit_listing_path(listing), title: "編集"} ✏️
