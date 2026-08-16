@@ -56,7 +56,11 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     end
 
     if wallet.below_threshold?(MIN_BALANCE_CENTS)
-      broadcast_error("Insufficient balance. Please top up your wallet to continue.")
+      broadcast_error(
+        "Insufficient balance. Please top up your wallet to continue.",
+        error_type: "insufficient_balance",
+        current_balance: wallet.balance_cents
+      )
       return
     end
 
@@ -144,7 +148,10 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
 
   rescue Wallet::InsufficientBalanceError => e
     Rails.logger.warn("[PersonaExecutorJob] Insufficient balance: #{e.message}")
-    broadcast_error("Insufficient balance. Please top up your wallet to continue.")
+    broadcast_error(
+      "Insufficient balance. Please top up your wallet to continue.",
+      error_type: "insufficient_balance"
+    )
 
   rescue StandardError => e
     Rails.logger.error("[PersonaExecutorJob] Unexpected error: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
@@ -156,13 +163,19 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
   # Broadcasts an error message to the chat session stream.
   #
   # @param message [String] the error message to display to the user
-  def broadcast_error(message)
+  # @param error_type [String, nil] optional error type code (e.g. "insufficient_balance")
+  # @param current_balance [Integer, nil] optional current wallet balance in cents
+  def broadcast_error(message, error_type: nil, current_balance: nil)
+    payload = {
+      type: "stream_error",
+      error: message
+    }
+    payload[:error_type] = error_type if error_type
+    payload[:current_balance] = current_balance if current_balance
+
     ActionCable.server.broadcast(
       "persona_chat_#{chat_session_id}",
-      {
-        type: "stream_error",
-        error: message
-      }
+      payload
     )
   end
 

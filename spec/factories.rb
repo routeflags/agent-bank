@@ -532,6 +532,28 @@ FactoryBot.define do
     output_tokens { 0 }
   end
 
+  factory :wallet do
+    person
+    community
+    balance_cents { 0 }
+    currency { "JPY" }
+  end
+
+  factory :user_plan_subscription do
+    person
+    listing
+    billing_model { "token_based" }
+    status { "active" }
+    current_period_start { Time.current }
+    current_period_end { 1.year.from_now }
+  end
+
+  factory :credit_transaction do
+    wallet
+    transaction_type { "topup" }
+    amount_cents { 1000 }
+  end
+
   factory :landing_page, class: 'LandingPage' do
     community_id      {123}
     enabled           {true}

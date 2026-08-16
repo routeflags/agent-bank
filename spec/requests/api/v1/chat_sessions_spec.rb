@@ -7,11 +7,11 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
   include Devise::Test::IntegrationHelpers
 
   # ── Test data ────────────────────────────────────────────────────────
-  let(:community) { create(:community) }
-  let(:person)    { create(:person, community_id: community.id) }
-  let(:other_person) { create(:person, community_id: community.id) }
-  let(:listing)   { create(:listing, community_id: community.id, author: person) }
-  let(:other_listing) { create(:listing, community_id: community.id, author: other_person) }
+  let(:community) { FactoryBot.create(:community) }
+  let(:person)    { FactoryBot.create(:person, community_id: community.id) }
+  let(:other_person) { FactoryBot.create(:person, community_id: community.id) }
+  let(:listing)   { FactoryBot.create(:listing, community_id: community.id, author: person) }
+  let(:other_listing) { FactoryBot.create(:listing, community_id: community.id, author: other_person) }
 
   # ── Helpers ──────────────────────────────────────────────────────────
   def sign_in_as(user)
@@ -24,8 +24,8 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
   describe "GET /api/v1/chat_sessions" do
     context "認証済みユーザーがセッション一覧を取得" do
       before do
-        create(:chat_session, person_id: person.id, listing_id: listing.id)
-        create(:chat_session, person_id: person.id, listing_id: listing.id, status: "closed")
+        FactoryBot.create(:chat_session, person_id: person.id, listing_id: listing.id)
+        FactoryBot.create(:chat_session, person_id: person.id, listing_id: listing.id, status: "closed")
         sign_in_as(person)
         get "/api/v1/chat_sessions"
       end
@@ -41,7 +41,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
 
       it "returns only the authenticated user's sessions" do
         # Create a session for a different user
-        create(:chat_session, person_id: other_person.id, listing_id: other_listing.id)
+        FactoryBot.create(:chat_session, person_id: other_person.id, listing_id: other_listing.id)
         get "/api/v1/chat_sessions"
 
         json = JSON.parse(response.body)
@@ -75,17 +75,11 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
   # POST /api/v1/chat_sessions
   # =====================================================================
   describe "POST /api/v1/chat_sessions" do
-    context "認証済みユーザーが新規セッションを作成 (#2)" do
-      let(:params) do
-        {
-          listing_id: listing.id,
-          billing_model: "token"
-        }
-      end
-
+    context "購入済みユーザーが新規セッションを作成 (#2)" do
       before do
+        FactoryBot.create(:user_plan_subscription, person: person, listing: listing, status: "active")
         sign_in_as(person)
-        post "/api/v1/chat_sessions", params: params
+        post "/api/v1/chat_sessions", params: { listing_id: listing.id }
       end
 
       it "returns 201" do
@@ -100,9 +94,68 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
         expect(session["status"]).to eq("active")
       end
 
+      it "sets billing_model server-side (ignores client input)" do
+        json = JSON.parse(response.body)
+        expect(json["chat_session"]["billing_model"]).to be_present
+        # Should use the subscription's billing_model, not any client-provided value
+      end
+
       it "persists the session in the database" do
         expect(ChatSession.count).to eq(1)
         expect(ChatSession.first.listing_id).to eq(listing.id)
+      end
+    end
+
+    context "未購入ユーザーがセッションを作成を試みる" do
+      before do
+        sign_in_as(person)
+        post "/api/v1/chat_sessions", params: { listing_id: listing.id }
+      end
+
+      it "returns 403 Forbidden" do
+        expect(response).to have_http_status(403)
+      end
+
+      it "returns purchase_required error type" do
+        json = JSON.parse(response.body)
+        expect(json["error_type"]).to eq("purchase_required")
+      end
+
+      it "returns Japanese error message" do
+        json = JSON.parse(response.body)
+        expect(json["error"]).to include("購入してください")
+      end
+
+      it "does not create a session" do
+        expect(ChatSession.count).to eq(0)
+      end
+    end
+
+    context "既にセッションがある場合は既存セッションを返す" do
+      let!(:existing_session) do
+        FactoryBot.create(:user_plan_subscription, person: person, listing: listing, status: "active")
+        FactoryBot.create(:chat_session, person_id: person.id, listing_id: listing.id, status: "active")
+      end
+
+      before do
+        sign_in_as(person)
+      end
+
+      it "returns 200 OK (not 201)" do
+        post "/api/v1/chat_sessions", params: { listing_id: listing.id }
+        expect(response).to have_http_status(200)
+      end
+
+      it "returns the existing session" do
+        post "/api/v1/chat_sessions", params: { listing_id: listing.id }
+        json = JSON.parse(response.body)
+        expect(json["chat_session"]["id"]).to eq(existing_session.id)
+      end
+
+      it "does not create a new session" do
+        expect {
+          post "/api/v1/chat_sessions", params: { listing_id: listing.id }
+        }.not_to change(ChatSession, :count)
       end
     end
 
@@ -139,19 +192,19 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
   describe "GET /api/v1/chat_sessions/:id" do
     context "認証済みユーザーがセッション詳細を取得 (#3)" do
       let!(:session_record) do
-        create(:chat_session, person_id: person.id, listing_id: listing.id)
+        FactoryBot.create(:chat_session, person_id: person.id, listing_id: listing.id)
       end
 
       before do
         # Attach messages to the session
-        create(:chat_message,
+        FactoryBot.create(:chat_message,
                chat_session: session_record,
                sender_type: "Person",
                sender_id: person.id,
                content: "Hello",
                role: "user",
                seq: 1)
-        create(:chat_message,
+        FactoryBot.create(:chat_message,
                chat_session: session_record,
                sender_type: nil,
                sender_id: nil,
@@ -193,7 +246,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
 
     context "他人のセッション詳細を取得 (#9)" do
       let!(:other_session) do
-        create(:chat_session, person_id: other_person.id, listing_id: other_listing.id)
+        FactoryBot.create(:chat_session, person_id: other_person.id, listing_id: other_listing.id)
       end
 
       before do
@@ -218,7 +271,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
   describe "PATCH /api/v1/chat_sessions/:id" do
     context "認証済みユーザーがセッションを終了 (#4)" do
       let!(:session_record) do
-        create(:chat_session, person_id: person.id, listing_id: listing.id)
+        FactoryBot.create(:chat_session, person_id: person.id, listing_id: listing.id)
       end
 
       before do
@@ -250,7 +303,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
 
     context "他人のセッションを終了 (#10)" do
       let!(:other_session) do
-        create(:chat_session, person_id: other_person.id, listing_id: other_listing.id)
+        FactoryBot.create(:chat_session, person_id: other_person.id, listing_id: other_listing.id)
       end
 
       before do
@@ -271,7 +324,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
 
     context "無効な status パラメータ" do
       let!(:session_record) do
-        create(:chat_session, person_id: person.id, listing_id: listing.id)
+        FactoryBot.create(:chat_session, person_id: person.id, listing_id: listing.id)
       end
 
       before do
@@ -292,13 +345,86 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
   end
 
   # =====================================================================
+  # POST /api/v1/chat_sessions — Purchase verification edge cases
+  # =====================================================================
+  describe "POST /api/v1/chat_sessions — 購入検証エッジケース" do
+    context "サブスクリプションが期限切れの場合" do
+      before do
+        FactoryBot.create(:user_plan_subscription, person: person, listing: listing,
+          status: "expired", current_period_end: 1.day.ago)
+        sign_in_as(person)
+        post "/api/v1/chat_sessions", params: { listing_id: listing.id }
+      end
+
+      it "returns 403" do
+        expect(response).to have_http_status(403)
+      end
+
+      it "does not create a session" do
+        expect(ChatSession.count).to eq(0)
+      end
+    end
+
+    context "サブスクリプションがキャンセル済みの場合" do
+      before do
+        FactoryBot.create(:user_plan_subscription, person: person, listing: listing,
+          status: "cancelled")
+        sign_in_as(person)
+        post "/api/v1/chat_sessions", params: { listing_id: listing.id }
+      end
+
+      it "returns 403" do
+        expect(response).to have_http_status(403)
+      end
+    end
+
+    context "複数ペルソナを購入済みの場合" do
+      let(:other_listing) { FactoryBot.create(:listing, community_id: community.id, author: other_person) }
+
+      before do
+        FactoryBot.create(:user_plan_subscription, person: person, listing: listing, status: "active")
+        FactoryBot.create(:user_plan_subscription, person: person, listing: other_listing, status: "active")
+        sign_in_as(person)
+      end
+
+      it "各ペルソナで独立したセッションを作成できる" do
+        post "/api/v1/chat_sessions", params: { listing_id: listing.id }
+        expect(response).to have_http_status(201)
+        first_id = JSON.parse(response.body)["chat_session"]["id"]
+
+        post "/api/v1/chat_sessions", params: { listing_id: other_listing.id }
+        expect(response).to have_http_status(201)
+        second_id = JSON.parse(response.body)["chat_session"]["id"]
+
+        expect(first_id).not_to eq(second_id)
+        expect(ChatSession.count).to eq(2)
+      end
+    end
+
+    context "billing_model がサーバー側で決定されること" do
+      before do
+        FactoryBot.create(:user_plan_subscription,
+          person: person, listing: listing,
+          status: "active", billing_model: "subscription_with_overage")
+        sign_in_as(person)
+        post "/api/v1/chat_sessions", params: { listing_id: listing.id }
+      end
+
+      it "returns the subscription's billing_model" do
+        json = JSON.parse(response.body)
+        expect(json["chat_session"]["billing_model"]).to eq("subscription_with_overage")
+      end
+    end
+  end
+
+  # =====================================================================
   # GET /api/v1/chat_sessions/:id/stream (SSE)
   # =====================================================================
   describe "GET /api/v1/chat_sessions/:id/stream" do
     context "SSE ストリーミング接続 — 認証済み (#5)" do
       let!(:session_record) do
         # Use a closed session so the SSE loop terminates immediately
-        create(:chat_session,
+        FactoryBot.create(:chat_session,
                person_id: person.id,
                listing_id: listing.id,
                status: "closed",
@@ -332,7 +458,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
 
     context "SSE で未認証接続 (#11)" do
       let!(:session_record) do
-        create(:chat_session, person_id: person.id, listing_id: listing.id)
+        FactoryBot.create(:chat_session, person_id: person.id, listing_id: listing.id)
       end
 
       it "returns error event" do
@@ -344,7 +470,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
 
     context "他人のセッションに SSE 接続" do
       let!(:other_session) do
-        create(:chat_session,
+        FactoryBot.create(:chat_session,
                person_id: other_person.id,
                listing_id: other_listing.id,
                status: "closed",

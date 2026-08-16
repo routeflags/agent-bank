@@ -931,6 +931,14 @@ Rails.application.routes.draw do
           get :stream, to: 'chat_stream#show'
         end
       end
+
+      # Wallet top-up: create PaymentIntent + confirm after Stripe checkout
+      resources :wallet_topup, only: [:create], controller: 'wallet_topup' do
+        collection do
+          post :confirm
+          get :balance
+        end
+      end
     end
     mount ActionCable.server => '/cable'
   end

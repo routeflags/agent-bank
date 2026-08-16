@@ -617,6 +617,19 @@ class Person < ApplicationRecord
     custom_field_values.by_question(custom_field).first
   end
 
+  # Capafy AI clone — Stripe helpers (Phase 2)
+  # Returns the Stripe customer ID from the associated StripeAccount.
+  # Returns nil if no StripeAccount exists.
+  def stripe_customer_id
+    stripe_account&.stripe_customer_id
+  end
+
+  # Returns the default payment method for this person.
+  # Placeholder for Phase 4/5 — requires Stripe PaymentMethod storage.
+  def default_payment_method
+    nil
+  end
+
   private
 
   # rails runner 等で Person を直接作成した場合に備え、
@@ -644,19 +657,6 @@ class Person < ApplicationRecord
 
   def logger_metadata
     { person_uuid: uuid }
-  end
-
-  # Capafy AI clone — Stripe helpers (Phase 2)
-  # Returns the Stripe customer ID from the associated StripeAccount.
-  # Returns nil if no StripeAccount exists.
-  def stripe_customer_id
-    stripe_account&.stripe_customer_id
-  end
-
-  # Returns the default payment method for this person.
-  # Placeholder for Phase 4/5 — requires Stripe PaymentMethod storage.
-  def default_payment_method
-    nil
   end
 
   class << self

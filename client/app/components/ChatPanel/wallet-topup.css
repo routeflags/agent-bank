@@ -1,0 +1,316 @@
+/*
+ * ChatPanel — Wallet Balance & Top-up Modal
+ *
+ * Extends the chatPanel dark theme with wallet balance display
+ * and a Stripe-backed top-up modal.
+ * BEM naming: .wallet__<element>--<modifier>
+ */
+
+/* ── Balance bar (inside settings panel) ────────────────────── */
+.wallet-balance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #242424;
+  border: 1px solid #333;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.wallet-balance__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wallet-balance__label {
+  font-size: 11px;
+  color: #999;
+}
+
+.wallet-balance__amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: #4caf50;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-balance__currency {
+  font-size: 12px;
+  color: #666;
+  font-weight: 400;
+}
+
+/* ── Top-up trigger button ──────────────────────────────────── */
+.wallet-balance__topupBtn {
+  background: rgba(76, 175, 80, 0.12);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.wallet-balance__topupBtn:hover {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: #4caf50;
+}
+
+.wallet-balance__topupBtn:focus-visible {
+  outline: 2px solid #4caf50;
+  outline-offset: 2px;
+}
+
+/* ── Loading skeleton ───────────────────────────────────────── */
+.wallet-balance--loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.wallet-balance__skeleton {
+  height: 18px;
+  width: 80px;
+  background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+  background-size: 200% 100%;
+  animation: wallet-skeleton-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes wallet-skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Modal overlay ──────────────────────────────────────────── */
+.wallet-topup-modal__overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Modal container ────────────────────────────────────────── */
+.wallet-topup-modal {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 16px;
+  width: 380px;
+  max-width: 90vw;
+  padding: 28px 24px;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  position: relative;
+}
+
+/* ── Modal header ───────────────────────────────────────────── */
+.wallet-topup-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.wallet-topup-modal__title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.wallet-topup-modal__closeBtn {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.wallet-topup-modal__closeBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Amount selection grid ──────────────────────────────────── */
+.wallet-topup-modal__amounts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.wallet-topup-modal__amountBtn {
+  padding: 14px 8px;
+  background: #2a2a2a;
+  border: 2px solid #333;
+  border-radius: 10px;
+  color: #e0e0e0;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.wallet-topup-modal__amountBtn:hover {
+  border-color: #666;
+  background: #333;
+}
+
+.wallet-topup-modal__amountBtn.is-selected {
+  border-color: #4caf50;
+  background: rgba(76, 175, 80, 0.12);
+  color: #4caf50;
+}
+
+.wallet-topup-modal__amountBtn:focus-visible {
+  outline: 2px solid #4caf50;
+  outline-offset: 2px;
+}
+
+/* ── Custom amount input ────────────────────────────────────── */
+.wallet-topup-modal__customAmount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.wallet-topup-modal__customLabel {
+  font-size: 13px;
+  color: #999;
+  white-space: nowrap;
+}
+
+.wallet-topup-modal__customInput {
+  flex: 1;
+  background: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.wallet-topup-modal__customInput:focus {
+  border-color: #4caf50;
+}
+
+.wallet-topup-modal__customInput::placeholder {
+  color: #666;
+}
+
+/* ── Submit button ──────────────────────────────────────────── */
+.wallet-topup-modal__submitBtn {
+  width: 100%;
+  padding: 14px;
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.wallet-topup-modal__submitBtn:hover:not(:disabled) {
+  background: #43a047;
+}
+
+.wallet-topup-modal__submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Status messages ────────────────────────────────────────── */
+.wallet-topup-modal__error {
+  padding: 10px 14px;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 8px;
+  color: #f44336;
+  font-size: 13px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.wallet-topup-modal__success {
+  padding: 10px 14px;
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  color: #4caf50;
+  font-size: 13px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+/* ── Processing spinner ─────────────────────────────────────── */
+.wallet-topup-modal__spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: wallet-spinner-rotate 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+@keyframes wallet-spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Inline topup prompt (inside error messages) ────────────── */
+.wallet-topup-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  margin-top: 6px;
+}
+
+.wallet-topup-prompt__text {
+  font-size: 13px;
+  color: #f44336;
+}
+
+.wallet-topup-prompt__btn {
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.wallet-topup-prompt__btn:hover {
+  background: #43a047;
+}
+
+.wallet-topup-prompt__btn:focus-visible {
+  outline: 2px solid #4caf50;
+  outline-offset: 2px;
+}

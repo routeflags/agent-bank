@@ -1,5 +1,6 @@
 import React from 'react';
 import '../components/ChatPanel/chatPanel.css';
+import '../components/ChatPanel/wallet-topup.css';
 
 /**
  * ChatPanelApp — AI persona chat panel with 3-column layout.
@@ -102,6 +103,182 @@ function renderMarkdown(text) {
   return '<p>' + html + '</p>';
 }
 
+// ─── Wallet Top-up Modal ──────────────────────────────────
+
+var TOPUP_AMOUNTS = [
+  { cents: 1000, label: '¥1,000' },
+  { cents: 3000, label: '¥3,000' },
+  { cents: 5000, label: '¥5,000' },
+];
+
+class WalletTopupModal extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      selectedCents: 3000,
+      customAmount: '',
+      isProcessing: false,
+      error: null,
+      success: false,
+    };
+    this.handleSelectAmount = this.handleSelectAmount.bind(this);
+    this.handleCustomChange = this.handleCustomChange.bind(this);
+    this.handleSubmit = this.handleSubmit.bind(this);
+    this.handleOverlayClick = this.handleOverlayClick.bind(this);
+  }
+
+  handleSelectAmount(cents) {
+    this.setState({ selectedCents: cents, customAmount: '', error: null });
+  }
+
+  handleCustomChange(e) {
+    var raw = e.target.value.replace(/[^0-9]/g, '');
+    this.setState({ customAmount: raw, selectedCents: null, error: null });
+  }
+
+  getAmountCents() {
+    if (this.state.selectedCents) return this.state.selectedCents;
+    var parsed = parseInt(this.state.customAmount, 10);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
+  handleSubmit() {
+    var self = this;
+    var amountCents = this.getAmountCents();
+
+    if (amountCents < 100 || amountCents > 10000) {
+      self.setState({ error: '金額は100円〜10,000円の間で指定してください。' });
+      return;
+    }
+
+    self.setState({ isProcessing: true, error: null });
+
+    // Step 1: Create a PaymentIntent
+    fetch('/api/v1/wallet_topup', {
+      method: 'POST',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ amount_cents: amountCents }),
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.json().catch(function () { return {}; }).then(function (body) {
+            throw new Error(body.error || 'PaymentIntent creation failed');
+          });
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        // Step 2: Confirm the payment (simplified — in production this
+        // would use Stripe.js to collect card details and confirm)
+        return fetch('/api/v1/wallet_topup/confirm', {
+          method: 'POST',
+          headers: jsonHeaders(),
+          body: JSON.stringify({ payment_intent_id: data.payment_intent_id }),
+        });
+      })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.json().catch(function () { return {}; }).then(function (body) {
+            throw new Error(body.error || 'Payment confirmation failed');
+          });
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        self.setState({ isProcessing: false, success: true });
+        if (self.props.onSuccess) self.props.onSuccess(data.balance_cents);
+        setTimeout(function () { self.props.onClose(); }, 1200);
+      })
+      .catch(function (err) {
+        self.setState({ isProcessing: false, error: err.message || '決済に失敗しました。' });
+      });
+  }
+
+  handleOverlayClick(e) {
+    if (e.target === e.currentTarget) this.props.onClose();
+  }
+
+  render() {
+    var state = this.state;
+    var self = this;
+
+    return React.createElement('div', {
+      className: 'wallet-topup-modal__overlay',
+      onClick: this.handleOverlayClick,
+    },
+      React.createElement('div', { className: 'wallet-topup-modal', role: 'dialog', 'aria-label': 'ウォレットトップアップ' },
+        // Header
+        React.createElement('div', { className: 'wallet-topup-modal__header' },
+          React.createElement('h3', { className: 'wallet-topup-modal__title' }, '💰 クレジットを追加'),
+          React.createElement('button', {
+            className: 'wallet-topup-modal__closeBtn',
+            onClick: this.props.onClose,
+            'aria-label': '閉じる',
+            type: 'button',
+          },
+            React.createElement('svg', { width: '18', height: '18', viewBox: '0 0 20 20', fill: 'none' },
+              React.createElement('path', {
+                d: 'M15 5L5 15M5 5l10 10',
+                stroke: 'currentColor', strokeWidth: '2',
+                strokeLinecap: 'round', strokeLinejoin: 'round',
+              })
+            )
+          )
+        ),
+
+        // Current balance
+        React.createElement('div', {
+          style: { fontSize: '13px', color: '#999', marginBottom: '16px' }
+        }, '現在の残高: ¥' + (this.props.balance || 0).toLocaleString()),
+
+        // Amount grid
+        React.createElement('div', { className: 'wallet-topup-modal__amounts' },
+          TOPUP_AMOUNTS.map(function (opt) {
+            return React.createElement('button', {
+              key: opt.cents,
+              className: 'wallet-topup-modal__amountBtn' + (state.selectedCents === opt.cents ? ' is-selected' : ''),
+              onClick: function () { self.handleSelectAmount(opt.cents); },
+              type: 'button',
+            }, opt.label);
+          })
+        ),
+
+        // Custom amount
+        React.createElement('div', { className: 'wallet-topup-modal__customAmount' },
+          React.createElement('span', { className: 'wallet-topup-modal__customLabel' }, 'カスタム:'),
+          React.createElement('input', {
+            className: 'wallet-topup-modal__customInput',
+            type: 'text',
+            inputMode: 'numeric',
+            placeholder: '金額を入力（円）',
+            value: state.customAmount,
+            onChange: this.handleCustomChange,
+          })
+        ),
+
+        // Status messages
+        state.error && React.createElement('div', { className: 'wallet-topup-modal__error' }, state.error),
+        state.success && React.createElement('div', { className: 'wallet-topup-modal__success' }, '✅ 追加が完了しました！'),
+
+        // Submit
+        React.createElement('button', {
+          className: 'wallet-topup-modal__submitBtn',
+          onClick: this.handleSubmit,
+          disabled: state.isProcessing || state.success || this.getAmountCents() < 100,
+          type: 'button',
+        },
+          state.isProcessing
+            ? React.createElement('span', null,
+                React.createElement('span', { className: 'wallet-topup-modal__spinner' }),
+                '処理中...'
+              )
+            : '追加する'
+        )
+      )
+    );
+  }
+}
+
 // ─── Message Bubble ──────────────────────────────────────
 
 function MessageBubble(props) {
@@ -110,6 +287,8 @@ function MessageBubble(props) {
   var isStreaming = props.isStreaming;
   var totalTokens = props.total_tokens;
   var createdAt = props.created_at;
+  var showTopupButton = props.showTopupButton;
+  var onTopupClick = props.onTopupClick;
 
   var isUser = role === 'user';
   var isSystem = role === 'system';
@@ -155,6 +334,14 @@ function MessageBubble(props) {
       renderedContent,
       isStreaming && React.createElement('span', { className: 'chatMessage__streaming' })
     ),
+    // Show topup button for insufficient balance errors
+    showTopupButton && onTopupClick && React.createElement('div', { className: 'wallet-topup-prompt' },
+      React.createElement('button', {
+        className: 'wallet-topup-prompt__btn',
+        onClick: onTopupClick,
+        type: 'button',
+      }, '追加する')
+    ),
     role === 'assistant' && totalTokens > 0 && (
       React.createElement('span', { className: 'chatMessage__tokens' }, totalTokens + ' tokens')
     ),
@@ -184,6 +371,10 @@ class ChatPanelApp extends React.Component {
       tone: 'polite',
       // History
       sessionHistory: [],
+      // Wallet
+      walletBalance: 0,
+      walletLoading: false,
+      showTopupModal: false,
     };
 
     this.streamingId = null;
@@ -202,6 +393,9 @@ class ChatPanelApp extends React.Component {
     this.handleTokenChange = this.handleTokenChange.bind(this);
     this.handleOutputLength = this.handleOutputLength.bind(this);
     this.handleToneChange = this.handleToneChange.bind(this);
+    this.handleOpenTopup = this.handleOpenTopup.bind(this);
+    this.handleCloseTopup = this.handleCloseTopup.bind(this);
+    this.handleTopupSuccess = this.handleTopupSuccess.bind(this);
   }
 
   // ─── Session management ───────────────────────────────
@@ -238,6 +432,7 @@ class ChatPanelApp extends React.Component {
           };
         });
         self.subscribeToChannel(session.id);
+        self.fetchWalletBalance();
         return session.id;
       })
       .catch(function (err) {
@@ -328,7 +523,28 @@ class ChatPanelApp extends React.Component {
 
   handleError(data) {
     this.streamingId = null;
-    this.addMessage('sys-err-' + Date.now(), 'system', data.error || 'An error occurred.', false);
+
+    if (data.error_type === 'insufficient_balance') {
+      // Update wallet balance if server sent current_balance
+      if (typeof data.current_balance === 'number') {
+        this.setState({ walletBalance: data.current_balance });
+      }
+      // Show error message with inline topup button
+      this.setState(function (prev) {
+        return {
+          messages: prev.messages.concat([{
+            id: 'sys-err-' + Date.now(),
+            role: 'system',
+            content: data.error || 'トークンが不足しています。',
+            isStreaming: false,
+            created_at: new Date().toISOString(),
+            showTopupButton: true,
+          }]),
+        };
+      });
+    } else {
+      this.addMessage('sys-err-' + Date.now(), 'system', data.error || 'An error occurred.', false);
+    }
   }
 
   // ─── Message helpers ──────────────────────────────────
@@ -415,6 +631,7 @@ class ChatPanelApp extends React.Component {
 
   handleOpen() {
     this.setState({ isOpen: true });
+    this.fetchWalletBalance();
     if (!this.state.sessionId) {
       this.createSession();
     }
@@ -442,6 +659,44 @@ class ChatPanelApp extends React.Component {
 
   handleToneChange(tone) {
     this.setState({ tone: tone });
+  }
+
+  // ─── Wallet handlers ─────────────────────────────────────
+
+  fetchWalletBalance() {
+    var self = this;
+    self.setState({ walletLoading: true });
+
+    fetch('/api/v1/wallet_topup/balance', {
+      method: 'GET',
+      headers: jsonHeaders(),
+    })
+      .then(function (response) {
+        if (!response.ok) return null;
+        return response.json();
+      })
+      .then(function (data) {
+        if (data) {
+          self.setState({ walletBalance: data.balance_cents || 0, walletLoading: false });
+        } else {
+          self.setState({ walletLoading: false });
+        }
+      })
+      .catch(function () {
+        self.setState({ walletLoading: false });
+      });
+  }
+
+  handleOpenTopup() {
+    this.setState({ showTopupModal: true });
+  }
+
+  handleCloseTopup() {
+    this.setState({ showTopupModal: false });
+  }
+
+  handleTopupSuccess(newBalance) {
+    this.setState({ walletBalance: newBalance });
   }
 
   // ─── Lifecycle ────────────────────────────────────────
@@ -616,6 +871,8 @@ class ChatPanelApp extends React.Component {
                     isStreaming: msg.isStreaming,
                     total_tokens: msg.total_tokens,
                     created_at: msg.created_at,
+                    showTopupButton: msg.showTopupButton,
+                    onTopupClick: msg.showTopupButton ? self.handleOpenTopup : null,
                   });
                 }),
             React.createElement('div', { ref: function (el) { self.messagesEndRef = el; } })
@@ -657,6 +914,26 @@ class ChatPanelApp extends React.Component {
 
         // ═══ RIGHT: Settings panel ═══
         React.createElement('div', { className: 'chatPanel__settings', style: { width: '220px', background: '#1e1e1e', borderLeft: '1px solid #333', display: 'flex', flexDirection: 'column', flexShrink: 0, padding: '16px', overflowY: 'auto' } },
+          // ── Wallet balance ──────────────────────────────
+          React.createElement('div', {
+            className: 'wallet-balance' + (state.walletLoading ? ' wallet-balance--loading' : ''),
+          },
+            React.createElement('div', { className: 'wallet-balance__info' },
+              React.createElement('span', { className: 'wallet-balance__label' }, '残高'),
+              state.walletLoading
+                ? React.createElement('div', { className: 'wallet-balance__skeleton' })
+                : React.createElement('span', { className: 'wallet-balance__amount' },
+                    '¥', state.walletBalance.toLocaleString(),
+                    React.createElement('span', { className: 'wallet-balance__currency' }, ' ')
+                  )
+            ),
+            React.createElement('button', {
+              className: 'wallet-balance__topupBtn',
+              onClick: this.handleOpenTopup,
+              type: 'button',
+            }, '追加する')
+          ),
+
           React.createElement('h4', { className: 'chatPanel__settingsTitle' }, '⚙️ 実行設定'),
 
           // Model selection
@@ -722,7 +999,14 @@ class ChatPanelApp extends React.Component {
             )
           )
         )
-      )
+      ),
+
+      // ── Wallet Top-up Modal ────────────────────────
+      state.showTopupModal && React.createElement(WalletTopupModal, {
+        balance: state.walletBalance,
+        onSuccess: this.handleTopupSuccess,
+        onClose: this.handleCloseTopup,
+      })
     );
   }
 }
