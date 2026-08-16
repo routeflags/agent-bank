@@ -422,6 +422,12 @@ class Listing < ApplicationRecord
   RUN_MODES = %w[run_online download free].freeze
 
   validates :default_run_mode, inclusion: { in: RUN_MODES, allow_blank: true }
+  validates :seller_commission_rate, numericality: {
+    only_integer: true,
+    greater_than_or_equal_to: 0,
+    less_than_or_equal_to: 100,
+    message: "must be between 0 and 100"
+  }, allow_nil: true
 
   # Returns the list of supported run modes parsed from the JSON text column.
   #

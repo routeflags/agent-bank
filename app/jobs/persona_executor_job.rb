@@ -91,12 +91,25 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
       output_tokens: usage_result.output_tokens
     )
 
-    # Step 6: Record usage and deduct cost (atomically)
-    record_usage_and_deduct!(
-      chat_session: chat_session,
+    # Step 6: Record usage and deduct cost (with dual commission support)
+    usage_record = UsageRecord.create!(
       ai_model: adapter.ai_model,
-      usage: usage_result,
-      wallet: wallet
+      input_tokens: usage_result.input_tokens,
+      output_tokens: usage_result.output_tokens
+    )
+
+    billing_service = BillingService.new(
+      person: person,
+      usage_record: usage_record,
+      listing: listing
+    )
+    billing_result = billing_service.process!
+
+    Rails.logger.info(
+      "[PersonaExecutorJob] Billing: base=#{billing_result[:base_cost_cents]}c " \
+      "platform_fee=#{billing_result[:platform_commission_cents]}c " \
+      "seller_fee=#{billing_result[:seller_commission_cents]}c " \
+      "total=#{billing_result[:total_charge_cents]}c"
     )
 
     # Step 7: Broadcast completion event
