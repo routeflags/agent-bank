@@ -101,6 +101,41 @@ RSpec.describe UserPlanSubscriptionService, type: :model do
       end
     end
 
+    context "サブスクリプションキャンセル後の再購入" do
+      let(:second_transaction) do
+        FactoryBot.create(:transaction,
+               starter: person,
+               listing: listing,
+               community: community,
+               current_state: "confirmed")
+      end
+
+      before do
+        # First purchase creates a subscription
+        first_result = described_class.create_on_purchase(transaction)
+        # Cancel it
+        first_result.subscription.update!(status: "cancelled")
+      end
+
+      it "再購入で新しいサブスクリプションが作成される" do
+        expect { described_class.create_on_purchase(second_transaction) }
+          .to change(UserPlanSubscription.where(status: "active"), :count).by(1)
+      end
+
+      it "再購入時の billing_model は subscription_with_overage になる" do
+        second_result = described_class.create_on_purchase(second_transaction)
+        expect(second_result.subscription.billing_model).to eq("subscription_with_overage")
+        expect(second_result.duplicate?).to be false
+      end
+
+      it "新しい Wallet トークンが付与される" do
+        wallet = person.wallet
+        initial_balance = wallet&.balance_cents || 0
+        described_class.create_on_purchase(second_transaction)
+        expect(person.reload.wallet.balance_cents).to be > initial_balance
+      end
+    end
+
     # ── Edge case tests ────────────────────────────────────────────
 
     context "同一のペルソナに対して複数のトランザクションが発生した場合" do

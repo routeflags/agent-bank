@@ -6,6 +6,18 @@
  * BEM naming: .wallet__<element>--<modifier>
  */
 
+/* ── Design tokens ──────────────────────────────────────────── */
+:root {
+  --wallet-success: #4caf50;
+  --wallet-success-hover: #43a047;
+  --wallet-success-bg: rgba(76, 175, 80, 0.12);
+  --wallet-success-border: rgba(76, 175, 80, 0.3);
+  --wallet-success-bg-hover: rgba(76, 175, 80, 0.2);
+  --wallet-error: #f44336;
+  --wallet-error-bg: rgba(244, 67, 54, 0.1);
+  --wallet-error-border: rgba(244, 67, 54, 0.3);
+}
+
 /* ── Balance bar (inside settings panel) ────────────────────── */
 .wallet-balance {
   display: flex;
@@ -32,7 +44,7 @@
 .wallet-balance__amount {
   font-size: 18px;
   font-weight: 700;
-  color: #4caf50;
+  color: var(--wallet-success);
   font-variant-numeric: tabular-nums;
 }
 
@@ -44,9 +56,9 @@
 
 /* ── Top-up trigger button ──────────────────────────────────── */
 .wallet-balance__topupBtn {
-  background: rgba(76, 175, 80, 0.12);
-  color: #4caf50;
-  border: 1px solid rgba(76, 175, 80, 0.3);
+  background: var(--wallet-success-bg);
+  color: var(--wallet-success);
+  border: 1px solid var(--wallet-success-border);
   border-radius: 8px;
   padding: 6px 12px;
   font-size: 12px;
@@ -57,12 +69,12 @@
 }
 
 .wallet-balance__topupBtn:hover {
-  background: rgba(76, 175, 80, 0.2);
-  border-color: #4caf50;
+  background: var(--wallet-success-bg-hover);
+  border-color: var(--wallet-success);
 }
 
 .wallet-balance__topupBtn:focus-visible {
-  outline: 2px solid #4caf50;
+  outline: 2px solid var(--wallet-success);
   outline-offset: 2px;
 }
 
@@ -171,13 +183,13 @@
 }
 
 .wallet-topup-modal__amountBtn.is-selected {
-  border-color: #4caf50;
-  background: rgba(76, 175, 80, 0.12);
-  color: #4caf50;
+  border-color: var(--wallet-success);
+  background: var(--wallet-success-bg);
+  color: var(--wallet-success);
 }
 
 .wallet-topup-modal__amountBtn:focus-visible {
-  outline: 2px solid #4caf50;
+  outline: 2px solid var(--wallet-success);
   outline-offset: 2px;
 }
 
@@ -208,7 +220,7 @@
 }
 
 .wallet-topup-modal__customInput:focus {
-  border-color: #4caf50;
+  border-color: var(--wallet-success);
 }
 
 .wallet-topup-modal__customInput::placeholder {
@@ -219,7 +231,7 @@
 .wallet-topup-modal__submitBtn {
   width: 100%;
   padding: 14px;
-  background: #4caf50;
+  background: var(--wallet-success);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -230,7 +242,7 @@
 }
 
 .wallet-topup-modal__submitBtn:hover:not(:disabled) {
-  background: #43a047;
+  background: var(--wallet-success-hover);
 }
 
 .wallet-topup-modal__submitBtn:disabled {
@@ -241,10 +253,10 @@
 /* ── Status messages ────────────────────────────────────────── */
 .wallet-topup-modal__error {
   padding: 10px 14px;
-  background: rgba(244, 67, 54, 0.1);
-  border: 1px solid rgba(244, 67, 54, 0.3);
+  background: var(--wallet-error-bg);
+  border: 1px solid var(--wallet-error-border);
   border-radius: 8px;
-  color: #f44336;
+  color: var(--wallet-error);
   font-size: 13px;
   margin-bottom: 16px;
   text-align: center;
@@ -252,10 +264,10 @@
 
 .wallet-topup-modal__success {
   padding: 10px 14px;
-  background: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.3);
+  background: var(--wallet-success-bg);
+  border: 1px solid var(--wallet-success-border);
   border-radius: 8px;
-  color: #4caf50;
+  color: var(--wallet-success);
   font-size: 13px;
   margin-bottom: 16px;
   text-align: center;
@@ -290,11 +302,11 @@
 
 .wallet-topup-prompt__text {
   font-size: 13px;
-  color: #f44336;
+  color: var(--wallet-error);
 }
 
 .wallet-topup-prompt__btn {
-  background: #4caf50;
+  background: var(--wallet-success);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -307,10 +319,10 @@
 }
 
 .wallet-topup-prompt__btn:hover {
-  background: #43a047;
+  background: var(--wallet-success-hover);
 }
 
 .wallet-topup-prompt__btn:focus-visible {
-  outline: 2px solid #4caf50;
+  outline: 2px solid var(--wallet-success);
   outline-offset: 2px;
 }

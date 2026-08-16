@@ -31,6 +31,8 @@ class BillingService
     case billing_model
     when "subscription", "subscription_with_overage"
       process_subscription_usage(subscription)
+    when "token_based"
+      process_pay_per_use
     when "pay_per_use", nil
       process_pay_per_use
     end
@@ -86,8 +88,14 @@ class BillingService
 
   # Get the platform commission rate from payment settings.
   def get_platform_commission_rate
+    community_id = person.community_ids.first
+    unless community_id
+      Rails.logger.warn("[BillingService] Person #{person.id} has no community memberships")
+      return 0
+    end
+
     # First try payment_settings.platform_commission_rate
-    ps = PaymentSettings.find_by(community_id: person.community_ids.first)
+    ps = PaymentSettings.find_by(community_id: community_id)
     return ps.platform_commission_rate if ps&.platform_commission_rate
 
     # Fallback to payment_settings.commission_from_seller (existing Sharetribe field)

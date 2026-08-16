@@ -171,7 +171,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
 
       it "returns not found error" do
         json = JSON.parse(response.body)
-        expect(json["error"]).to eq("Listing not found")
+        expect(json["error"]).to eq("ペルソナが見つかりません")
       end
     end
 
@@ -260,7 +260,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
 
       it "returns not found error" do
         json = JSON.parse(response.body)
-        expect(json["error"]).to eq("Not found")
+        expect(json["error"]).to eq("見つかりません")
       end
     end
   end
@@ -464,7 +464,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
       it "returns error event" do
         get "/api/v1/chat_sessions/#{session_record.id}/stream"
         expect(response.body).to include("event: error")
-        expect(response.body).to include("Authentication required")
+        expect(response.body).to include("ログインが必要です")
       end
     end
 
@@ -482,7 +482,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
       it "returns error event for unauthorized session" do
         get "/api/v1/chat_sessions/#{other_session.id}/stream"
         expect(response.body).to include("event: error")
-        expect(response.body).to include("Not found")
+        expect(response.body).to include("見つかりません")
       end
     end
   end

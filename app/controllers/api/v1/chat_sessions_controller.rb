@@ -55,7 +55,7 @@ class API::V1::ChatSessionsController < ApplicationController
     session = ChatSession.find(params[:id])
 
     unless session.person_id == current_user.id
-      return render json: { error: "Not found" }, status: :not_found
+      return render json: { error: "見つかりません" }, status: :not_found
     end
 
     render json: {
@@ -72,7 +72,7 @@ class API::V1::ChatSessionsController < ApplicationController
     listing = Listing.find_by(id: params[:listing_id])
 
     unless listing
-      return render json: { error: "Listing not found" }, status: :not_found
+      return render json: { error: "ペルソナが見つかりません" }, status: :not_found
     end
 
     # Purchase verification — only subscribed users can chat
@@ -119,14 +119,14 @@ class API::V1::ChatSessionsController < ApplicationController
     session = ChatSession.find(params[:id])
 
     unless session.person_id == current_user.id
-      return render json: { error: "Not found" }, status: :not_found
+      return render json: { error: "見つかりません" }, status: :not_found
     end
 
     if params[:status] == "closed"
       session.close!
       render json: { chat_session: serialize_session(session) }
     else
-      render json: { error: "Invalid status update" }, status: :unprocessable_entity
+      render json: { error: "無効なステータス更新です" }, status: :unprocessable_entity
     end
   end
 
@@ -134,7 +134,7 @@ class API::V1::ChatSessionsController < ApplicationController
 
   def ensure_authenticated
     unless current_user
-      render json: { error: "Authentication required" }, status: :unauthorized
+      render json: { error: "ログインが必要です" }, status: :unauthorized
     end
   end
 

@@ -51,7 +51,7 @@ class API::V1::ChatStreamController < ApplicationController
     chat_session = ChatSession.find(params[:id])
 
     unless chat_session.person_id == current_user.id
-      sse_write(event: "error", data: { error: "Not found" }.to_json)
+      sse_write(event: "error", data: { error: "見つかりません" }.to_json)
       response.stream.close
       return
     end
@@ -118,7 +118,7 @@ class API::V1::ChatStreamController < ApplicationController
     return if current_user
 
     response.headers['Content-Type'] = 'text/event-stream'
-    sse_write(event: "error", data: { error: "Authentication required" }.to_json)
+    sse_write(event: "error", data: { error: "ログインが必要です" }.to_json)
     response.stream.close
     throw :abort
   end

@@ -27,8 +27,7 @@ RSpec.describe PersonaExecutorJob, type: :model do
       let!(:wallet) { FactoryBot.create(:wallet, person: person, community: community, balance_cents: 0) }
 
       before do
-        # chat_session.person は DB からロードされるため、Wallet.find_by でスタブする
-        allow(Wallet).to receive(:find_by).and_return(wallet)
+        allow_any_instance_of(Person).to receive(:wallet).and_return(wallet)
       end
 
       it "error_type: insufficient_balance を broadcast する" do
@@ -63,14 +62,14 @@ RSpec.describe PersonaExecutorJob, type: :model do
     end
 
     context "Wallet が存在しない場合" do
-      before { allow(Wallet).to receive(:find_by).and_return(nil) }
+      before { allow_any_instance_of(Person).to receive(:wallet).and_return(nil) }
 
       it "error_type を含まない stream_error を broadcast する" do
         expect(ActionCable.server).to receive(:broadcast).with(
           "persona_chat_#{chat_session.id}",
           hash_including(
             type: "stream_error",
-            error: "Wallet not found. Please add funds to continue."
+            error: "ウォレットが見つかりません。先にウォレットを追加してください。"
           )
         ).and_wrap_original do |_method, *args|
           # Verify error_type is NOT present
@@ -87,7 +86,7 @@ RSpec.describe PersonaExecutorJob, type: :model do
       let!(:wallet) { FactoryBot.create(:wallet, person: person, community: community, balance_cents: 1000) }
 
       before do
-        allow(Wallet).to receive(:find_by).and_return(wallet)
+        allow_any_instance_of(Person).to receive(:wallet).and_return(wallet)
         allow(Ai::ProviderFactory).to receive(:for)
           .and_raise(Ai::ProviderFactory::ProviderNotConfiguredError, "No provider")
       end
@@ -97,7 +96,7 @@ RSpec.describe PersonaExecutorJob, type: :model do
           "persona_chat_#{chat_session.id}",
           hash_including(
             type: "stream_error",
-            error: "AI provider is not configured for this persona."
+            error: "このペルソナのAIプロバイダーが設定されていません。"
           )
         ).and_wrap_original do |_method, *args|
           payload = args.last
@@ -115,7 +114,7 @@ RSpec.describe PersonaExecutorJob, type: :model do
   describe "Wallet::InsufficientBalanceError の rescue 処理" do
     before do
       wallet = FactoryBot.create(:wallet, person: person, community: community, balance_cents: 100)
-      allow(Wallet).to receive(:find_by).and_return(wallet)
+      allow_any_instance_of(Person).to receive(:wallet).and_return(wallet)
 
       # Mock adapter to succeed streaming but fail at billing
       allow(adapter).to receive(:stream).and_yield({ content: "Hi" })

@@ -51,13 +51,13 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     # Step 3: Check wallet balance before making the API call
     wallet = person.wallet
     if wallet.nil?
-      broadcast_error("Wallet not found. Please add funds to continue.")
+      broadcast_error("ウォレットが見つかりません。先にウォレットを追加してください。")
       return
     end
 
     if wallet.below_threshold?(MIN_BALANCE_CENTS)
       broadcast_error(
-        "Insufficient balance. Please top up your wallet to continue.",
+        "残高が不足しています。ウォレットにチャージしてください。",
         error_type: "insufficient_balance",
         current_balance: wallet.balance_cents
       )
@@ -85,29 +85,48 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     # The adapter stores the last usage result internally.
     usage_result = adapter.last_usage
 
-    # Step 5: Save the complete assistant message
-    next_seq = chat_session.chat_messages.maximum(:seq)&.next || 1
-    assistant_message = chat_session.chat_messages.create!(
-      content: full_content,
-      role: "assistant",
-      seq: next_seq,
-      input_tokens: usage_result.input_tokens,
-      output_tokens: usage_result.output_tokens
-    )
+    if usage_result.nil?
+      Rails.logger.error("[PersonaExecutorJob] adapter.last_usage returned nil for session #{chat_session_id}")
+      broadcast_error("使用量データを取得できませんでした。もう一度お試しください。")
+      return
+    end
 
-    # Step 6: Record usage and deduct cost (with dual commission support)
-    usage_record = UsageRecord.create!(
-      ai_model: adapter.ai_model,
-      input_tokens: usage_result.input_tokens,
-      output_tokens: usage_result.output_tokens
-    )
-
-    billing_service = BillingService.new(
+    # Step 5: Save message, record usage, and process billing atomically.
+    # Wrapping in a transaction prevents inconsistencies where a UsageRecord
+    # exists but no billing occurred (e.g. Wallet::InsufficientBalanceError).
+    subscription = UserPlanSubscription.find_by(
       person: person,
-      usage_record: usage_record,
-      listing: listing
+      listing: listing,
+      status: "active"
     )
-    billing_result = billing_service.process!
+
+    assistant_message = nil
+    billing_result = nil
+
+    ActiveRecord::Base.transaction do
+      next_seq = chat_session.chat_messages.maximum(:seq)&.next || 1
+      assistant_message = chat_session.chat_messages.create!(
+        content: full_content,
+        role: "assistant",
+        seq: next_seq,
+        input_tokens: usage_result.input_tokens,
+        output_tokens: usage_result.output_tokens
+      )
+
+      usage_record = UsageRecord.create!(
+        ai_model: adapter.ai_model,
+        input_tokens: usage_result.input_tokens,
+        output_tokens: usage_result.output_tokens
+      )
+
+      billing_service = BillingService.new(
+        person: person,
+        subscription: subscription,
+        usage_record: usage_record,
+        listing: listing
+      )
+      billing_result = billing_service.process!
+    end
 
     Rails.logger.info(
       "[PersonaExecutorJob] Billing: base=#{billing_result[:base_cost_cents]}c " \
@@ -140,22 +159,22 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
 
   rescue Ai::ProviderFactory::ProviderNotConfiguredError => e
     Rails.logger.error("[PersonaExecutorJob] Provider not configured: #{e.message}")
-    broadcast_error("AI provider is not configured for this persona.")
+    broadcast_error("このペルソナのAIプロバイダーが設定されていません。")
 
   rescue Ai::OpenAiAdapter::ApiError, Ai::AnthropicAdapter::ApiError => e
     Rails.logger.error("[PersonaExecutorJob] AI API error: #{e.message}")
-    broadcast_error("Sorry, an error occurred while processing your request.")
+    broadcast_error("リクエストの処理中にエラーが発生しました。もう一度お試しください。")
 
   rescue Wallet::InsufficientBalanceError => e
     Rails.logger.warn("[PersonaExecutorJob] Insufficient balance: #{e.message}")
     broadcast_error(
-      "Insufficient balance. Please top up your wallet to continue.",
+      "残高が不足しています。ウォレットにチャージしてください。",
       error_type: "insufficient_balance"
     )
 
   rescue StandardError => e
     Rails.logger.error("[PersonaExecutorJob] Unexpected error: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
-    broadcast_error("Sorry, an unexpected error occurred. Please try again later.")
+    broadcast_error("予期しないエラーが発生しました。しばらくしてからもう一度お試しください。")
   end
 
   private
@@ -179,40 +198,4 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     )
   end
 
-  # Records usage and deducts cost from the wallet atomically.
-  # Both the UsageRecord creation and the wallet deduction are wrapped
-  # in a single database transaction to prevent billing inconsistencies.
-  #
-  # @param chat_session [ChatSession]
-  # @param ai_model [AiModel]
-  # @param usage [Ai::OpenAiAdapter::Usage, Ai::AnthropicAdapter::Usage]
-  # @param wallet [Wallet, nil] pre-fetched wallet to avoid re-query
-  def record_usage_and_deduct!(chat_session:, ai_model:, usage:, wallet: nil)
-    cost = ai_model.estimate_cost(usage.input_tokens, usage.output_tokens)
-
-    if cost.nil?
-      Rails.logger.warn(
-        "[PersonaExecutorJob] No pricing set for model #{ai_model.id}, skipping billing"
-      )
-      return
-    end
-
-    return unless cost.positive?
-
-    cost_cents = (cost * 100).to_i
-    total_tokens = usage.input_tokens + usage.output_tokens
-
-    wallet ||= chat_session.person&.wallet
-    return unless wallet
-
-    ActiveRecord::Base.transaction do
-      UsageRecord.create!(
-        ai_model: ai_model,
-        input_tokens: usage.input_tokens,
-        output_tokens: usage.output_tokens
-      )
-
-      wallet.deduct_for_usage!(cost_cents, tokens_used: total_tokens)
-    end
-  end
 end

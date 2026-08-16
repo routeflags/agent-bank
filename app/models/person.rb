@@ -133,6 +133,28 @@ class Person < ApplicationRecord
   has_one :wallet, dependent: :destroy
   has_many :user_plan_subscriptions, dependent: :destroy
 
+  # Finds or creates a wallet scoped to the specified community.
+  # Wallets are unique per person+community pair.
+  #
+  # @param community [Community, Integer] community or community ID
+  # @param currency [String, nil] currency code (defaults to BillingConfig.currency)
+  # @return [Wallet]
+  def find_or_create_wallet!(community:, currency: nil)
+    community_id = community.is_a?(Integer) ? community : community.id
+    Wallet.find_or_create_by!(person: self, community_id: community_id) do |w|
+      w.balance_cents = 0
+      w.currency = currency || BillingConfig.currency
+    end
+  end
+
+  # Returns the wallet for a specific community.
+  #
+  # @param community_id [Integer]
+  # @return [Wallet, nil]
+  def wallet_for_community(community_id)
+    wallets.find_by(community_id: community_id)
+  end
+
   deprecate communities: "Use accepted_community instead.",
             community_memberships: "Use community_membership instead.",
             deprecator: MethodDeprecator.new

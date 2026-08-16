@@ -85,24 +85,40 @@ module API
       # POST /api/v1/wallet_topup/confirm
       #
       # Verifies the PaymentIntent status and credits the wallet if succeeded.
+      # Includes idempotency protection to prevent double-crediting on retries.
       def confirm
         intent_id = params[:payment_intent_id]
 
         unless intent_id.present?
-          return render json: { error: "payment_intent_id is required" }, status: :bad_request
+          return render json: { error: "payment_intent_id は必須です" }, status: :bad_request
         end
 
         intent = Stripe::PaymentIntent.retrieve(intent_id)
 
         unless intent.metadata&.dig("user_id") == current_user.id
-          return render json: { error: "Unauthorized" }, status: :forbidden
+          return render json: { error: "認証されていません" }, status: :forbidden
         end
 
         if intent.status == "succeeded"
           wallet = Wallet.find_by(id: intent.metadata["wallet_id"])
 
           unless wallet
-            return render json: { error: "Wallet not found" }, status: :not_found
+            return render json: { error: "ウォレットが見つかりません" }, status: :not_found
+          end
+
+          # 冪等性チェック: 同一 PaymentIntent で既にチャージ済みか確認
+          already_credited = wallet.credit_transactions.exists?(
+            transaction_type: "topup",
+            metadata: "\"stripe_payment_id\":\"#{intent.id}\""
+          )
+
+          if already_credited
+            return render json: {
+              status: "ok",
+              balance_cents: wallet.reload.balance_cents,
+              amount_credited: 0,
+              message: "既に処理済みです"
+            }
           end
 
           wallet.topup!(intent.amount, stripe_payment_id: intent.id)
@@ -127,7 +143,7 @@ module API
 
       def ensure_authenticated
         unless current_user
-          render json: { error: "Authentication required" }, status: :unauthorized
+          render json: { error: "ログインが必要です" }, status: :unauthorized
         end
       end
 
@@ -140,18 +156,11 @@ module API
       end
 
       # Finds or creates a wallet for the current user.
-      # Wallets require a community — uses the user's primary community.
+      # Delegates to Person#find_or_create_wallet! for consistent wallet creation.
       #
       # @return [Wallet]
       def find_or_create_wallet!
-        community = current_user.community
-        Wallet.find_or_create_by!(
-          person: current_user,
-          community: community
-        ) do |w|
-          w.balance_cents = 0
-          w.currency = BillingConfig.currency
-        end
+        current_user.find_or_create_wallet!(community: current_user.community)
       end
 
       # Creates a Stripe PaymentIntent for the wallet top-up.
@@ -160,26 +169,30 @@ module API
       # @param wallet [Wallet] the target wallet
       # @return [Stripe::PaymentIntent]
       def create_payment_intent(amount_cents, wallet)
-        # Retrieve Stripe API key from payment settings
-        configure_stripe_api!
-
-        Stripe::PaymentIntent.create(
-          amount: amount_cents,
-          currency: (wallet.currency || BillingConfig.currency).downcase,
-          customer: current_user.stripe_customer_id,
-          metadata: {
-            user_id: current_user.id,
-            wallet_id: wallet.id,
-            community_id: current_user.community_id,
-            type: "wallet_topup"
-          },
-          description: "Wallet top-up for #{current_user.id}"
-        )
+        # Retrieve Stripe API key from payment settings (block form ensures restore)
+        configure_stripe_api! do
+          Stripe::PaymentIntent.create(
+            amount: amount_cents,
+            currency: (wallet.currency || BillingConfig.currency).downcase,
+            customer: current_user.stripe_customer_id,
+            metadata: {
+              user_id: current_user.id,
+              wallet_id: wallet.id,
+              community_id: current_user.community_id,
+              type: "wallet_topup"
+            },
+            description: "Wallet top-up for #{current_user.id}"
+          )
+        end
       end
 
       # Configures the Stripe API key from the community's payment settings.
       # Falls back to ENV['STRIPE_SECRET_KEY'] if no payment settings exist.
+      #
+      # Thread-safe: saves and restores Stripe.api_key to prevent race conditions
+      # in Puma's multi-threaded environment.
       def configure_stripe_api!
+        previous_key = Stripe.api_key
         community = current_user.community
         payment_settings = PaymentSettings.find_by(
           community_id: community.id,
@@ -197,6 +210,10 @@ module API
         else
           raise "No Stripe API key configured for community #{community.id}"
         end
+
+        yield if block_given?
+      ensure
+        Stripe.api_key = previous_key
       end
     end
   end

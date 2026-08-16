@@ -109,15 +109,13 @@ class UserPlanSubscriptionService
 
   # Finds or creates a Wallet for the buyer.
   # Wallets are scoped to person+community (unique index).
+  # Delegates to Person#find_or_create_wallet! to centralize wallet creation logic.
   #
   # @return [Wallet]
   def find_or_create_wallet!
-    Wallet.find_or_create_by!(
-      person: @person,
-      community: @listing.community
-    ) do |w|
-      w.balance_cents = 0
-      w.currency = @listing.currency || BillingConfig.currency
-    end
+    @person.find_or_create_wallet!(
+      community: @listing.community,
+      currency: @listing.currency
+    )
   end
 end

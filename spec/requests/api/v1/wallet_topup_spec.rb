@@ -63,8 +63,8 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
     context "認証済みユーザーが有効な金額でトップアップをリクエスト" do
       before do
         sign_in_as(person)
-        # Stub the Stripe configuration to avoid needing a real API key
-        allow_any_instance_of(API::V1::WalletTopupController).to receive(:configure_stripe_api!)
+        # Stub the Stripe key configuration to avoid needing a real API key
+        allow_any_instance_of(API::V1::WalletTopupController).to receive(:configure_stripe_api!).and_yield
       end
 
       it "returns 200 with client_secret" do
@@ -163,8 +163,8 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
     context "Stripe エラーが発生した場合" do
       before do
         sign_in_as(person)
-        # Stub the Stripe configuration to avoid needing a real API key
-        allow_any_instance_of(API::V1::WalletTopupController).to receive(:configure_stripe_api!)
+        # Stub the Stripe key configuration to avoid needing a real API key
+        allow_any_instance_of(API::V1::WalletTopupController).to receive(:configure_stripe_api!).and_yield
         allow(Stripe::PaymentIntent).to receive(:create)
           .and_raise(Stripe::InvalidRequestError.new("Invalid amount", nil))
       end
