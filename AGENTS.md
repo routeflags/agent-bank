@@ -152,6 +152,54 @@ docker compose -f docker-compose.dev.yml exec web bin/rails db:migrate
 docker compose -f docker-compose.dev.yml exec web bin/rails runner "puts ActiveRecord::Base.connection.tables.sort"
 ```
 
+### ローカル開発環境（Docker 不要）
+
+Docker は 1.5GB のメモリを消費するため、ローカル直接実行で開発可能。
+
+**必要なツール:**
+
+| ツール | バージョン | インストール方法 |
+|--------|-----------|----------------|
+| Ruby | 3.4.10 | `rbenv install 3.4.10` |
+| MySQL | 8.x | `brew install mysql@8.4` |
+| Redis | 7.x | `brew install redis` |
+| Node.js | 18.16.0 | `nodenv install 18.16.0` |
+
+**起動手順:**
+
+```bash
+# MySQL / Redis 起動
+brew services start mysql@8.4
+brew services start redis
+
+# DB 作成
+mysql -u root -e "CREATE DATABASE sharetribe_development CHARACTER SET utf8mb4;"
+mysql -u root -e "CREATE USER 'sharetribe'@'localhost' IDENTIFIED BY 'secret';"
+mysql -u root -e "GRANT ALL ON sharetribe_development.* TO 'sharetribe'@'localhost';"
+
+# セットアップ
+bin/rails db:migrate
+bin/rails db:seed
+cd client && npm install && cd ..
+cd client && npx webpack --mode=development --config webpack.client.config.js
+
+# サーバー起動
+bin/rails server -b 0.0.0.0 -p 3000
+```
+
+**⚠️ ローカル環境の制約:**
+
+| 項目 | ローカル | Docker |
+|------|:-------:|:------:|
+| **ThinkingSphinx** | ❌ 未インストール | ✅ |
+| **Delayed::Job ワーカー** | ❌ 動作させない | ✅ |
+| **PersonaExecutorJob** | 手動実行のみ | 自動キュー投入 |
+| **Action Cable** | ✅ async | ✅ async |
+
+> **重要**: ローカルでは Sphinx をインストールしない。ワーカー（Delayed::Job）も動作させない。
+> ワーカーが必要なテスト（PersonaExecutorJob 等）は Docker 環境で実行すること。
+> ローカルでは `rails runner` で直接 Job を実行してテストする。
+
 ---
 
 ## カスタムモデル一覧（Sharetribe コア以外）
