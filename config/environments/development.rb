@@ -14,6 +14,9 @@ Rails.application.configure do
   # since you don't have to restart the webserver when you make code changes.
   config.cache_classes = false
   config.hosts << /(.*\.)?lvh.me/
+  config.hosts << /localhost/
+  config.hosts << /127\.0\.0\.1/
+  config.hosts << /0\.0\.0\.0/
   # To autoload MailPreview, uncomment this line
   # (this is a hack which is fixed properly in Rails 4)
   # config.action_view.cache_template_loading = false
