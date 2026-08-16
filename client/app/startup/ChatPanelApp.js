@@ -41,12 +41,32 @@ function getConsumer() {
   return sharedConsumer;
 }
 
+// ─── HTML sanitization ────────────────────────────────────
+
+/**
+ * Escape HTML entities to prevent XSS from AI-generated content.
+ * This must run BEFORE any markdown-to-HTML conversion so that
+ * user/agent-supplied tags like <script> are neutralized.
+ */
+function sanitizeHTML(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ─── Simple Markdown renderer (no external deps) ──────────
 
 function renderMarkdown(text) {
   if (!text) return '';
 
-  var html = text
+  // Sanitize first: escape any HTML that could be injected
+  var sanitized = sanitizeHTML(text);
+
+  var html = sanitized
     // Code blocks (triple backtick)
     .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
     // Inline code

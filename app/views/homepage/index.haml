@@ -71,9 +71,8 @@
     .raku-stats__trend.raku-stats__trend--up 今週 +156
   .raku-stats__item
     %span.raku-stats__icon 💰
-    .raku-stats__value= rand(500..2000)
+    .raku-stats__value= number_with_delimiter(Transaction.count)
     .raku-stats__label 取引数
-    .raku-stats__trend.raku-stats__trend--up 今週 +89
 
 -# ═══════════════════════════════════════════════════════════
 -# Category Grid
@@ -141,7 +140,7 @@
           .raku-card__footer
             .raku-card__rating
               ★ 4.8
-              %span{style: "color: #999; font-size: 12px;"} (#{rand(10..200)})
+              %span{style: "color: #999; font-size: 12px;"} (0)
             .raku-card__price
               - if listing.price
                 = MoneyViewUtils.to_humanized(listing.price)
