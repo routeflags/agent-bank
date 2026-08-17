@@ -45,7 +45,7 @@
   %button.raku-tabs__item{type: "button"} 使い方
   %button.raku-tabs__item{type: "button"}
     レビュー
-    %span.raku-tabs__count (#{rand(10..200)})
+    %span.raku-tabs__count (#{@listing.comments_count})
   %button.raku-tabs__item{type: "button"} 関連スキル
 
 -# ── Hero layout ────────────────────────────────────────
@@ -83,19 +83,13 @@
                     .raku-listing-hero__image-placeholder{style: "display:flex; align-items:center; justify-content:center; font-size:64px; background:var(--bg-card); border-radius:var(--radius-lg); aspect-ratio:16/10; color:var(--text-muted);"} 🤖
 
     -# ── Feature bullets ───────────────────────────────────
-    .raku-features
-      .raku-features__item
-        %span.raku-features__check ✓
-        検索意図分析
-      .raku-features__item
-        %span.raku-features__check ✓
-        SEO最適化
-      .raku-features__item
-        %span.raku-features__check ✓
-        内部リンク提案
-      .raku-features__item
-        %span.raku-features__check ✓
-        WordPress入力対応
+    - if @listing.custom_field_values.any?
+      .raku-features
+        - @listing.custom_field_values.each do |cfv|
+          - cfv.with_type do |question_type|
+            .raku-features__item
+              %span.raku-features__check ✓
+              = cfv.question&.name || "機能"
 
     -# ── Description ──────────────────────────────────────
     .row
@@ -152,15 +146,20 @@
       .raku-price-box__note ※トークン消費に応じて変動する場合があります
 
       .raku-price-box__rating
-        ★ #{rand(4.0..5.0).round(1)}
-        %span.raku-price-box__rating-count (#{rand(50..300)}件の評価)
+        - if @listing.respond_to?(:average_rating) && @listing.average_rating.present?
+          ★ #{@listing.average_rating.round(1)}
+          %span.raku-price-box__rating-count (#{@listing.reviews_count || 0}件の評価)
+        - else
+          %span{style: "color: #999;"} 評価なし
 
     -# CTA buttons
     .raku-cta-group
-      = link_to "#", class: "raku-cta-btn raku-cta-btn--primary" do
-        このスキルを利用する
-      = link_to "#", class: "raku-cta-btn raku-cta-btn--secondary" do
-        ❤️ お気に入りに追加
+      - if current_user?
+        = link_to initiate_order_path(listing_id: @listing.id), class: "raku-cta-btn raku-cta-btn--primary" do
+          このスキルを利用する
+      - else
+        = link_to login_path, class: "raku-cta-btn raku-cta-btn--primary" do
+          ログインして利用する
       - if @listing.author != @current_user && @current_community.allow_free_conversations?
         %a.raku-cta-btn.raku-cta-btn--ghost{href: contact_to_listing_path(:listing_id => @listing.id.to_s)}
           💬 出品者に問い合わせ
@@ -171,29 +170,15 @@
         = medium_avatar_thumb(@listing.author, {:class => "raku-seller-card__avatar"})
       %div
         .raku-seller-card__name
-          = link_to PersonViewUtils.person_display_name(@listing.author, @current_community), @listing.author, :class => "listing-author-name-link"
-        .raku-seller-card__badge
-          ✓ 認証済み出品者
+          = link_to PersonViewUtils.person_display_name(@listing.author, @current_community), person_path(username: @listing.author.username), :class => "listing-author-name-link"
 
     -# Detail panel
     .raku-detail-panel
       .raku-detail-panel__title スキル詳細
       .raku-detail-panel__grid
         .raku-detail-panel__item
-          .raku-detail-panel__label 対応言語
-          .raku-detail-panel__value 日本語
-        .raku-detail-panel__item
-          .raku-detail-panel__label 推奨モデル
-          .raku-detail-panel__value GPT-4o
-        .raku-detail-panel__item
           .raku-detail-panel__label 最終更新日
           .raku-detail-panel__value= l @listing.updated_at, :format => :short_date
-        .raku-detail-panel__item
-          .raku-detail-panel__label バージョン
-          .raku-detail-panel__value 1.0.0
-        .raku-detail-panel__item
-          .raku-detail-panel__label 対応デバイス
-          .raku-detail-panel__value PC / スマホ
         .raku-detail-panel__item
           .raku-detail-panel__label 出品日
           .raku-detail-panel__value= l @listing.created_at, :format => :short_date

@@ -29,12 +29,12 @@
     スキルが集まる、AIエージェントマーケットプレイス
 
   -# Search bar
-  .raku-hero__search
+  %form.raku-hero__search{action: search_path, method: "get"}
     .raku-hero__search-type
       すべてのタイプ
       %svg{viewBox: "0 0 20 20", fill: "currentColor"}
         %path{d: "M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"}
-    %input.raku-hero__search-input{type: "text", placeholder: "スキルを検索...（例: SEO、データ分析、要約）"}
+    %input.raku-hero__search-input{type: "text", name: "q", placeholder: "スキルを検索...（例: SEO、データ分析、要約）"}
     %button.raku-hero__search-btn{type: "submit"}
       %svg{viewBox: "0 0 20 20", fill: "currentColor"}
         %path{d: "M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"}
@@ -53,25 +53,22 @@
 -# ═══════════════════════════════════════════════════════════
 -# Stats Bar
 -# ═══════════════════════════════════════════════════════════
+- open_listing_count = @current_community.listings.where(open: true).count
+- user_count = Person.count
+- transaction_count = Transaction.count
+
 .raku-stats
   .raku-stats__item
     %span.raku-stats__icon 🤖
-    .raku-stats__value= @current_community.listings.where(open: true).count || 0
+    .raku-stats__value= open_listing_count
     .raku-stats__label 登録エージェント
-    .raku-stats__trend.raku-stats__trend--up 今週 +12
-  .raku-stats__item
-    %span.raku-stats__icon ⚡
-    .raku-stats__value= (@current_community.listings.where(open: true).count || 0) * 3
-    .raku-stats__label 登録スキル
-    .raku-stats__trend.raku-stats__trend--up 今週 +38
   .raku-stats__item
     %span.raku-stats__icon 👥
-    .raku-stats__value= Person.count || 0
-    .raku-stats__label アクティブユーザー
-    .raku-stats__trend.raku-stats__trend--up 今週 +156
+    .raku-stats__value= user_count
+    .raku-stats__label ユーザー数
   .raku-stats__item
     %span.raku-stats__icon 💰
-    .raku-stats__value= number_with_delimiter(Transaction.count)
+    .raku-stats__value= number_with_delimiter(transaction_count)
     .raku-stats__label 取引数
 
 -# ═══════════════════════════════════════════════════════════
@@ -80,37 +77,37 @@
 .raku-categories
   %h2.raku-categories__title 人気のカテゴリ
   .raku-categories__grid
-    = link_to search_path(category: "all"), class: "raku-categories__item" do
+    = link_to search_path(category: "generation-ai"), class: "raku-categories__item" do
       %span.raku-categories__icon 🎨
       %span.raku-categories__name 生成AI
-    = link_to search_path(category: "all"), class: "raku-categories__item" do
+    = link_to search_path(category: "data-analysis"), class: "raku-categories__item" do
       %span.raku-categories__icon 📊
       %span.raku-categories__name データ分析
-    = link_to search_path(category: "all"), class: "raku-categories__item" do
+    = link_to search_path(category: "development"), class: "raku-categories__item" do
       %span.raku-categories__icon 💻
       %span.raku-categories__name 開発・プログラミング
-    = link_to search_path(category: "all"), class: "raku-categories__item" do
+    = link_to search_path(category: "marketing"), class: "raku-categories__item" do
       %span.raku-categories__icon 📣
       %span.raku-categories__name マーケティング
-    = link_to search_path(category: "all"), class: "raku-categories__item" do
+    = link_to search_path(category: "automation"), class: "raku-categories__item" do
       %span.raku-categories__icon ⚙️
       %span.raku-categories__name 業務自動化
-    = link_to search_path(category: "all"), class: "raku-categories__item" do
+    = link_to search_path(category: "design"), class: "raku-categories__item" do
       %span.raku-categories__icon 🖼️
       %span.raku-categories__name デザイン
-    = link_to search_path(category: "all"), class: "raku-categories__item" do
+    = link_to search_path(category: "research"), class: "raku-categories__item" do
       %span.raku-categories__icon 🔬
       %span.raku-categories__name リサーチ
-    = link_to search_path(category: "all"), class: "raku-categories__item" do
+    = link_to search_path(category: "education"), class: "raku-categories__item" do
       %span.raku-categories__icon 📖
       %span.raku-categories__name 教育・学習
-    = link_to search_path(category: "all"), class: "raku-categories__item" do
+    = link_to search_path(category: "writing"), class: "raku-categories__item" do
       %span.raku-categories__icon ✍️
       %span.raku-categories__name ライティング
-    = link_to search_path(category: "all"), class: "raku-categories__item" do
+    = link_to search_path(category: "media"), class: "raku-categories__item" do
       %span.raku-categories__icon 🎵
       %span.raku-categories__name 音声・動画
-    = link_to search_path(category: "all"), class: "raku-categories__item" do
+    = link_to search_path(category: "other"), class: "raku-categories__item" do
       %span.raku-categories__icon 📁
       %span.raku-categories__name その他
 
@@ -121,31 +118,33 @@
   .raku-featured__header
     %h2.raku-featured__title 注目のスキル
     .raku-featured__tabs
-      %button.raku-featured__tab.is-active{type: "button"} おすすめ
-      %button.raku-featured__tab{type: "button"} 新着
-      %button.raku-featured__tab{type: "button"} 高評価
+      %button.raku-featured__tab.is-active{type: "button", data: {sort: "popular"}} おすすめ
+      %button.raku-featured__tab{type: "button", data: {sort: "newest"}} 新着
+      %button.raku-featured__tab{type: "button", data: {sort: "rating"}} 高評価
   .raku-featured__scroll
     - @listings.each do |listing|
-      = link_to listing_path(listing), class: "raku-featured__card" do
+      = link_to listing_path(listing.url), class: "raku-featured__card" do
         .raku-card
           - if listing.listing_images.first
-            %img.raku-card__image{src: listing.listing_images.first.image.url(:small), alt: listing.title}
+            %img.raku-card__image{src: listing.listing_images.first[:small_3x2] || listing.listing_images.first[:thumb], alt: listing.title}
           - else
             .raku-card__image{style: "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); display: flex; align-items: center; justify-content: center; font-size: 48px; color: #555;"} 🤖
           .raku-card__body
             %h3.raku-card__title= listing.title
             .raku-card__author
-              %span 出品者
+              - if listing.author
+                %span= listing.author.display_name || listing.author.username
+              - else
+                %span 出品者
             %p.raku-card__description= StringUtils.first_words(listing.description, 60)
           .raku-card__footer
             .raku-card__rating
-              ★ 4.8
-              %span{style: "color: #999; font-size: 12px;"} (0)
+              %span{style: "color: #999; font-size: 12px;"} 評価なし
             .raku-card__price
               - if listing.price
                 = MoneyViewUtils.to_humanized(listing.price)
               - else
-                ¥0
+                無料
 
     - if @listings.empty?
       -# Show placeholder cards when no listings exist
@@ -160,9 +159,8 @@
               %p.raku-card__description このスキルはサンプルです。実際のAIエージェントスキルがここに表示されます。
             .raku-card__footer
               .raku-card__rating
-                ★ 4.8
-                %span{style: "color: #999; font-size: 12px;"} (128)
-              .raku-card__price ¥1,500
+                %span{style: "color: #999; font-size: 12px;"} 評価なし
+              .raku-card__price 無料
 
 -# ═══════════════════════════════════════════════════════════
 -# Original search / listing grid (preserved from Sharetribe)

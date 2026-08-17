@@ -586,6 +586,21 @@ function initialize_homepage() {
       return false;
     }
   );
+
+  // Featured card tab switching — updates URL sort param and active state
+  $('.raku-featured__tab').on('click', function() {
+    var sort = $(this).data('sort');
+    if (!sort) return;
+
+    // Update active tab state
+    $('.raku-featured__tab').removeClass('is-active');
+    $(this).addClass('is-active');
+
+    // Update URL with sort param without page reload
+    var url = new URL(window.location);
+    url.searchParams.set('sort', sort);
+    window.history.replaceState({}, '', url);
+  });
 }
 
 function initialize_invitation_form(locale, email_error_message, invitation_limit) {
