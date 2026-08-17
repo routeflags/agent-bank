@@ -175,7 +175,8 @@ module Payments
                                                  :marketplace_currency,
                                                  :mode,
                                                  :commission_from_buyer,
-                                                 :minimum_buyer_transaction_fee
+                                                 :minimum_buyer_transaction_fee,
+                                                 :platform_commission_rate
   ).with_validations do
     validates_numericality_of(
       :commission_from_seller,
