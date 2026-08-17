@@ -1,6 +1,7 @@
 class HomepageController < ApplicationController
 
   before_action :save_current_path, :except => :sign_in
+  before_action :log_queries, only: [:index]
 
   APP_DEFAULT_VIEW_TYPE = "grid".freeze
   VIEW_TYPES_NO_LOCATION = ["grid".freeze, "list".freeze].freeze
@@ -60,9 +61,9 @@ class HomepageController < ApplicationController
     includes =
       case @view_type
       when "grid"
-        [:author, :listing_images]
+        [:author, :listing_images, :categories]
       when "list"
-        [:author, :listing_images, :num_of_reviews]
+        [:author, :listing_images, :num_of_reviews, :categories]
       when "map"
         [:location]
       else
@@ -99,7 +100,7 @@ class HomepageController < ApplicationController
       }
     elsif request.xhr? # checks if AJAX request
       search_result.on_success { |listings|
-        @listings = listings # TODO Remove
+        @listings = exclude_test_listings(listings)
 
         if @view_type == "grid" then
           render partial: "grid_item", collection: @listings, as: :listing, locals: { show_distance: location_in_use }
@@ -130,6 +131,8 @@ class HomepageController < ApplicationController
 
       search_result.on_success { |listings|
         @listings = listings
+        # Exclude test listings from public view
+        @listings = exclude_test_listings(@listings)
         render locals: locals.merge(
                  seo_pagination_links: seo_pagination_links(params, @listings.current_page, @listings.total_pages))
       }.on_error { |e|
@@ -388,5 +391,42 @@ class HomepageController < ApplicationController
 
   def unsafe_params_hash
     params.to_unsafe_hash
+  end
+
+  # Log SQL queries during homepage rendering to identify N+1 and
+  # performance bottlenecks. Enabled via HOMEPAGE_QUERY_LOG env var.
+  # The subscription is once-per-request to avoid stacking listeners.
+  def log_queries
+    return unless Rails.env.development?
+    return if @_query_logging_active
+
+    @_query_logging_active = true
+    query_count = 0
+    ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      query_count += 1
+      Rails.logger.debug("[Query##{query_count}] #{payload[:name]} #{payload[:sql]}")
+    end
+  end
+
+  # Exclude test listings whose titles start with 'Test' or whose description
+  # is a placeholder like 'desc'. This prevents low-quality test data from
+  # appearing on the public homepage.
+  def exclude_test_listings(listings)
+    return listings if listings.respond_to?(:where) && !listings.respond_to?(:each) && listings.respond_to?(:where)
+
+    # When listings are paginated (WillPaginate::Collection), use the
+    # underlying relation so that filtering applies to the full dataset.
+    if listings.respond_to?(:where)
+      listings.where.not("title LIKE ?", "Test%")
+              .where.not("title LIKE ?", "test%")
+              .where.not("description = ?", "desc")
+    else
+      # Fallback for arrays (e.g. from discovery API)
+      listings.reject do |item|
+        title = item.respond_to?(:title) ? item.title : ""
+        desc  = item.respond_to?(:description) ? item.description : ""
+        title.start_with?("Test") || title.start_with?("test") || desc == "desc"
+      end
+    end
   end
 end

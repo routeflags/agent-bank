@@ -22,19 +22,19 @@
 .raku-hero
   .raku-hero__badge
     🚀
-    新着スキルが毎日追加中
+    = t('lamprey.homepage.hero_tagline')
   %h1.raku-hero__title
-    AIの力を使いこなせ。
+    = t('lamprey.homepage.hero_title')
   %p.raku-hero__subtitle
-    スキルが集まる、AIエージェントマーケットプレイス
+    = t('lamprey.homepage.hero_subtitle')
 
   -# Search bar
   %form.raku-hero__search{action: search_path, method: "get"}
     .raku-hero__search-type
-      すべてのタイプ
+      = t('lamprey.homepage.search_type_all')
       %svg{viewBox: "0 0 20 20", fill: "currentColor"}
         %path{d: "M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"}
-    %input.raku-hero__search-input{type: "text", name: "q", placeholder: "スキルを検索...（例: SEO、データ分析、要約）"}
+    %input.raku-hero__search-input{type: "text", name: "q", placeholder: t('lamprey.homepage.search_placeholder')}
     %button.raku-hero__search-btn{type: "submit"}
       %svg{viewBox: "0 0 20 20", fill: "currentColor"}
         %path{d: "M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"}
@@ -61,66 +61,66 @@
   .raku-stats__item
     %span.raku-stats__icon 🤖
     .raku-stats__value= open_listing_count
-    .raku-stats__label 登録エージェント
+    .raku-stats__label= t('lamprey.homepage.stats_agents')
   .raku-stats__item
     %span.raku-stats__icon 👥
     .raku-stats__value= user_count
-    .raku-stats__label ユーザー数
+    .raku-stats__label= t('lamprey.homepage.stats_users')
   .raku-stats__item
     %span.raku-stats__icon 💰
     .raku-stats__value= number_with_delimiter(transaction_count)
-    .raku-stats__label 取引数
+    .raku-stats__label= t('lamprey.homepage.stats_transactions')
 
 -# ═══════════════════════════════════════════════════════════
 -# Category Grid
 -# ═══════════════════════════════════════════════════════════
 .raku-categories
-  %h2.raku-categories__title 人気のカテゴリ
+  %h2.raku-categories__title= t('lamprey.homepage.categories_title')
   .raku-categories__grid
     = link_to search_path(category: "generation-ai"), class: "raku-categories__item" do
       %span.raku-categories__icon 🎨
-      %span.raku-categories__name 生成AI
+      %span.raku-categories__name= t('lamprey.homepage.category_generation_ai')
     = link_to search_path(category: "data-analysis"), class: "raku-categories__item" do
       %span.raku-categories__icon 📊
-      %span.raku-categories__name データ分析
+      %span.raku-categories__name= t('lamprey.homepage.category_data_analysis')
     = link_to search_path(category: "development"), class: "raku-categories__item" do
       %span.raku-categories__icon 💻
-      %span.raku-categories__name 開発・プログラミング
+      %span.raku-categories__name= t('lamprey.homepage.category_development')
     = link_to search_path(category: "marketing"), class: "raku-categories__item" do
       %span.raku-categories__icon 📣
-      %span.raku-categories__name マーケティング
+      %span.raku-categories__name= t('lamprey.homepage.category_marketing')
     = link_to search_path(category: "automation"), class: "raku-categories__item" do
       %span.raku-categories__icon ⚙️
-      %span.raku-categories__name 業務自動化
+      %span.raku-categories__name= t('lamprey.homepage.category_automation')
     = link_to search_path(category: "design"), class: "raku-categories__item" do
       %span.raku-categories__icon 🖼️
-      %span.raku-categories__name デザイン
+      %span.raku-categories__name= t('lamprey.homepage.category_design')
     = link_to search_path(category: "research"), class: "raku-categories__item" do
       %span.raku-categories__icon 🔬
-      %span.raku-categories__name リサーチ
+      %span.raku-categories__name= t('lamprey.homepage.category_research')
     = link_to search_path(category: "education"), class: "raku-categories__item" do
       %span.raku-categories__icon 📖
-      %span.raku-categories__name 教育・学習
+      %span.raku-categories__name= t('lamprey.homepage.category_education')
     = link_to search_path(category: "writing"), class: "raku-categories__item" do
       %span.raku-categories__icon ✍️
-      %span.raku-categories__name ライティング
+      %span.raku-categories__name= t('lamprey.homepage.category_writing')
     = link_to search_path(category: "media"), class: "raku-categories__item" do
       %span.raku-categories__icon 🎵
-      %span.raku-categories__name 音声・動画
+      %span.raku-categories__name= t('lamprey.homepage.category_media')
     = link_to search_path(category: "other"), class: "raku-categories__item" do
       %span.raku-categories__icon 📁
-      %span.raku-categories__name その他
+      %span.raku-categories__name= t('lamprey.homepage.category_other')
 
 -# ═══════════════════════════════════════════════════════════
 -# Featured Cards
 -# ═══════════════════════════════════════════════════════════
 .raku-featured
   .raku-featured__header
-    %h2.raku-featured__title 注目のスキル
+    %h2.raku-featured__title= t('lamprey.homepage.featured_title')
     .raku-featured__tabs
-      %button.raku-featured__tab.is-active{type: "button", data: {sort: "popular"}} おすすめ
-      %button.raku-featured__tab{type: "button", data: {sort: "newest"}} 新着
-      %button.raku-featured__tab{type: "button", data: {sort: "rating"}} 高評価
+      %button.raku-featured__tab.is-active{type: "button", data: {sort: "popular"}}= t('lamprey.homepage.tab_popular')
+      %button.raku-featured__tab{type: "button", data: {sort: "newest"}}= t('lamprey.homepage.tab_newest')
+      %button.raku-featured__tab{type: "button", data: {sort: "rating"}}= t('lamprey.homepage.tab_rating')
   .raku-featured__scroll
     - @listings.each do |listing|
       = link_to listing_path(listing.url), class: "raku-featured__card" do
@@ -139,28 +139,17 @@
             %p.raku-card__description= StringUtils.first_words(listing.description, 60)
           .raku-card__footer
             .raku-card__rating
-              %span{style: "color: #999; font-size: 12px;"} 評価なし
+              %span{style: "color: #999; font-size: 12px;"}= t('lamprey.listings.rating_none')
             .raku-card__price
               - if listing.price
                 = MoneyViewUtils.to_humanized(listing.price)
               - else
-                無料
+                = t('lamprey.listings.free')
 
     - if @listings.empty?
-      -# Show placeholder cards when no listings exist
-      - 4.times do |i|
-        .raku-featured__card
-          .raku-card
-            .raku-card__image{style: "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); display: flex; align-items: center; justify-content: center; font-size: 48px; color: #555;"} 🤖
-            .raku-card__body
-              %h3.raku-card__title サンプルスキル #{i + 1}
-              .raku-card__author
-                %span デモ出品者
-              %p.raku-card__description このスキルはサンプルです。実際のAIエージェントスキルがここに表示されます。
-            .raku-card__footer
-              .raku-card__rating
-                %span{style: "color: #999; font-size: 12px;"} 評価なし
-              .raku-card__price 無料
+      .raku-featured__empty
+        %p= t('lamprey.homepage.empty_title')
+        %p= t('lamprey.homepage.empty_subtitle')
 
 -# ═══════════════════════════════════════════════════════════
 -# Original search / listing grid (preserved from Sharetribe)

@@ -32,21 +32,21 @@
 
 -# ── Breadcrumbs ────────────────────────────────────────
 .raku-breadcrumb
-  %a.raku-breadcrumb__link{href: landing_page_path} ホーム
+  %a.raku-breadcrumb__link{href: landing_page_path}= t('lamprey.listings.home')
   %span.raku-breadcrumb__separator ›
-  %a.raku-breadcrumb__link{href: search_path} スキル一覧
+  %a.raku-breadcrumb__link{href: search_path}= t('lamprey.listings.skill_list')
   %span.raku-breadcrumb__separator ›
   %span.raku-breadcrumb__current= @listing.title
 
 -# ── Tabs ───────────────────────────────────────────────
 .raku-tabs
-  %button.raku-tabs__item.is-active{type: "button"} 概要
-  %button.raku-tabs__item{type: "button"} 機能・特徴
-  %button.raku-tabs__item{type: "button"} 使い方
+  %button.raku-tabs__item.is-active{type: "button"}= t('lamprey.listings.overview')
+  %button.raku-tabs__item{type: "button"}= t('lamprey.listings.features')
+  %button.raku-tabs__item{type: "button"}= t('lamprey.listings.how_to_use')
   %button.raku-tabs__item{type: "button"}
-    レビュー
+    = t('lamprey.listings.reviews')
     %span.raku-tabs__count (#{@listing.comments_count})
-  %button.raku-tabs__item{type: "button"} 関連スキル
+  %button.raku-tabs__item{type: "button"}= t('lamprey.listings.related_skills')
 
 -# ── Hero layout ────────────────────────────────────────
 .raku-listing-hero
@@ -142,27 +142,27 @@
         - with_quantity_text(@current_community, @listing) do |text|
           .raku-price-box__unit= text
       - else
-        .raku-price-box__amount 無料
-      .raku-price-box__note ※トークン消費に応じて変動する場合があります
+        .raku-price-box__amount= t('lamprey.listings.free')
+      .raku-price-box__note= t('lamprey.listings.price_note')
 
       .raku-price-box__rating
         - if @listing.respond_to?(:average_rating) && @listing.average_rating.present?
           ★ #{@listing.average_rating.round(1)}
           %span.raku-price-box__rating-count (#{@listing.reviews_count || 0}件の評価)
         - else
-          %span{style: "color: #999;"} 評価なし
+          %span{style: "color: #999;"}= t('lamprey.listings.rating_none')
 
     -# CTA buttons
     .raku-cta-group
       - if current_user?
         = link_to initiate_order_path(listing_id: @listing.id), class: "raku-cta-btn raku-cta-btn--primary" do
-          このスキルを利用する
+          = t('lamprey.listings.use_skill')
       - else
         = link_to login_path, class: "raku-cta-btn raku-cta-btn--primary" do
-          ログインして利用する
+          = t('lamprey.listings.login_to_use')
       - if @listing.author != @current_user && @current_community.allow_free_conversations?
         %a.raku-cta-btn.raku-cta-btn--ghost{href: contact_to_listing_path(:listing_id => @listing.id.to_s)}
-          💬 出品者に問い合わせ
+          = t('lamprey.listings.contact_seller')
 
     -# Seller card
     .raku-seller-card
@@ -174,14 +174,39 @@
 
     -# Detail panel
     .raku-detail-panel
-      .raku-detail-panel__title スキル詳細
+      .raku-detail-panel__title= t('lamprey.listings.skill_detail')
       .raku-detail-panel__grid
         .raku-detail-panel__item
-          .raku-detail-panel__label 最終更新日
+          .raku-detail-panel__label= t('lamprey.listings.last_updated')
           .raku-detail-panel__value= l @listing.updated_at, :format => :short_date
         .raku-detail-panel__item
-          .raku-detail-panel__label 出品日
+          .raku-detail-panel__label= t('lamprey.listings.published_date')
           .raku-detail-panel__value= l @listing.created_at, :format => :short_date
+
+    -# ── Additional product data for informed purchase ───
+    .raku-detail-panel
+      .raku-detail-panel__title= t('lamprey.listings.pricing_model')
+      .raku-detail-panel__grid
+        .raku-detail-panel__item
+          .raku-detail-panel__label= t('lamprey.listings.token_price')
+          .raku-detail-panel__value
+            - if @listing.price
+              = MoneyViewUtils.to_humanized(@listing.price)
+            - else
+              = t('lamprey.listings.free')
+        .raku-detail-panel__item
+          .raku-detail-panel__label= t('lamprey.listings.free_trial')
+          .raku-detail-panel__value
+            - if @listing.respond_to?(:free_trial) && @listing.free_trial.present?
+              あり
+            - else
+              なし
+        .raku-detail-panel__item
+          .raku-detail-panel__label= t('lamprey.listings.privacy')
+          .raku-detail-panel__value 外部APIとの連携あり
+        .raku-detail-panel__item
+          .raku-detail-panel__label= t('lamprey.listings.cancellation')
+          .raku-detail-panel__value 購入後7日以内
 
     -# Seller activity
     - if @listing_presenter.received_testimonials.size > 0

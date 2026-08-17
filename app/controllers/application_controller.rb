@@ -404,7 +404,11 @@ class ApplicationController < ActionController::Base
       session[:return_to_content] = nil
       return_to_path
     else
-      search_path
+      # Preserve the locale from the request so that Japanese users
+      # stay in /ja/ after login instead of being redirected to the
+      # account-saved locale (e.g. /fi/).
+      request_locale = request.env['rack.locale'] || I18n.locale.to_s
+      "/#{request_locale}/"
     end
   end
 
