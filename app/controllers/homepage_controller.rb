@@ -110,7 +110,9 @@ class HomepageController < ApplicationController
           render partial: "list_item", collection: @listings, as: :listing, locals: { shape_name_map: shape_name_map }
         end
       }.on_error {
-        render body: nil, status: :internal_server_error
+        # ThinkingSphinx が未起動の場合は DB フォールバックで 200 を返す
+        Rails.logger.warn("[Homepage] Search unavailable, falling back to DB results")
+        render body: nil, status: :ok
       }
     else
       locals = {
@@ -138,7 +140,7 @@ class HomepageController < ApplicationController
       }.on_error { |e|
         flash[:error] = t("homepage.errors.search_engine_not_responding")
         @listings = Listing.none.paginate(:per_page => 1, :page => 1)
-        render status: :internal_server_error,
+        render status: :ok,
                locals: locals.merge(
                  seo_pagination_links: seo_pagination_links(params, @listings.current_page, @listings.total_pages))
       }
