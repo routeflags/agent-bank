@@ -154,7 +154,7 @@
 
     -# CTA buttons
     .raku-cta-group
-      - if current_user?
+      - if logged_in?
         = link_to initiate_order_path(listing_id: @listing.id), class: "raku-cta-btn raku-cta-btn--primary" do
           = t('lamprey.listings.use_skill')
       - else
