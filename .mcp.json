@@ -1,0 +1,62 @@
+{
+  "mcpServers": {
+    "codebase-memory-mcp": {
+      "command": "/Users/bookair18/.local/bin/codebase-memory-mcp",
+      "args": []
+    },
+    "code-review-graph": {
+      "command": "code-review-graph",
+      "args": [
+        "serve",
+        "--repo",
+        "/Users/bookair18/orca/workspaces/lamprey"
+      ]
+    },
+    "chrome-devtools": {
+      "command": "/Users/bookair18/.anyenv/envs/nodenv/versions/22.22.0/bin/npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ]
+    },
+    "playwright": {
+      "command": "/Users/bookair18/.anyenv/envs/nodenv/versions/22.22.0/bin/npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ]
+    },
+    "pagespeed": {
+      "command": "/Users/bookair18/.anyenv/envs/nodenv/versions/22.22.0/bin/npx",
+      "args": [
+        "-y",
+        "pagespeed-mcp-server"
+      ]
+    },
+    "graphify": {
+      "command": "/Users/bookair18/OS/media/06_symphony/symphony_workspaces/automation/graphify/.venv/bin/python",
+      "args": [
+        "-m",
+        "graphify.serve",
+        "/Users/bookair18/OS/media/06_symphony/symphony_workspaces/automation/graphify/worked/mixed-corpus/graph.json"
+      ]
+    },
+    "context7": {
+      "command": "/Users/bookair18/.anyenv/envs/nodenv/versions/22.22.0/bin/npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ]
+    },
+    "serena": {
+      "command": "/Users/bookair18/.local/bin/serena-agent",
+      "args": [
+        "start-mcp-server",
+        "--project",
+        "/Users/bookair18/orca/workspaces/lamprey",
+        "--context",
+        "agent"
+      ]
+    }
+  }
+}
