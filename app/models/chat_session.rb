@@ -65,7 +65,7 @@ class ChatSession < ApplicationRecord
             desc = config.is_a?(Hash) ? config["description"] : nil
             desc.present? ? "#{name}: #{desc}" : name.to_s
           end
-          parts << "Available external APIs: #{api_descriptions.join(', ')}."
+          parts << "利用可能な外部 API: #{api_descriptions.join(', ')}。"
         end
       rescue JSON::ParserError => e
         Rails.logger.warn("[ChatSession] Malformed external_apis JSON for session #{id}: #{e.message}")

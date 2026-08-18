@@ -923,13 +923,10 @@ Rails.application.routes.draw do
 
   get "(/:locale)/:person_id(*path)" => redirect(id_to_username), :constraints => { :locale => locale_matcher, :person_id => /[a-zA-Z0-9_-]{22}/ }
 
-  # Capafy AI — API v1 namespace for chat sessions and SSE streaming
+  # Lamprey AI — API v1 namespace for chat sessions
   namespace :api do
     namespace :v1 do
       resources :chat_sessions, only: [:index, :show, :create, :update] do
-        member do
-          get :stream, to: 'chat_stream#show'
-        end
       end
 
       # Wallet top-up: create PaymentIntent + confirm after Stripe checkout

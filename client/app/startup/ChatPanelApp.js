@@ -289,6 +289,8 @@ function MessageBubble(props) {
   var createdAt = props.created_at;
   var showTopupButton = props.showTopupButton;
   var onTopupClick = props.onTopupClick;
+  var showPurchaseButton = props.showPurchaseButton;
+  var onPurchaseClick = props.onPurchaseClick;
 
   var isUser = role === 'user';
   var isSystem = role === 'system';
@@ -340,7 +342,15 @@ function MessageBubble(props) {
         className: 'wallet-topup-prompt__btn',
         onClick: onTopupClick,
         type: 'button',
-      }, '追加する')
+      }, 'クレジットを追加する')
+    ),
+    // Show purchase button for purchase_required errors
+    showPurchaseButton && onPurchaseClick && React.createElement('div', { className: 'wallet-topup-prompt' },
+      React.createElement('button', {
+        className: 'wallet-topup-prompt__btn',
+        onClick: onPurchaseClick,
+        type: 'button',
+      }, '購入する')
     ),
     role === 'assistant' && totalTokens > 0 && (
       React.createElement('span', { className: 'chatMessage__tokens' }, totalTokens + ' tokens')
@@ -396,6 +406,7 @@ class ChatPanelApp extends React.Component {
     this.handleOpenTopup = this.handleOpenTopup.bind(this);
     this.handleCloseTopup = this.handleCloseTopup.bind(this);
     this.handleTopupSuccess = this.handleTopupSuccess.bind(this);
+    this.handlePurchase = this.handlePurchase.bind(this);
   }
 
   // ─── Session management ───────────────────────────────
@@ -542,8 +553,21 @@ class ChatPanelApp extends React.Component {
           }]),
         };
       });
+    } else if (data.error_type === 'purchase_required') {
+      this.setState(function (prev) {
+        return {
+          messages: prev.messages.concat([{
+            id: 'sys-err-' + Date.now(),
+            role: 'system',
+            content: data.error || 'このペルソナを利用するには購入が必要です。',
+            isStreaming: false,
+            created_at: new Date().toISOString(),
+            showPurchaseButton: true,
+          }]),
+        };
+      });
     } else {
-      this.addMessage('sys-err-' + Date.now(), 'system', data.error || 'An error occurred.', false);
+      this.addMessage('sys-err-' + Date.now(), 'system', data.error || 'エラーが発生しました。', false);
     }
   }
 
@@ -615,7 +639,7 @@ class ChatPanelApp extends React.Component {
         if (id) {
           self.sendMessage(text);
         } else {
-          self.addMessage('sys-err-' + Date.now(), 'system', 'Could not connect to chat.', false);
+          self.addMessage('sys-err-' + Date.now(), 'system', 'チャットに接続できませんでした。', false);
         }
         self.sending = false;
       });
@@ -688,7 +712,19 @@ class ChatPanelApp extends React.Component {
   }
 
   handleOpenTopup() {
-    this.setState({ showTopupModal: true });
+    // トップアップ機能は準備中（Stripe.js 統合前）
+    // モーダルの代わりに準備中メッセージを表示
+    this.setState(function (prev) {
+      return {
+        messages: prev.messages.concat([{
+          id: 'sys-topup-' + Date.now(),
+          role: 'system',
+          content: 'ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。',
+          isStreaming: false,
+          created_at: new Date().toISOString(),
+        }]),
+      };
+    });
   }
 
   handleCloseTopup() {
@@ -697,6 +733,21 @@ class ChatPanelApp extends React.Component {
 
   handleTopupSuccess(newBalance) {
     this.setState({ walletBalance: newBalance });
+  }
+
+  handlePurchase() {
+    // ペルソナ購入ページへ遷移（現在は準備中メッセージを表示）
+    this.setState(function (prev) {
+      return {
+        messages: prev.messages.concat([{
+          id: 'sys-purchase-' + Date.now(),
+          role: 'system',
+          content: 'このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。',
+          isStreaming: false,
+          created_at: new Date().toISOString(),
+        }]),
+      };
+    });
   }
 
   // ─── Lifecycle ────────────────────────────────────────
@@ -873,6 +924,8 @@ class ChatPanelApp extends React.Component {
                     created_at: msg.created_at,
                     showTopupButton: msg.showTopupButton,
                     onTopupClick: msg.showTopupButton ? self.handleOpenTopup : null,
+                    showPurchaseButton: msg.showPurchaseButton,
+                    onPurchaseClick: msg.showPurchaseButton ? self.handlePurchase : null,
                   });
                 }),
             React.createElement('div', { ref: function (el) { self.messagesEndRef = el; } })
@@ -931,7 +984,7 @@ class ChatPanelApp extends React.Component {
               className: 'wallet-balance__topupBtn',
               onClick: this.handleOpenTopup,
               type: 'button',
-            }, '追加する')
+            }, '追加する（準備中）')
           ),
 
           React.createElement('h4', { className: 'chatPanel__settingsTitle' }, '⚙️ 実行設定'),

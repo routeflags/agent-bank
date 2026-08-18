@@ -59,6 +59,14 @@ class TransactionProcessStateMachine
   after_transition(to: :confirmed, after_commit: true) do |conversation|
     confirmation = ConfirmConversation.new(conversation, conversation.starter, conversation.community)
     confirmation.confirm!
+
+    # 購入完了時にサブスクリプションと初回トークン付与を実行
+    # 既存サブスクリプションがある場合は冪等にスキップされる
+    begin
+      UserPlanSubscriptionService.create_on_purchase(conversation)
+    rescue => e
+      Rails.logger.error("[TransactionProcessStateMachine] Failed to create subscription for transaction #{conversation.id}: #{e.message}")
+    end
   end
 
   after_transition(from: :paid, to: :canceled, after_commit: true) do |conversation|
@@ -80,6 +88,17 @@ class TransactionProcessStateMachine
 
   after_transition(to: :free, after_commit: true) do |transaction|
     send_new_transaction_email(transaction) if transaction.conversation.payment?
+
+    # 無料トランザクション完了時もサブスクリプションを作成
+    # 有料ペルソナの無料フロー（コンタクト）では呼ばれない想定だが
+    # 念のためガードを付与
+    begin
+      if transaction.listing&.price&.positive?
+        UserPlanSubscriptionService.create_on_purchase(transaction)
+      end
+    rescue => e
+      Rails.logger.error("[TransactionProcessStateMachine] Failed to create subscription for free transaction #{transaction.id}: #{e.message}")
+    end
   end
 
   # "guard_transition" is before SQL BEGIN-COMMIT block
