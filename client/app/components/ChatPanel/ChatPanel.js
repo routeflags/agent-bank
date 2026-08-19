@@ -434,7 +434,7 @@ class ChatPanel extends React.Component {
 
   handleError(data) {
     this.streamingId = null;
-    var errorMsg = data.error || 'An error occurred while generating a response.';
+    var errorMsg = data.error || 'レスポンスの生成中にエラーが発生しました。';
     this.addSystemMessage(errorMsg);
   }
 
@@ -457,7 +457,7 @@ class ChatPanel extends React.Component {
         if (newId) {
           self.sendMessage(content);
         } else {
-          self.addSystemMessage('Could not connect to chat. Please try again.');
+          self.addSystemMessage('チャットに接続できませんでした。しばらくしてからもう一度お試しください。');
         }
         self.sending = false;
       });

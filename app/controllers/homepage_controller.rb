@@ -95,7 +95,8 @@ class HomepageController < ApplicationController
       search_result.on_success { |listings|
         render layout: "layouts/react_page.haml", template: "search_page/search_page", locals: { props: searchpage_props(listings, current_page, per_page) }
       }.on_error {
-        flash[:error] = t("homepage.errors.search_engine_not_responding")
+        # 検索エンジンが利用不可でもDBフォールバックで結果を返す（赤バナー非表示）
+        Rails.logger.warn("[Homepage] Search engine unavailable, rendering empty results")
         render layout: "layouts/react_page.haml", template: "search_page/search_page", locals: { props: searchpage_props(nil, current_page, per_page) }
       }
     elsif request.xhr? # checks if AJAX request
@@ -138,7 +139,8 @@ class HomepageController < ApplicationController
         render locals: locals.merge(
                  seo_pagination_links: seo_pagination_links(params, @listings.current_page, @listings.total_pages))
       }.on_error { |e|
-        flash[:error] = t("homepage.errors.search_engine_not_responding")
+        # 検索エンジンが利用不可でもDBフォールバックで結果を返す（赤バナー非表示）
+        Rails.logger.warn("[Homepage] Search engine unavailable, falling back to DB: #{e}")
         @listings = Listing.none.paginate(:per_page => 1, :page => 1)
         render status: :ok,
                locals: locals.merge(

@@ -213,6 +213,11 @@ class PreauthorizeTransactionsController < ApplicationController
   end
 
   def ensure_can_receive_payment
+    # AI ペルソナ（run_online）はウォレット決済のため、Stripe 支払い詳細チェックをスキップ
+    if listing.respond_to?(:default_run_mode) && listing.default_run_mode == 'run_online'
+      return
+    end
+
     payment_type = @current_community.active_payment_types || :none
 
     ready = TransactionService::Transaction.can_start_transaction(transaction: {

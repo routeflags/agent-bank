@@ -152,6 +152,14 @@ window.ST = window.ST || {};
     $.get(options.new_form_content_path, selected_attributes, function(data) {
       $('.js-form-fields').html(data);
       $('.js-form-fields').removeClass('hidden');
+    }).fail(function() {
+      // AJAX フォーム読み込み失敗時のフォールバック表示
+      $('.js-form-fields').html(
+        '<div class="listing-form-empty-state">' +
+        '<p>フォームの読み込みに失敗しました。ページを再読み込みしてお試しください。</p>' +
+        '</div>'
+      );
+      $('.js-form-fields').removeClass('hidden');
     });
   }
 

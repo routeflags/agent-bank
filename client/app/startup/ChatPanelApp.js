@@ -423,7 +423,10 @@ class ChatPanelApp extends React.Component {
       .then(function (response) {
         if (!response.ok) {
           return response.json().catch(function () { return {}; }).then(function (body) {
-            throw new Error(body.error || 'Failed to create session (HTTP ' + response.status + ')');
+            // エラータイプを保持して、呼び出し元で適切なメッセージを表示できるようにする
+            var err = new Error(body.error || 'セッションの作成に失敗しました。');
+            err.error_type = body.error_type || null;
+            throw err;
           });
         }
         return response.json();
@@ -444,11 +447,11 @@ class ChatPanelApp extends React.Component {
         });
         self.subscribeToChannel(session.id);
         self.fetchWalletBalance();
-        return session.id;
+        return { id: session.id, error_type: null };
       })
       .catch(function (err) {
         self.setState({ error: err.message, isLoading: false });
-        return null;
+        return { id: null, error_type: err.error_type || null };
       });
   }
 
@@ -635,11 +638,45 @@ class ChatPanelApp extends React.Component {
       this.sendMessage(text);
       this.sending = false;
     } else {
-      this.createSession().then(function (id) {
-        if (id) {
+      this.createSession().then(function (result) {
+        if (result && result.id) {
           self.sendMessage(text);
         } else {
-          self.addMessage('sys-err-' + Date.now(), 'system', 'チャットに接続できませんでした。', false);
+          // エラータイプに応じて適切なメッセージを表示
+          var errorType = result ? result.error_type : null;
+          if (errorType === 'purchase_required') {
+            // 購入が必要な場合は購入導線のみ表示（接続エラーメッセージは出さない）
+            self.setState(function (prev) {
+              return {
+                error: null,
+                messages: prev.messages.concat([{
+                  id: 'sys-purchase-' + Date.now(),
+                  role: 'system',
+                  content: 'このペルソナを利用するには購入が必要です。',
+                  isStreaming: false,
+                  created_at: new Date().toISOString(),
+                  showPurchaseButton: true,
+                }]),
+              };
+            });
+          } else if (errorType === 'insufficient_balance') {
+            self.setState(function (prev) {
+              return {
+                error: null,
+                messages: prev.messages.concat([{
+                  id: 'sys-balance-' + Date.now(),
+                  role: 'system',
+                  content: 'ウォレットの残高が不足しています。',
+                  isStreaming: false,
+                  created_at: new Date().toISOString(),
+                  showTopupButton: true,
+                }]),
+              };
+            });
+          } else {
+            // その他の接続エラー
+            self.addMessage('sys-err-' + Date.now(), 'system', 'チャットに接続できませんでした。しばらくしてからもう一度お試しください。', false);
+          }
         }
         self.sending = false;
       });

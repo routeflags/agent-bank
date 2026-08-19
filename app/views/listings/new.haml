@@ -16,6 +16,10 @@
 
 - content_for :title_header do
   %h1= t("homepage.index.post_new_listing")
+-# ═══════════════════════════════════════════════════════════
+-# 新規出品フォーム（JS でカテゴリ/形状選択 → AJAX でフォーム読み込み）
+-# ═══════════════════════════════════════════════════════════
+
 #new_listing_form.new-listing-form.centered-section
 
   #selected-groups
@@ -60,4 +64,10 @@
           %a.select.option.hidden{:data => {:id => value[:id]}}
             .link-text= t(value[:name_tr_key])
 
+  -# フォームコンテンツがここに読み込まれる（AJAX）
   .js-form-fields.hidden
+
+  -# カテゴリ/出品形状が未設定の場合のフォールバックメッセージ
+  - if @listing_presenter.categories.size == 0 && @listing_presenter.shapes.size == 0
+    .listing-form-empty-state
+      %p 出品に必要な設定がまだ完了していません。管理者にお問い合わせください。
