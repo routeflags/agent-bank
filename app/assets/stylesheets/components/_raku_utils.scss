@@ -53,9 +53,10 @@
 // main.scss の body.dark-theme ブロックが !important で上書きするため、
 // 同一スコープ + !important で優先する。
 
-// ヘッダーのユーザー名（白背景 #ffffff 上で #999 が 2.84:1 だったため #666 へ）
+// ヘッダーのユーザー名（レガシー白帯の上での #999=2.84:1 に対し、
+// _dark_header.scss で wrapper を透明化した暗地 #1e1e1e 上で #e8e8e8 ≒ 13.6:1）
 #header-user-display-name {
-  color: #666 !important;
+  color: #e8e8e8 !important;
 }
 
 // 検索ツールバーの切替ボタン（レガシー: 背景 #e8e8e8 / 選択時 #4a90e2 で

@@ -8,8 +8,10 @@ body.dark-theme {
     padding: 80px 20px 60px;
     text-align: center;
     overflow: hidden;
+    // オーバーレイを濃くして背景画像の金色グロー上のテキストコントラストを確保
+    // （WCAG AA: タイトル 3:1 / 本文・タグ 4.5:1。pixyel 計測で最悪 1.6-2.4:1 だったため）
     background:
-      linear-gradient(135deg, rgba(13, 13, 13, 0.55) 0%, rgba(30, 30, 46, 0.35) 50%, rgba(13, 13, 13, 0.55) 100%),
+      linear-gradient(135deg, rgba(10, 10, 12, 0.78) 0%, rgba(18, 18, 30, 0.65) 50%, rgba(10, 10, 12, 0.78) 100%),
       image-url('raku/hero_bg.jpg') center / cover no-repeat,
       linear-gradient(135deg, var(--bg-primary) 0%, #1e1e2e 50%, var(--bg-primary) 100%);
 
@@ -37,9 +39,11 @@ body.dark-theme {
     align-items: center;
     gap: 6px;
     padding: 6px 16px;
-    background-color: rgba(196, 30, 58, 0.12);
-    border: 1px solid rgba(196, 30, 58, 0.3);
-    color: var(--accent-red);
+    // 赤 #c41e3a は暗地でも 2.95:1 で不合格のため、明るい赤へ（#ff6b6b ≒ 6.2:1）。
+    // 背景グローが透けないようチップ地は 0.9 不透明度に
+    background-color: rgba(25, 8, 12, 0.9);
+    border: 1px solid rgba(255, 107, 107, 0.45);
+    color: #ff6b6b;
     border-radius: 20px;
     font-size: 13px;
     font-weight: 600;
@@ -62,7 +66,8 @@ body.dark-theme {
 
   .raku-hero__subtitle {
     font-size: clamp(16px, 2vw, 20px);
-    color: var(--text-secondary);
+    // #999 は背景画像のグロー上で最悪 3.03:1。#c9c9c9 ≒ 5.6:1 以上を確保
+    color: #c9c9c9;
     margin: 0 0 32px;
     max-width: 600px;
     margin-left: auto;
@@ -159,18 +164,20 @@ body.dark-theme {
 
   .raku-hero__tag {
     padding: 6px 14px;
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-color);
+    // 透過チップだと背後のグローが透けて #999 で最悪 1.83:1 まで落ちる。
+    // 暗いチップ地 + 明るい文字で背景画像に依存しないコントラストを確保
+    background-color: rgba(12, 12, 18, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 16px;
-    color: var(--text-secondary);
+    color: #d4d4d4;
     font-size: 13px;
     text-decoration: none;
     transition: all var(--transition-fast);
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.14);
       color: var(--text-primary);
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.32);
     }
   }
 }

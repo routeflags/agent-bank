@@ -13,6 +13,13 @@ body.dark-theme {
     z-index: 100;
   }
 
+  // レガシー wrapper の白背景（views/_header.scss の wrapper mixin）が
+  // ヘッダー全体の暗色を上書きして白帯になり、#999 テキストが 2.84:1 に
+  // 落ちていたため透明化（.header の --bg-secondary を透かす）
+  .header-wrapper {
+    background-color: transparent !important;
+  }
+
   .header-wrapper {
     display: flex;
     align-items: center;
