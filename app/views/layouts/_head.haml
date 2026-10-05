@@ -12,7 +12,7 @@
   - if font_path.present?
     = render partial: "layouts/fonts", locals: { font_path: font_path }
 
-  %meta{content: "width=device-width, initial-scale=1.0, user-scalable=no", name: "viewport"}
+  %meta{content: "width=device-width, initial-scale=1.0", name: "viewport"}
   %meta{ :property => "og:type", :content =>"website"}
   %meta{:"http-equiv" => "content-language", content: "#{I18n.locale}"}
   - if @current_community.social_logo&.image&.present?

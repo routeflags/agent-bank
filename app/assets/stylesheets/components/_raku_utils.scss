@@ -47,3 +47,78 @@
 .raku-link-gold {
   color: var(--accent-gold);
 }
+
+// ═══ アクセシビリティ修正（axe-core 監査 2026-10-06） ═══
+// 各レガシー部品でコントラスト比（WCAG AA 4.5:1）を満たすよう調整。
+// main.scss の body.dark-theme ブロックが !important で上書きするため、
+// 同一スコープ + !important で優先する。
+
+// ヘッダーのユーザー名（白背景 #ffffff 上で #999 が 2.84:1 だったため #666 へ）
+#header-user-display-name {
+  color: #666 !important;
+}
+
+// 検索ツールバーの切替ボタン（レガシー: 背景 #e8e8e8 / 選択時 #4a90e2 で
+// それぞれ #999=2.32:1・gold=1.49:1 だったため、通常 #666=4.7:1、
+// 選択/ホバーは gold 背景 + dark テキスト = 8.9:1 に変更）
+body.dark-theme .home-toolbar-button-group-button {
+  background-color: #e8e8e8 !important;
+  border-color: #cccccc !important;
+  color: #666 !important;
+}
+
+body.dark-theme .home-toolbar-button-group-button.selected,
+body.dark-theme .home-toolbar-button-group-button:hover {
+  background-color: #d4a843 !important;
+  border-color: #b8922e !important;
+  color: #0d0d0d !important;
+}
+
+// シェアタイプ切替（白文字 #ffffff on #e8e8e8 = 1.22:1 だった部分）
+body.dark-theme #home_toolbar-select-share-type,
+body.dark-theme #home_toolbar-select-share-type .toggle-header {
+  color: #666 !important;
+  background-color: #e8e8e8 !important;
+}
+
+// 検索結果グリッド / リストの出品者名（teal #59b3a2 on #e8e8e8 = 2.04:1 だった部分）
+body.dark-theme .home-fluid-thumbnail-grid-author-name,
+body.dark-theme .home-fluid-thumbnail-grid-details-author-name,
+body.dark-theme .home-list-author-name {
+  color: #555 !important;
+}
+
+// 送信ボタン（問い合わせフォーム等: white on #4a90e2 = 3.29:1 だった部分。
+// レッド CTA #c41e3a + white = 6.8:1）
+.send_button {
+  background-color: #c41e3a;
+  border-color: #c41e3a;
+  color: #ffffff;
+}
+
+// 問い合わせフォーム見出し内のリンク（色のみに頼らない識別にする）
+#new_message_form h2 a {
+  text-decoration: underline;
+}
+
+// フラッシュ通知（ライト背景 #e8e8e8 上で白文字 = 1.22:1 だった部分。
+// ダークテーマの白文字パッチがライト背景の通知に適用されないよう scope を限定）
+body.dark-theme .flash-notice .flash-text,
+body.dark-theme .ajax-notice .ajax-text {
+  color: #333333 !important;
+}
+
+// Rails フォームビルダの button（devise 等: white on #4a90e2 = 3.29:1 だった部分。
+// レッド CTA で統一）
+button.button {
+  background-color: #c41e3a;
+  border-color: #c41e3a;
+  color: #ffffff;
+}
+
+// マイページのトレンド指標（--down: #f44336 on #242424 = 4.21:1 だった部分）。
+// _monthly_summary.scss は body.dark-theme スコープのため、同スコープ+後勝ちで上書き
+.raku-summary__trend--down,
+body.dark-theme .raku-summary__trend--down {
+  color: #ff6b6b;
+}
