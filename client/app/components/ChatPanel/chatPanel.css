@@ -234,6 +234,35 @@
   margin-top: 4px;
 }
 
+/* ─── RESULT Best Answer card (designs/chat-sp.png) ─── */
+
+.chatMessage--assistant-done .chatMessage__bubble {
+  border: 1px solid #D4A843;
+}
+
+.chatMessage__result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.chatMessage__result-badge {
+  background: linear-gradient(135deg, #D4A843 0%, #B8922E 100%);
+  color: #0D0D0D;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.chatMessage__result-title {
+  color: #F5E6B8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* User messages — right aligned */
 .chatMessage--user {
   align-self: flex-end;

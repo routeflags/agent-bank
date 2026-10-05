@@ -331,8 +331,13 @@ function MessageBubble(props) {
     renderedContent = displayContent || '';
   }
 
-  return React.createElement('div', { className: 'chatMessage chatMessage--' + (role || 'user') },
+  return React.createElement('div', { className: 'chatMessage chatMessage--' + (role || 'user') + (isAssistant && !isStreaming && displayContent ? ' chatMessage--assistant-done' : '') },
     React.createElement('div', { className: 'chatMessage__bubble' },
+      // RESULT Best Answer card header (designs/chat-sp.png §7-3)
+      isAssistant && !isStreaming && displayContent && React.createElement('div', { className: 'chatMessage__result' },
+        React.createElement('span', { className: 'chatMessage__result-badge' }, 'RESULT'),
+        React.createElement('span', { className: 'chatMessage__result-title' }, 'Best Answer')
+      ),
       renderedContent,
       isStreaming && React.createElement('span', { className: 'chatMessage__streaming' })
     ),
@@ -447,12 +452,40 @@ class ChatPanelApp extends React.Component {
         });
         self.subscribeToChannel(session.id);
         self.fetchWalletBalance();
+        self.loadSessionMessages(session.id);
         return { id: session.id, error_type: null };
       })
       .catch(function (err) {
         self.setState({ error: err.message, isLoading: false });
         return { id: null, error_type: err.error_type || null };
       });
+  }
+
+  // 履歴読み込み: 既存セッション（POST が冪等で返したもの）のメッセージを取得
+  loadSessionMessages(sessionId) {
+    var self = this;
+    return fetch('/api/v1/chat_sessions/' + sessionId, {
+      headers: jsonHeaders(),
+    })
+      .then(function (response) {
+        if (!response.ok) return null;
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data || !data.chat_session) return;
+        var messages = (data.chat_session.messages || []).map(function (m) {
+          return {
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            isStreaming: false,
+            created_at: m.created_at,
+            total_tokens: (m.input_tokens || 0) + (m.output_tokens || 0),
+          };
+        });
+        self.setState({ messages: messages });
+      })
+      .catch(function () {});
   }
 
   closeSession() {
