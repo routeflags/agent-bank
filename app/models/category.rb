@@ -105,7 +105,10 @@ class Category < ApplicationRecord
   end
 
   def subcategory_ids
-    subcategories.collect(&:id)
+    # Include the full subtree: category filters (homepage cards, listing
+    # scopes) must match skills nested more than one level deep
+    # (e.g. raku top category > Capafy category > subcategory).
+    subcategories.flat_map { |sub| [sub.id] + sub.subcategory_ids }
   end
 
   def own_and_subcategory_ids
