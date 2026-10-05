@@ -1,6 +1,6 @@
 const { chromium } = require('playwright');
-const BASE = 'http://127.0.0.1:3000/ja';
-const CHROME = '/Users/bookair18/Library/Caches/ms-playwright/chromium-1228/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
+const BASE = 'http://agent-bank.lvh.me:3000/ja';
+const CHROME = '/Users/bookair18/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
 
 let browser, page;
 let passed = 0, failed = 0;
@@ -31,10 +31,27 @@ async function assertUrlContains(page, expected, msg) {
 
   console.log('=== ナビゲーション E2E テスト ===\n');
 
+  // ── ログイン状態でないときのヘッダー ──
+  console.log('--- 未ログイン時ヘッダー ---');
+
+  await run('TC-04: ログイン → ログインページ', async () => {
+    await page.goto(BASE);
+    await page.click('a.raku-nav__login');
+    await page.waitForTimeout(2000);
+    await assertUrlContains(page, 'login', 'ログインページに遷移しない');
+  });
+
+  await run('TC-05: 新規登録 → 登録ページ', async () => {
+    await page.goto(BASE);
+    await page.click('a.raku-nav__signup');
+    await page.waitForTimeout(2000);
+    await assertUrlContains(page, 'signup', '登録ページに遷移しない');
+  });
+
   // ログイン
   await page.goto(`${BASE}/login`);
-  await page.fill('#main_person_login', 'admin2@capafy.com');
-  await page.fill('#main_person_password', 'TestPassword1!');
+  await page.fill('#main_person_login', 'admin@agentbank.dev');
+  await page.fill('#main_person_password', 'DevAgentBank#2026');
   await page.click('button:has-text("ログイン")');
   await page.waitForTimeout(3000);
 
@@ -61,20 +78,6 @@ async function assertUrlContains(page, expected, msg) {
     await page.click('a.new-listing-link');
     await page.waitForTimeout(2000);
     await assertUrlContains(page, 'listings/new', '出品フォームに遷移しない');
-  });
-
-  await run('TC-04: ログイン → ログインページ', async () => {
-    await page.goto(BASE);
-    await page.click('a.raku-nav__login');
-    await page.waitForTimeout(2000);
-    await assertUrlContains(page, 'login', 'ログインページに遷移しない');
-  });
-
-  await run('TC-05: 新規登録 → 登録ページ', async () => {
-    await page.goto(BASE);
-    await page.click('a.raku-nav__signup');
-    await page.waitForTimeout(2000);
-    await assertUrlContains(page, 'signup', '登録ページに遷移しない');
   });
 
   // ── ヒーローセクション ──
@@ -146,14 +149,14 @@ async function assertUrlContains(page, expected, msg) {
   console.log('\n--- ペルソナ詳細 ---');
 
   await run('TC-13: ペルソナ詳細 → CTA 表示', async () => {
-    await page.goto(`${BASE}/listings/20-tesuto-raiteingu-asisutanto`);
+    await page.goto(`${BASE}/listings/14-sakura-raiteinguasisutanto`);
     await page.waitForTimeout(3000);
     const cta = await page.locator('.raku-cta-btn').count();
     if (cta === 0) throw new Error('CTA ボタンがない');
   });
 
   await run('TC-14: ペルソナ詳細 → タブ切り替え', async () => {
-    await page.goto(`${BASE}/listings/20-tesuto-raiteingu-asisutanto`);
+    await page.goto(`${BASE}/listings/14-sakura-raiteinguasisutanto`);
     await page.waitForTimeout(3000);
     const tabs = await page.locator('.raku-listing-tabs__tab, [class*="tab"]').count();
     if (tabs === 0) throw new Error('タブがない');
@@ -186,7 +189,7 @@ async function assertUrlContains(page, expected, msg) {
     ['TC-17: トップページ GET', '/'],
     ['TC-18: ログインページ GET', '/login'],
     ['TC-19: 登録ページ GET', '/signup'],
-    ['TC-20: ペルソナ詳細 GET', '/listings/20-tesuto-raiteingu-asisutanto'],
+    ['TC-20: ペルソナ詳細 GET', '/listings/14-sakura-raiteinguasisutanto'],
   ];
 
   for (const [name, path] of pages) {
