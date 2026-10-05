@@ -31,7 +31,8 @@ Rails.application.configure do
   # Lograge config, overrides default instrumentation for logging ActionController and ActionView logging
   config.lograge.enabled = true
   config.lograge.custom_options = ->(event) {
-    params = event.payload[:params].except('controller', 'action')
+    # ActionCable events (e.g. connect.action_cable) have no :params payload.
+    params = (event.payload[:params] || {}).except('controller', 'action')
 
     { params: params,
       host: event.payload[:host],
