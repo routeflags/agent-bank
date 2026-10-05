@@ -100,14 +100,14 @@ class ListingsController < ApplicationController
   end
 
   def new
-    @listing = Listing.new
+    @listing = Listing.new(default_run_mode: "run_online")
     make_listing_presenter
   end
 
   def new_form_content
     return redirect_to action: :new unless request.xhr?
 
-    @listing = Listing.new
+    @listing = Listing.new(default_run_mode: "run_online")
 
     form_content
   end

@@ -95,6 +95,14 @@ module ListingFormViewUtils
         availability: shape[:availability]
     ).merge(unit_to_listing_opts(m_unit)).except(:unit)
 
+    # Capafy: AI run mode. The listing form sends default_run_mode explicitly;
+    # callers that omit it keep the historical 'download' default.
+    run_mode = listing_params[:default_run_mode].presence || "download"
+    listing_params = listing_params.merge(
+      default_run_mode: run_mode,
+      supported_run_modes: [run_mode]
+    )
+
     Result::Success.new(listing_params)
   end
 

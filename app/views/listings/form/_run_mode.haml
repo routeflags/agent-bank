@@ -1,0 +1,4 @@
+-# AI 実行モード選択（Capafy: run_online のみ ChatPanel がマウントされる）
+= form.label :default_run_mode, t(".label"), :class => "input"
+- run_mode_options = [[t(".run_online"), "run_online"], [t(".download"), "download"], [t(".free"), "free"]]
+= form.select :default_run_mode, options_for_select(run_mode_options, form.object.default_run_mode.presence || "run_online"), {}, class: "title_text_field"

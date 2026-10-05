@@ -1317,6 +1317,11 @@ ja:
         location: 場所
         origin: 起点となる場所
         the_exact_location: 正確な位置情報は他のユーザーには表示されません。
+      run_mode:
+        label: AI実行モード
+        run_online: オンライン実行
+        download: ダウンロード
+        free: 無料
       send_button:
         save_listing: 出品する
         submit_for_review: 出品確認を依頼する
