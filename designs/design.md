@@ -404,7 +404,7 @@ background: linear-gradient(135deg, #D4A843 0%, #B8922E 100%);
 
 | コンポーネント | 優先度 | 備考 |
 |---------------|:------:|------|
-| ヒーロー背景画像 | 🔴 | ChatGPT 生成画像を活用 |
+| ヒーロー背景画像 | ✅ | `app/assets/images/raku/hero_bg.jpg` にブランド仕様のプレースホルダ画像を生成し `_hero_section.scss` で適用済み（gold グロー + 斜めライン、27KB。ChatGPT 生成アートに差し替え可） |
 | スキルカード画像 | ✅ | `scripts/generate_persona_cards.rb` でブランド仕様のプレースホルダ画像を生成・付与済み（本物の AI 生成アートに差し替え可） |
 | チャット結果カード | ✅ | 完了応答に「RESULT Best Answer」バッジを表示（`ChatPanelApp.js` + `chatPanel.css`、gold グラデーションバッジ + ゴールド枠。履歴読み込み `loadSessionMessages` も実装） |
 | 出品者ガイドバナー | 🟡 | マイページ下部 |
