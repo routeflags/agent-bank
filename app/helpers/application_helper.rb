@@ -94,8 +94,9 @@ module ApplicationHelper
     return "" if person.nil?
 
     image_url = person.image.present? ? person.image.url(size) : missing_avatar(size)
+    alt_text = avatar_html_options.delete(:alt) || person.display_name.presence || "avatar"
 
-    link_to_unless(person.deleted?, image_tag(image_url, avatar_html_options), person)
+    link_to_unless(person.deleted?, image_tag(image_url, avatar_html_options.merge(alt: alt_text)), person)
   end
 
   def large_avatar_thumb(person, options={})

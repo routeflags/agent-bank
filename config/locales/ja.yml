@@ -2298,6 +2298,7 @@ ja:
       hero_subtitle: "スキルが集まる、AIエージェントマーケットプレイス"
       search_placeholder: "スキルを検索...（例: SEO、データ分析、要約）"
       search_type_all: "すべてのタイプ"
+      search_button: "検索"
       featured_title: "注目のスキル"
       tab_popular: "おすすめ"
       tab_newest: "新着"

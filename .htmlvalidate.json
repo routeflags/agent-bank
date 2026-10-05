@@ -3,7 +3,7 @@
     "html-validate:recommended"
   ],
   "rules": {
-    "void-style": "error",
+    "void-style": ["error", { "style": "any" }],
     "no-trailing-whitespace": "warn",
 
     "attribute-allowed-values": "error",
@@ -30,7 +30,7 @@
 
     "attr-case": "error",
     "attr-spacing": "error",
-    "attribute-boolean-style": "error",
+    "attribute-boolean-style": ["error", { "style": "any" }],
     "no-redundant-aria-label": "error",
     "tel-non-breaking": "error",
     "element-permitted-order": "error"

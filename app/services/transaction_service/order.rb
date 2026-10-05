@@ -37,7 +37,9 @@ module TransactionService
     end
 
     def unit_price
-      listing.price
+      # Free personas (no price set) must not crash the order flow:
+      # treat missing price as zero.
+      listing.price || Money.new(0, listing.currency.presence || "USD")
     end
 
     def shipping_total

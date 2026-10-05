@@ -29,13 +29,16 @@
     = t('lamprey.homepage.hero_subtitle')
 
   -# Search bar
-  %form.raku-hero__search{action: search_path, method: "get"}
+  -# NOTE: rendered inside the layout's #homepage-filters form on the homepage,
+  -# so this must be a plain div (a nested <form> is invalid HTML). The "q"
+  -# input participates in the outer GET form submission.
+  .raku-hero__search
     .raku-hero__search-type
       = t('lamprey.homepage.search_type_all')
       %svg{viewBox: "0 0 20 20", fill: "currentColor"}
         %path{d: "M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"}
     %input.raku-hero__search-input{type: "text", name: "q", placeholder: t('lamprey.homepage.search_placeholder')}
-    %button.raku-hero__search-btn{type: "submit"}
+    %button.raku-hero__search-btn{type: "submit", aria: { label: t('lamprey.homepage.search_button') }}
       %svg{viewBox: "0 0 20 20", fill: "currentColor"}
         %path{d: "M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"}
 
@@ -128,7 +131,7 @@
           - if listing.listing_images.first
             %img.raku-card__image{src: listing.listing_images.first[:small_3x2] || listing.listing_images.first[:thumb], alt: listing.title}
           - else
-            .raku-card__image{style: "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); display: flex; align-items: center; justify-content: center; font-size: 48px; color: #555;"} 🤖
+            .raku-card__image.raku-card__image--placeholder 🤖
           .raku-card__body
             %h3.raku-card__title= listing.title
             .raku-card__author
@@ -139,7 +142,7 @@
             %p.raku-card__description= StringUtils.first_words(listing.description, 60)
           .raku-card__footer
             .raku-card__rating
-              %span{style: "color: #999; font-size: 12px;"}= t('lamprey.listings.rating_none')
+              %span.raku-muted-label= t('lamprey.listings.rating_none')
             .raku-card__price
               - if listing.price
                 = MoneyViewUtils.to_humanized(listing.price)

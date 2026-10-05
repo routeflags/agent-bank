@@ -1,6 +1,6 @@
 .lightbox{:id => id}
   .lightbox-content
-    %a{:href => "#", :class => "close lightbox-x", :id => "close_x"}
+    %a{:href => "#", :class => "close lightbox-x", :id => "close_#{id}"}
       = icon_tag('cross')
 
     = yield

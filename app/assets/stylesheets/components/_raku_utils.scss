@@ -1,0 +1,49 @@
+// ═══ 楽市楽間 — shared utility classes ═══
+// Extracted from inline style attributes to satisfy html-validate
+// `no-inline-style` (see designs/design.md §2 palette).
+
+// Muted caption text (rating labels etc.)
+.raku-muted-label {
+  color: #999;
+  font-size: 12px;
+}
+
+// Emoji placeholder shown when a skill card has no image
+.raku-card__image--placeholder {
+  background: linear-gradient(135deg, #2a2a2a, #1e1e1e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: #555;
+}
+
+// Initial-letter avatar placeholder on the profile page
+.raku-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  background: #333;
+  color: #999;
+}
+
+// Notification badge that floats to the right of a sidebar row
+.raku-badge--meta {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+// Emoji placeholder for skill thumbnails in the mypage table
+.raku-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+// Gold text link (new listing CTA etc.)
+.raku-link-gold {
+  color: var(--accent-gold);
+}

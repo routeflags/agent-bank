@@ -21,7 +21,7 @@
       - if person.image.present?
         %img.raku-profile__avatar{src: person.image.url(:medium), alt: person.username}
       - else
-        .raku-profile__avatar{style: "display:flex; align-items:center; justify-content:center; font-size:32px; background:#333; color:#999;"}
+        .raku-profile__avatar.raku-avatar-placeholder
           = person.username[0].upcase
       %h2.raku-profile__name= PersonViewUtils.person_display_name(person, @service.community)
       %p.raku-profile__username @#{person.username}
@@ -64,7 +64,7 @@
       %a.raku-sidebar__link{href: "#"}
         %span.raku-sidebar__icon 🔔
         お知らせ
-        %span.raku-badge.raku-badge--danger{style: "margin-left: auto; font-size: 10px; padding: 2px 6px;"}
+        %span.raku-badge.raku-badge--danger.raku-badge--meta
           0
 
   -# ── Main content ───────────────────────────────────────
@@ -125,9 +125,9 @@
               %td
                 .raku-table__skill
                   - if listing.listing_images.first
-                    %img.raku-table__skill-thumb{src: listing.listing_images.first.image.url(:thumb), alt: listing.title}
+                    %img.raku-table__skill-thumb{src: listing.listing_images.first.thumb, alt: listing.title}
                   - else
-                    .raku-table__skill-thumb{style: "display:flex; align-items:center; justify-content:center; font-size:18px;"} 🤖
+                    .raku-table__skill-thumb.raku-thumb-placeholder 🤖
                   %div
                     .raku-table__skill-name= listing.title
                     .raku-table__skill-desc= StringUtils.first_words(listing.description, 40)
@@ -149,7 +149,7 @@
         .raku-table__empty-icon 📦
         まだ出品がありません
         %br
-        %a{href: new_listing_path, style: "color: var(--accent-gold);"} 新規出品 → をクリックしてスキルを登録しましょう
+        %a.raku-link-gold{href: new_listing_path} 新規出品 → をクリックしてスキルを登録しましょう
 
     -# ── Reviews ──────────────────────────────────────────
     .raku-reviews

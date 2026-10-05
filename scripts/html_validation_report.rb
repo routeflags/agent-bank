@@ -157,17 +157,20 @@ File.open(REPORT_PATH, "w") do |f|
   unless error_pages.empty?
     f.puts "## 検証不能ページ（5xx）"
     f.puts
-    f.puts "| ページ | パス | 原因 |"
-    f.puts "|--------|------|------|"
-    f.puts "| 出品者プロフィール | `/ja/alexm` | NoMethodError（プロフィール表示処理） |"
-    f.puts "| 注文開始 | `/ja/listings/14-sakura-raiteinguasisutanto/initiate` | `NoMethodError: undefined method '*' for nil` — `TransactionService::Order#item_total`（出品に価格が設定されていないため。ペルソナは price_enabled=false の shape で作成） |"
+    f.puts "| ページ | パス |"
+    f.puts "|--------|------|"
+    error_pages.each do |r|
+      f.puts "| #{r[:name]} | `#{r[:path]}` |"
+    end
     f.puts
   end
 
   f.puts "## 既知のコメント"
   f.puts
-  f.puts "- HAML 由来の self-closing 要素（`<img/>` 等）が `void-style` 違反の主因。`html-validate --fix` でテンプレート側を一括修正可能"
-  f.puts "- `no-inline-style` 警告は raku デザインのインラインスタイル指定に由来（デザイン仕様上の意図的な指定を含む）"
+  f.puts "- HAML 由来の self-closing 要素は `config/initializers/haml_format.rb`（`format: :html5`）で解消"
+  f.puts "- Rails ヘルパー出力（フォームビルダ等）は self-closing / boolean 属性付き書式のため、`void-style` と `attribute-boolean-style` は `style: any`（両形式許容・ルール自体は有効）に設定"
+  f.puts "- `no-inline-style` 警告は raku デザインのインラインスタイルを `components/_raku_utils.scss` のクラスへ切り出して解消"
+  f.puts "- チャットパネル（react-rails）出力の空白行は `listings/show.haml` 側で除去"
   f.puts "- 5xx ページはバリデーション対象外（エラーページ HTML のため）"
   f.puts
   f.puts "## 再実行方法"
