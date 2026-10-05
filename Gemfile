@@ -128,6 +128,7 @@ group :development, :test do
 end
 
 group :development do
+  gem 'dotenv-rails'
   gem 'rb-fsevent', require: false
   gem 'listen', '~> 3.7.1'
   gem 'annotate'
