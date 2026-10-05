@@ -27,7 +27,7 @@
       ]
     },
     "pagespeed": {
-      "command": "/Users/bookair18/.anyenv/envs/nodenv/versions/22.22.0/bin/npx",
+      "command": "/Users/bookair18/.anyenv/envs/nodenv/versions/24.13.1/bin/npx",
       "args": [
         "-y",
         "pagespeed-mcp-server"
