@@ -5,7 +5,8 @@
     "node": "18.16"
   },
   "scripts": {
-    "clean": "rm -f app/assets/webpack/*"
+    "clean": "rm -f app/assets/webpack/*",
+    "lint:html": "html-validate \"app/views/**/*.erb\" \"app/views/**/*.html\""
   },
   "cacheDirectories": [
     "node_modules",
@@ -14,5 +15,8 @@
   "dependencies": {
     "check-node-version": "^4.2.1",
     "codemirror": "^5.65.13"
+  },
+  "devDependencies": {
+    "html-validate": "^11.16.2"
   }
 }

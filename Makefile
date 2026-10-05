@@ -152,6 +152,10 @@ lint: ## Rubocop lint
 lint-fix: ## Rubocop auto-fix
 	@bundle exec rubocop -A
 
+.PHONY: lint-html
+lint-html: ## HTML テンプレート lint（html-validate）
+	@npm run lint:html
+
 # ============================================================
 #  Utils
 # ============================================================
