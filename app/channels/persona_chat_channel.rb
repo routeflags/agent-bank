@@ -54,10 +54,11 @@ class PersonaChatChannel < ApplicationCable::Channel
 
     # Phase 4: PersonaExecutorJob will call the AI provider API
     # and broadcast the streaming response back through Action Cable.
-    PersonaExecutorJob.perform_later(
-      chat_session.id,
-      message.id,
-      data['content']
+    # Use Delayed::Job.enqueue (Struct-based job pattern) — the job class
+    # is not an ActiveJob and does not respond to perform_later.
+    Delayed::Job.enqueue(
+      PersonaExecutorJob.new(chat_session.id, message.id, data['content']),
+      priority: 0
     )
   rescue ActiveRecord::RecordInvalid => e
     Rails.logger.error("[PersonaChatChannel] Failed to create message: #{e.message}")

@@ -56,6 +56,12 @@ Rails.application.configure do
   # Do not eager load code on boot.
   config.eager_load = false
 
+  # Run delayed_job inline in development.
+  # ActionCable uses the in-process :async adapter, so broadcasts from a
+  # separate worker process never reach browser WebSocket connections.
+  # Inline execution keeps PersonaExecutorJob broadcasts in the Puma process.
+  Delayed::Worker.delay_jobs = false
+
   # Show full error reports and disable caching
   config.consider_all_requests_local       = true
 
