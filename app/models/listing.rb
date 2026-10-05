@@ -109,6 +109,10 @@ class Listing < ApplicationRecord
   has_many :listing_ai_models, dependent: :destroy
   has_many :ai_models, through: :listing_ai_models
 
+  # See AiProvider — MariaDB json columns are typed as :text by Rails.
+  serialize :supported_run_modes, coder: JSON
+  serialize :external_apis, coder: JSON
+
   monetize :price_cents, :allow_nil => true, with_model_currency: :currency
   monetize :shipping_price_cents, allow_nil: true, with_model_currency: :currency
   monetize :shipping_price_additional_cents, allow_nil: true, with_model_currency: :currency

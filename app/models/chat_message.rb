@@ -30,6 +30,9 @@
 class ChatMessage < ApplicationRecord
   ROLES = %w[user assistant system].freeze
 
+  # See AiProvider — MariaDB json columns are typed as :text by Rails.
+  serialize :metadata, coder: JSON
+
   belongs_to :chat_session
   # Polymorphic sender — typically Person for user messages.
   # Optional because assistant/system messages have no sender record;

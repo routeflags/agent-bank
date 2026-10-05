@@ -28,6 +28,9 @@ class UsageRecord < ApplicationRecord
   belongs_to :ai_model, optional: true
   belongs_to :user_plan_subscription, optional: true
 
+  # See AiProvider — MariaDB json columns are typed as :text by Rails.
+  serialize :metadata, coder: JSON
+
   before_create :calculate_totals
 
   private
@@ -43,7 +46,7 @@ class UsageRecord < ApplicationRecord
   #
   # @return [Integer] cost in cents
   def calculate_cost_cents
-    return 0 unless ai_model&.cost_per_1k_input && ai_model&.cost_per_1k_output
+    return 0 unless ai_model&.cost_per_1k_input && ai_model.cost_per_1k_output
 
     input_cost  = BigDecimal(input_tokens.to_s) / 1000 * BigDecimal(ai_model.cost_per_1k_input.to_s)
     output_cost = BigDecimal(output_tokens.to_s) / 1000 * BigDecimal(ai_model.cost_per_1k_output.to_s)

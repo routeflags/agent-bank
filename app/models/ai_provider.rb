@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 # == Schema Information
 #
 # Table name: ai_providers
@@ -20,6 +21,10 @@
 
 class AiProvider < ApplicationRecord
   has_many :ai_models, dependent: :destroy
+
+  # MariaDB stores JSON columns as longtext + CHECK(json_valid), which Rails
+  # types as :text. Serialize explicitly so hashes are written as valid JSON.
+  serialize :config, coder: JSON
 
   validates :name, presence: true
   validates :slug, presence: true, uniqueness: true

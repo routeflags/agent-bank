@@ -61,9 +61,9 @@ class HomepageController < ApplicationController
     includes =
       case @view_type
       when "grid"
-        [:author, :listing_images, :categories]
+        [:author, :listing_images]
       when "list"
-        [:author, :listing_images, :num_of_reviews, :categories]
+        [:author, :listing_images, :num_of_reviews]
       when "map"
         [:location]
       else
@@ -416,21 +416,27 @@ class HomepageController < ApplicationController
   # is a placeholder like 'desc'. This prevents low-quality test data from
   # appearing on the public homepage.
   def exclude_test_listings(listings)
-    return listings if listings.respond_to?(:where) && !listings.respond_to?(:each) && listings.respond_to?(:where)
+    # AR relation path: filtering applies at SQL level for the full dataset.
+    if listings.respond_to?(:where) && !listings.is_a?(Array)
+      return listings.where.not("title LIKE ?", "Test%")
+                     .where.not("title LIKE ?", "test%")
+                     .where.not("description = ?", "desc")
+    end
 
-    # When listings are paginated (WillPaginate::Collection), use the
-    # underlying relation so that filtering applies to the full dataset.
-    if listings.respond_to?(:where)
-      listings.where.not("title LIKE ?", "Test%")
-              .where.not("title LIKE ?", "test%")
-              .where.not("description = ?", "desc")
+    test_listing = lambda do |item|
+      title = item.respond_to?(:title) ? item.title : ""
+      desc  = item.respond_to?(:description) ? item.description : ""
+      title.start_with?("Test", "test") || desc == "desc"
+    end
+
+    if listings.is_a?(WillPaginate::Collection)
+      # Replace entries in place so pagination metadata (total_entries,
+      # current_page, ...) is preserved for the view.
+      listings.replace(listings.reject(&test_listing))
+      listings
     else
-      # Fallback for arrays (e.g. from discovery API)
-      listings.reject do |item|
-        title = item.respond_to?(:title) ? item.title : ""
-        desc  = item.respond_to?(:description) ? item.description : ""
-        title.start_with?("Test") || title.start_with?("test") || desc == "desc"
-      end
+      # Fallback for plain arrays (e.g. from discovery API)
+      listings.reject(&test_listing)
     end
   end
 end
