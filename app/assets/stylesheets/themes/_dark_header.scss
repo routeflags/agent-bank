@@ -71,6 +71,27 @@ body.dark-theme {
     }
   }
 
+  // Legacy .header-hover paints $highlight (#e8e8e8 light gray) on hover —
+  // light header text becomes invisible on the dark theme (measured 1.01:1
+  // on the user toggle). Use a subtle dark overlay instead.
+  .header-hover:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .header-hover.toggled {
+    background-color: rgba(255, 255, 255, 0.12);
+  }
+
+  // User/locale dropdown: legacy hover paints $link blue under white text (3.29:1).
+  .toggle-menu {
+    a:hover,
+    .toggle-menu-link:hover,
+    .toggle-menu-item:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+  }
+
   // New listing button
   .new-listing-link {
     display: inline-flex;
@@ -93,12 +114,18 @@ body.dark-theme {
   // Mobile menu toggle
   .header-menu-toggle-container {
     color: var(--text-secondary);
+    // Legacy button($highlight) paints a light gray chip; the #999 icon on
+    // #e8e8e8 measured 2.32:1 (WCAG 1.4.11 needs 3:1 for UI components).
+    background-color: rgba(255, 255, 255, 0.08);
     cursor: pointer;
     padding: 8px;
     border-radius: var(--radius-sm);
-    transition: color var(--transition-fast);
+    transition: color var(--transition-fast), background-color var(--transition-fast);
 
-    &:hover { color: var(--text-primary); }
+    &:hover {
+      color: var(--text-primary);
+      background-color: rgba(255, 255, 255, 0.14);
+    }
   }
 
   .header-menu-icon {

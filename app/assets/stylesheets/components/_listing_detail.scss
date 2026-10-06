@@ -165,6 +165,7 @@ body.dark-theme {
 
       &:hover {
         background-color: var(--accent-gold-hover);
+        color: #1a1a1a; // beat body.dark-theme a:hover teal (1.32:1 on gold)
         transform: translateY(-1px);
         box-shadow: var(--shadow-sm);
       }
@@ -176,6 +177,7 @@ body.dark-theme {
       border: 1px solid var(--border-color);
 
       &:hover {
+        color: var(--text-primary); // beat body.dark-theme a:hover teal
         border-color: var(--text-secondary);
         background-color: rgba(255, 255, 255, 0.03);
       }

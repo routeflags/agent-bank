@@ -15,7 +15,8 @@
   align-items: center;
   justify-content: center;
   font-size: 48px;
-  color: #555;
+  // #555 measured 2.24:1 on the dark gradient placeholder (large text needs 3:1)
+  color: #909090;
 }
 
 // Initial-letter avatar placeholder on the profile page
