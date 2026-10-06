@@ -112,11 +112,21 @@ async function auditPage(page, label) {
   await page.waitForTimeout(300);
   total += await auditPage(page, 'メールボックス');
 
+  // 新規出品フォームのカテゴリ選択リンク（ダークテーマ hover/selected 背景の回帰確認）
+  await page.goto(BASE + '/ja/listings/new', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+  total += await auditPage(page, '出品フォーム（ログイン中）');
+
   const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'ja-JP' });
   const page2 = await ctx2.newPage();
   await page2.goto(BASE + '/', { waitUntil: 'networkidle' });
   await page2.waitForTimeout(400);
   total += await auditPage(page2, 'トップ（匿名）');
+
+  // ログイン画面（匿名で保護ページへ → フラッシュ通知付きでリダイレクト）
+  await page2.goto(BASE + '/ja/listings/new', { waitUntil: 'networkidle' });
+  await page2.waitForTimeout(600);
+  total += await auditPage(page2, 'ログイン（匿名・フラッシュ付き）');
 
   const ctx3 = await browser.newContext({ viewport: { width: 375, height: 812 }, locale: 'ja-JP', isMobile: true, hasTouch: true });
   const page3 = await ctx3.newPage();

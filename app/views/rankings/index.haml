@@ -1,0 +1,27 @@
+- content_for :title, "ペルソナランキング - #{@current_community.name(I18n.locale)}"
+
+- content_for :title_header do
+  %h1 ペルソナランキング
+
+.raku-page
+  %p.raku-page__lead 平均評価と販売実績に基づくペルソナの一覧です。
+
+  - if @ranked_listings.any?
+    %ol.raku-rank-list
+      - @ranked_listings.each_with_index do |listing, index|
+        - author_name = PersonViewUtils.person_entity_display_name(listing.author, @current_community.name_display_type)
+        %li.raku-rank-item
+          %span.raku-rank-item__position= index + 1
+          .raku-rank-item__body
+            = link_to listing.title, listing_path(listing), class: "raku-rank-item__title"
+            .raku-rank-item__meta
+              = link_to author_name, person_path(username: listing.author.username), class: "raku-rank-item__author"
+              %span.raku-rank-item__rating
+                %span.raku-muted-label> 平均評価:
+                = "★ #{listing.avg_rating.round(1)}"
+              - if listing.total_sold.to_i > 0
+                %span.raku-rank-item__sold
+                  %span.raku-muted-label> 販売実績:
+                  = "#{listing.total_sold} 件"
+  - else
+    %p.raku-page__empty 現在ランキング対象のペルソナはありません。

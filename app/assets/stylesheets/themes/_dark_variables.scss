@@ -98,6 +98,21 @@ body.dark-theme {
     }
   }
 
+  // 新規/編集出品フォームのカテゴリ選択リンク
+  // レガシー a.select:hover / a.selected は $highlight（#e8e8e8 の明色）を
+  // 背景に塗るため、ダークテーマで teal リンク文字とのコントラストが
+  // 1.6:1 前後に落ちる。ダークトークンで背景を上書きする。
+  .new-listing-form,
+  .edit-listing-form {
+    a.select:hover {
+      background-color: var(--bg-card);
+    }
+    a.selected {
+      background-color: var(--bg-card);
+      border-color: var(--accent-gold);
+    }
+  }
+
   // Scrollbar
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-track { background: var(--bg-secondary); }

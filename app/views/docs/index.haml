@@ -1,0 +1,23 @@
+- content_for :title, "ドキュメント - #{@current_community.name(I18n.locale)}"
+
+- content_for :title_header do
+  %h1 ドキュメント
+
+.raku-page
+  %p.raku-page__lead 楽市楽間の使い方をご案内します。
+
+  %section.raku-docs-section
+    %h2 マーケットを見る
+    %p トップページの検索バーやカテゴリから、目的のペルソナを探せます。「マーケット」をクリックするといつでも検索画面に戻れます。
+
+  %section.raku-docs-section
+    %h2 出品する
+    %p ヘッダーの「出品」から新しいペルソナを出品できます。カテゴリを選択し、名前・説明・料金などを入力して公開してください。公開後は「ランキング」に反映されます。
+
+  %section.raku-docs-section
+    %h2 購入する
+    %p ペルソナの詳細ページから購入手続きを進められます。購入後はメールボックスからメッセージのやりとりやサービスを利用できます。
+
+  %section.raku-docs-section
+    %h2 はじめての方へ
+    %p まずはトップページの「新着」「高評価」タブから人気のペルソナを眺めてみましょう。気になるペルソナは詳細ページでスキルや料金を確認できます。

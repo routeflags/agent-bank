@@ -118,6 +118,35 @@ button.button {
   color: #ffffff;
 }
 
+// フラッシュ通知内のリンク（通知背景は _flash.scss の #e8e8e8 のまま。
+// body.dark-theme a:hover の teal #7cc3b6 は #e8e8e8 上で 1.66:1 だったため、
+// dark teal + 下線で 4.5:1 以上を確保）
+body.dark-theme .flash-notice a,
+body.dark-theme .ajax-notice a,
+body.dark-theme .flash-warning a,
+body.dark-theme .ajax-warning a {
+  color: #1f6f60;
+  text-decoration: underline;
+}
+
+body.dark-theme .flash-notice a:hover,
+body.dark-theme .ajax-notice a:hover,
+body.dark-theme .flash-warning a:hover,
+body.dark-theme .ajax-warning a:hover {
+  color: #17554a;
+}
+
+// 送信/ログインボタンの hover/active（mixins/_forms.scss の汎用 button:hover は
+// #3483de + white = 3.86:1 で不足。ダークレッド hover + white = 7.3:1）
+.send_button:hover,
+.send_button:active,
+button.button:hover,
+button.button:active {
+  background-color: #a81830;
+  border-color: #a81830;
+  color: #ffffff;
+}
+
 // マイページのトレンド指標（--down: #f44336 on #242424 = 4.21:1 だった部分）。
 // _monthly_summary.scss は body.dark-theme スコープのため、同スコープ+後勝ちで上書き
 .raku-summary__trend--down,

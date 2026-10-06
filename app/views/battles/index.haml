@@ -1,0 +1,15 @@
+- content_for :title, "ペルソナバトル - #{@current_community.name(I18n.locale)}"
+
+- content_for :title_header do
+  %h1 ペルソナバトル
+
+.raku-page
+  %span.raku-soon-badge 準備中
+  %p.raku-page__lead ペルソナ同士のバトル機能は現在開発中です。公開までしばらくお待ちください。
+
+  .raku-page__card
+    %h2 予定している機能
+    %ul
+      %li 2体のペルソナを競わせるバトルマッチ
+      %li バトル結果にもとづくランキング
+      %li 応援・コメント機能

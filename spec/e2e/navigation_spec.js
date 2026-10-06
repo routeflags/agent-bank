@@ -219,6 +219,24 @@ async function assertUrlContains(page, expected, msg) {
     }
   });
 
+  const navPages = [
+    ['/rankings', 'ランキング'],
+    ['/battles', 'バトル'],
+    ['/docs', 'ドキュメント'],
+  ];
+  for (const [path, label] of navPages) {
+    await run(`TC-23: ${label}ページ → 「${label}」がアクティブ`, async () => {
+      await page.goto(BASE + path);
+      await page.waitForTimeout(1500);
+      const status = page.url().includes(path) ? null : `遷移していない: ${page.url()}`;
+      const active = await activeNavText();
+      if (status) throw new Error(status);
+      if (!active || !active.includes(label)) {
+        throw new Error(`アクティブ項目が「${label}」ではない: ${active}`);
+      }
+    });
+  }
+
   const AUDIT_TOKEN = process.env.AUDIT_TOKEN || '';
   if (AUDIT_TOKEN) {
     await run('TC-22: 出品ページ → 「出品」がアクティブ（ログイン時）', async () => {

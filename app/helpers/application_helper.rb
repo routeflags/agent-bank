@@ -767,6 +767,12 @@ module ApplicationHelper
       controller_name.in?(%w[homepage landing_page])
     when :new_listing
       controller_name == "listings" && action_name == "new"
+    when :rankings
+      controller_name == "rankings"
+    when :battles
+      controller_name == "battles"
+    when :docs
+      controller_name == "docs"
     else
       false
     end

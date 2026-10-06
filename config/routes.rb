@@ -780,6 +780,11 @@ Rails.application.routes.draw do
       end
     end
 
+    # 楽市楽間サブナビの遷移先（ランキング / バトル / ドキュメント）
+    get 'rankings' => 'rankings#index', as: :rankings
+    get 'battles' => 'battles#index', as: :battles
+    get 'docs' => 'docs#index', as: :docs
+
     resources :infos do
       collection do
         get :about

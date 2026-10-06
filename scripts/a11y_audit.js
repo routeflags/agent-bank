@@ -41,6 +41,9 @@ const PAGES = [
   ]),
   ['メールボックス', '/ja/gourutailangte/inbox', true],
   ['ペルソナ問い合わせフォーム', `/ja/listings/14-${SLUGS[14]}/contact`, true],
+  ['ペルソナランキング', '/ja/rankings', false],
+  ['ペルソナバトル', '/ja/battles', false],
+  ['ドキュメント', '/ja/docs', false],
 ];
 
 (async () => {

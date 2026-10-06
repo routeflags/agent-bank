@@ -52,12 +52,12 @@
       = link_to new_listing_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:new_listing)}" do
         %span.raku-nav__icon 📦
         出品
-      = link_to landing_page_path, class: "raku-nav__link" do
+      = link_to rankings_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:rankings)}" do
         %span.raku-nav__icon 🏆
         ランキング
-      = link_to landing_page_path, class: "raku-nav__link" do
+      = link_to battles_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:battles)}" do
         %span.raku-nav__icon ⚔️
         バトル
-      = link_to landing_page_path, class: "raku-nav__link" do
+      = link_to docs_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:docs)}" do
         %span.raku-nav__icon 📚
         ドキュメント

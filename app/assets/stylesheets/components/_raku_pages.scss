@@ -1,0 +1,133 @@
+// ═══ 楽市楽間 — サブナビ遷移先ページ（ランキング / バトル / ドキュメント） ═══
+
+.raku-page {
+  padding: 8px 0 32px;
+  color: var(--text-primary);
+}
+
+.raku-page__lead {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.raku-page__empty {
+  color: var(--text-secondary);
+}
+
+// ── ランキング ──────────────────────────────────────────
+.raku-rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.raku-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+}
+
+.raku-rank-item__position {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-gold);
+  min-width: 28px;
+  text-align: center;
+}
+
+.raku-rank-item__body {
+  min-width: 0;
+}
+
+.raku-rank-item__title {
+  color: var(--text-link);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+  }
+}
+
+.raku-rank-item__meta {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.raku-rank-item__author {
+  color: var(--text-secondary);
+  // link-in-text-block: 色だけに頼らず下線でリンクと識別可能にする
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.raku-rank-item__rating {
+  color: var(--accent-gold);
+  margin-left: 10px;
+}
+
+.raku-rank-item__sold {
+  margin-left: 10px;
+}
+
+// ── バトル（準備中） ────────────────────────────────────
+.raku-soon-badge {
+  display: inline-block;
+  background: var(--accent-gold);
+  color: #1a1a1a;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+
+.raku-page__card {
+  margin-top: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+
+  h2 {
+    color: var(--text-primary);
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  li {
+    color: var(--text-secondary);
+    margin: 6px 0;
+  }
+}
+
+// ── ドキュメント ────────────────────────────────────────
+.raku-docs-section {
+  margin-bottom: 24px;
+
+  h2 {
+    color: var(--text-primary);
+    font-size: 18px;
+    margin-bottom: 6px;
+    border-left: 3px solid var(--accent-gold);
+    padding-left: 10px;
+  }
+
+  p {
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+}
