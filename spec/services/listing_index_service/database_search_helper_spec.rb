@@ -85,7 +85,7 @@ describe ListingIndexService::Search::DatabaseSearchHelper do
           community_id: community.id,
           search: search,
           included_models: [],
-          includes: nil
+          includes: []
         )
         listing_ids = result.data[:listings].map { |l| l[:id] }
         expect(listing_ids).to include(run_online_listing.id)
@@ -99,7 +99,7 @@ describe ListingIndexService::Search::DatabaseSearchHelper do
           community_id: community.id,
           search: search,
           included_models: [],
-          includes: nil
+          includes: []
         )
         listing_ids = result.data[:listings].map { |l| l[:id] }
         expect(listing_ids).to include(download_listing.id)
@@ -115,7 +115,7 @@ describe ListingIndexService::Search::DatabaseSearchHelper do
           community_id: community.id,
           search: search,
           included_models: [],
-          includes: nil
+          includes: []
         )
         listing_ids = result.data[:listings].map { |l| l[:id] }
         expect(listing_ids).to include(run_online_listing.id)
@@ -137,7 +137,7 @@ describe ListingIndexService::Search::DatabaseSearchHelper do
           community_id: community.id,
           search: search,
           included_models: [],
-          includes: nil
+          includes: []
         )
         listing_ids = result.data[:listings].map { |l| l[:id] }
         expect(listing_ids).to include(run_online_listing.id)
@@ -153,7 +153,7 @@ describe ListingIndexService::Search::DatabaseSearchHelper do
           community_id: community.id,
           search: search,
           included_models: [],
-          includes: nil
+          includes: []
         )
         listing_ids = result.data[:listings].map { |l| l[:id] }
         expect(listing_ids).to include(run_online_listing.id)

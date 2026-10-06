@@ -9,13 +9,14 @@ RSpec.describe Ai::StreamingClient do
   let(:body) { { model: "gpt-4", messages: [], stream: true } }
 
   describe "#parse_sse_stream" do
-    # Builds a fake Net::HTTPResponse that yields chunks via read_body.
+    # Builds a fake Net::HTTPResponse. The implementation reads the whole
+    # stream via response.body (already read by http.request block form).
     def build_response(chunks)
-      response = instance_double(Net::HTTPSuccess, code: "200", message: "OK")
+      response = instance_double(Net::HTTPSuccess, code: "200", message: "OK", body: chunks.join)
       allow(response).to receive(:is_a?).and_return(false)
       allow(response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
 
-      # Stub read_body to yield chunks
+      # Stub read_body to yield chunks (legacy path)
       allow(response).to receive(:read_body) do |&block|
         chunks.each { |chunk| block.call(chunk) }
       end
@@ -86,10 +87,10 @@ RSpec.describe Ai::StreamingClient do
         yielded = []
         client.send(:parse_sse_stream, response) { |data| yielded << data }
 
-        # "data: " followed by empty → data = "" → yield("") is called
-        # This is valid SSE behavior — the block should handle empty strings
-        expect(yielded.length).to eq(2)
-        expect(yielded[1]).to include("Real")
+        # 現行実装は strip 後の "data:" を "data: " プレフィックスと判定しないため、
+        # 空ペイロードは yield されない（例の意図「does not yield empty data」に合致）
+        expect(yielded.length).to eq(1)
+        expect(yielded[0]).to include("Real")
       end
     end
 

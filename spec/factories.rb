@@ -514,7 +514,9 @@ FactoryBot.define do
 
   factory :chat_session do
     person_id { SecureRandom.urlsafe_base64 }
-    listing
+    # FK の column presence 検証を満たすため create 戦略を明示
+    # （build 親配下では build 戦略になり listing_id が nil のまま）
+    association :listing, strategy: :create
     status { "active" }
     billing_model { "token" }
     started_at { Time.current }
@@ -522,7 +524,7 @@ FactoryBot.define do
   end
 
   factory :chat_message do
-    chat_session
+    association :chat_session, strategy: :create
     sender_type { "Person" }
     sender_id { "" }
     content { "Hello, AI!" }
