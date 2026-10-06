@@ -70,6 +70,12 @@ body.dark-theme {
     color: var(--text-primary);
   }
 
+  // レガシー partials/_table.scss のゼブラ帯（tbody tr:nth-child(odd) =
+  // $highlight #e8e8e8）はダークテーブルで白文字を 1.22:1 に落とすため無効化
+  .raku-table tbody tr:nth-child(odd) {
+    background-color: transparent;
+  }
+
   .raku-table__skill-desc {
     font-size: 12px;
     color: var(--text-secondary);
@@ -88,7 +94,9 @@ body.dark-theme {
 
     &--active {
       background-color: rgba(76, 175, 80, 0.15);
-      color: var(--badge-success);
+      // --badge-success(#4caf50) はチップ上で 4.39:1 と AA(4.5:1) 未達のため
+      // 同系の明るい緑に調整（約6.4:1）
+      color: #66d170;
     }
 
     &--draft {

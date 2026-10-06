@@ -37,6 +37,15 @@ class PeopleController < Devise::RegistrationsController
       total_views: person_listings.sum(:times_viewed).to_i,
       avg_rating: person_listings.where("avg_rating > 0").average(:avg_rating)&.round(1)
     }
+
+    # 出品中スキル表はAR実体を直接使う。
+    # @service.listings の要素は ListingIndexViewUtils::ListingItem 構造体で
+    # times_viewed / avg_rating / open を持たないため（NoMethodError の原因）
+    include_closed = @current_user.present? && @current_user == @service.person && params[:show_closed].present?
+    skill_scope = include_closed ? person_listings : person_listings.currently_open
+    @skill_listings = skill_scope.includes(:listing_images)
+                                 .order(Arel.sql("listings.sort_date DESC"))
+                                 .paginate(page: 1, per_page: 20)
   end
 
   def new

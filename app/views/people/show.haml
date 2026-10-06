@@ -92,7 +92,7 @@
 
     -# ── Skill Table ──────────────────────────────────────
     %h2.raku-table-title 出品中スキル
-    - if @service.listings.total_entries > 0
+    - if @skill_listings.total_entries > 0
       %table.raku-table
         %thead
           %tr
@@ -103,12 +103,12 @@
             %th ステータス
             %th 操作
         %tbody
-          - @service.listings.each do |listing|
+          - @skill_listings.each do |listing|
             %tr
               %td
                 .raku-table__skill
-                  - if listing.listing_images.first
-                    %img.raku-table__skill-thumb{src: listing.listing_images.first.thumb, alt: listing.title}
+                  - if (listing_image = listing.listing_images.first)
+                    %img.raku-table__skill-thumb{src: listing_image.image.url(:thumb), alt: listing.title}
                   - else
                     .raku-table__skill-thumb.raku-thumb-placeholder 🤖
                   %div

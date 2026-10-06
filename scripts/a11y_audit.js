@@ -34,6 +34,7 @@ const PAGES = [
   ['新規登録', '/ja/signup', false],
   ['パスワード再設定', '/ja/people/password/new', false],
   ['購入者プロフィール', '/ja/gourutailangte', false],
+  ['出品者プロフィール', '/ja/alexm', false],
   ...Object.entries(SLUGS).map(([id, slug]) => [
     `ペルソナ詳細（${id}）`,
     `/ja/listings/${id}-${slug}`,

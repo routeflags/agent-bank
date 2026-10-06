@@ -269,6 +269,19 @@ async function assertUrlContains(page, expected, msg) {
     console.log('  ⏭️  TC-24: ヘッダー検索 → 検索結果へ遷移（AUDIT_TOKEN 未設定のためスキップ）');
   }
 
+  // 出品ありプロフィール（公開ページ）— スキル表の描画回帰
+  // （ListingItem構造体に依存した属性アクセスでの500防止）
+  await run('TC-25: 出品者プロフィール → スキル表が描画される', async () => {
+    await page.goto(`${BASE.replace(/\/ja$/, '')}/ja/alexm`);
+    await page.waitForTimeout(2000);
+    const status = await page.evaluate(() => {
+      if (document.title.includes('Exception')) return 'exception page';
+      const rows = document.querySelectorAll('.raku-table__skill-name').length;
+      return rows > 0 ? null : 'スキル表の行が0件';
+    });
+    if (status) throw new Error(status);
+  });
+
   // ── 結果サマリー ──
   console.log('\n=== 結果サマリー ===');
   const skipped = results.filter(r => r.status === 'SKIP').length;
