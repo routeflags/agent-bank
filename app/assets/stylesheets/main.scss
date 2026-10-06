@@ -2253,8 +2253,8 @@ body.dark-theme {
   .home-toolbar-button-group-button {
     color: #999;
     &.selected {
-      color: #d4a853;
-      border-bottom-color: #d4a853;
+      color: var(--accent-gold);
+      border-bottom-color: var(--accent-gold);
     }
     &:hover {
       color: #fff;
@@ -2419,8 +2419,8 @@ body.dark-theme {
   .home-toolbar-button-group-button {
     color: #999 !important;
     &.selected {
-      color: #d4a853 !important;
-      border-bottom-color: #d4a853 !important;
+      color: var(--accent-gold) !important;
+      border-bottom-color: var(--accent-gold) !important;
     }
     &:hover {
       color: #fff !important;
@@ -2447,7 +2447,7 @@ body.dark-theme {
   .home-categories-sub {
     color: #999;
     &:hover { color: #fff; }
-    &.selected { color: #d4a853; }
+    &.selected { color: var(--accent-gold); }
   }
 
   // Marketplace notification bar

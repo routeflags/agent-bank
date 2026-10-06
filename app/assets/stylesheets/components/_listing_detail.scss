@@ -82,7 +82,7 @@ body.dark-theme {
     width: 100%;
     aspect-ratio: 16 / 10;
     object-fit: cover;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     background-color: var(--bg-card);
   }
 
@@ -96,7 +96,7 @@ body.dark-theme {
   .raku-price-box {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     padding: 24px;
   }
 
@@ -199,7 +199,7 @@ body.dark-theme {
   .raku-seller-card {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     padding: 16px;
     display: flex;
     align-items: center;
@@ -256,7 +256,7 @@ body.dark-theme {
   .raku-detail-panel {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
     padding: 20px;
   }
 
