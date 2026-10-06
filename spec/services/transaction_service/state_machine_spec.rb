@@ -10,8 +10,11 @@ describe TransactionService::StateMachine do
       listing.save
       listing
     end
-    let(:start_time) { Time.parse('Nov 28, 2050 - 11:00 am') }
-    let(:end_time) { Time.parse('Nov 28, 2050 - 2:00 pm') }
+    # Time.zone.parse を使う（Slot の covers_booking? が Time.zone 基準で
+    # 時刻窓を組むため。Time.parse（システムタイムゾーン基準）だと
+    # JST 等の環境で予約時刻が窓外と判定され検証に失敗する）
+    let(:start_time) { Time.zone.parse('2050-11-28 11:00:00') }
+    let(:end_time) { Time.zone.parse('2050-11-28 14:00:00') }
     let(:tx) do
       transaction = FactoryBot.create(:transaction,
                          current_state: :initiated,
