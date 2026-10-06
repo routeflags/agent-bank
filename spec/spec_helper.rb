@@ -1,6 +1,19 @@
 require 'spec_utils'
 require 'rubygems'
 
+# カバレッジ計測: COVERAGE=1 bundle exec rspec
+# （simplecov は Gemfile test グループ。結果は coverage/ に出力）
+if ENV["COVERAGE"]
+  require "simplecov"
+  SimpleCov.start "rails" do
+    add_filter "/spec/"
+    add_filter "/vendor/"
+    add_filter "/node_modules/"
+    add_filter "/db/"
+    track_files "app/controllers/**/*.rb"
+  end
+end
+
 #uncomment the following line to use spork with the debugger
 #require 'spork/ext/ruby-debug'
 

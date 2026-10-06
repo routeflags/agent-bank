@@ -141,6 +141,9 @@ group :test do
   gem 'capybara', '~> 3.40.0'
   gem 'rspec-rails', '~> 7.0.0'
 
+  # カバレッジ計測（COVERAGE=1 bundle exec rspec で有効化）
+  gem 'simplecov', '~> 0.22.0', require: false
+
   gem 'cucumber-rails', '~> 3.1.1', require: false # require: false is needed for cucumber-rails
   gem 'cucumber', '9.2.1'
 
