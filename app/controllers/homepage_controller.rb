@@ -14,6 +14,9 @@ class HomepageController < ApplicationController
 
     redirect_to landing_page_path and return if no_current_user_in_private_clp_enabled_marketplace?
 
+    # DESIGN.md §12: Marketplace metrics
+    @marketplace_metrics = marketplace_metrics
+
     all_shapes = @current_community.shapes
     shape_name_map = all_shapes.map { |s| [s[:id], s[:name]]}.to_h
 
@@ -158,6 +161,17 @@ class HomepageController < ApplicationController
   end
 
   private
+
+  # DESIGN.md §12: Marketplace metrics（即時集計・集計クエリは4本まで）
+  def marketplace_metrics
+    open_listings = Listing.currently_open.where(community_id: @current_community.id)
+    {
+      personas: open_listings.count,
+      total_views: open_listings.sum(:times_viewed).to_i,
+      total_sold: open_listings.sum(:total_sold).to_i,
+      avg_rating: open_listings.where("avg_rating > 0").average(:avg_rating)&.round(1)
+    }
+  end
 
   def parse_relevant_search_fields(params, relevant_filters)
     search_filters = SearchPageHelper.parse_filters_from_params(params)

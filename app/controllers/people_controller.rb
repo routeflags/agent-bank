@@ -28,6 +28,15 @@ class PeopleController < Devise::RegistrationsController
     redirect_to landing_page_path and return if @current_community.private? && !@current_user
     @selected_tribe_navi_tab = "members"
     @seo_service.user = @service.person
+
+    # raku-mypage のKPI（DESIGN.md §16 — 実データのみ表示。ハードコード値禁止）
+    person_listings = Listing.where(community_id: @current_community.id, author_id: @service.person.id, deleted: false)
+    @raku_stats = {
+      published: @service.listings.total_entries,
+      total_sold: person_listings.sum(:total_sold).to_i,
+      total_views: person_listings.sum(:times_viewed).to_i,
+      avg_rating: person_listings.where("avg_rating > 0").average(:avg_rating)&.round(1)
+    }
   end
 
   def new

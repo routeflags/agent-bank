@@ -32,80 +32,63 @@
         .raku-profile__tag データ分析
       .raku-profile__stats
         .raku-profile__stat
-          .raku-profile__stat-value= @service.listings.total_entries
+          .raku-profile__stat-value= @raku_stats[:published]
           .raku-profile__stat-label 出品数
         .raku-profile__stat
-          .raku-profile__stat-value 0
-          .raku-profile__stat-label 利用数
+          .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_views])
+          .raku-profile__stat-label 総閲覧数
         .raku-profile__stat
-          .raku-profile__stat-value 0
-          .raku-profile__stat-label フォロワー
+          .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_sold])
+          .raku-profile__stat-label 総販売数
 
     .raku-sidebar__nav
       .raku-sidebar__section-label メニュー
-      %a.raku-sidebar__link.is-active{href: "#"}
+      %a.raku-sidebar__link.is-active{href: person_path(username: person.username)}
         %span.raku-sidebar__icon 📊
         ダッシュボード
-      %a.raku-sidebar__link{href: "#"}
+      %a.raku-sidebar__link{href: person_path(username: person.username, show_closed: true)}
         %span.raku-sidebar__icon 📦
         出品管理
-      %a.raku-sidebar__link{href: "#"}
-        %span.raku-sidebar__icon 💰
-        売上確認
-      %a.raku-sidebar__link{href: "#"}
-        %span.raku-sidebar__icon 📈
-        分析レポート
       .raku-sidebar__divider
       .raku-sidebar__section-label アカウント
       - if current_user?(person)
         %a.raku-sidebar__link{href: person_settings_path(person)}
           %span.raku-sidebar__icon ⚙️
           設定
-      %a.raku-sidebar__link{href: "#"}
-        %span.raku-sidebar__icon 🔔
-        お知らせ
-        %span.raku-badge.raku-badge--danger.raku-badge--meta
-          0
 
   -# ── Main content ───────────────────────────────────────
   .raku-mypage__main
-    -# ── Monthly Summary ──────────────────────────────────
+    -# ── Summary（実データのみ。偽トレンドは非表示 — DESIGN.md §25.10） ──
     .raku-summary
       .raku-summary__item
         .raku-summary__label
-          %span.raku-summary__icon 💴
-          今月の売上
-        .raku-summary__value ¥0
-        .raku-summary__trend.raku-summary__trend--up ↑ +12.5% 前月比
+          %span.raku-summary__icon 📦
+          出品中のペルソナ
+        .raku-summary__value= @raku_stats[:published]
+      .raku-summary__item
+        .raku-summary__label
+          %span.raku-summary__icon 💰
+          総販売数
+        .raku-summary__value= number_with_delimiter(@raku_stats[:total_sold])
       .raku-summary__item
         .raku-summary__label
           %span.raku-summary__icon 👆
-          今月の利用数
-        .raku-summary__value 0
-        .raku-summary__trend.raku-summary__trend--up ↑ +8.3% 前月比
-      .raku-summary__item
-        .raku-summary__label
-          %span.raku-summary__icon 📦
-          販売件数
-        .raku-summary__value 0
-        .raku-summary__trend.raku-summary__trend--down ↓ -2.1% 前月比
-      .raku-summary__item
-        .raku-summary__label
-          %span.raku-summary__icon ❤️
-          お気に入り
-        .raku-summary__value 0
-        .raku-summary__trend.raku-summary__trend--up ↑ +15.7% 前月比
+          総閲覧数
+        .raku-summary__value= number_with_delimiter(@raku_stats[:total_views])
+      - if @raku_stats[:avg_rating]
+        .raku-summary__item
+          .raku-summary__label
+            %span.raku-summary__icon ★
+            平均評価
+          .raku-summary__value
+            %span.raku-link-gold= "★ #{@raku_stats[:avg_rating]}"
 
-    -# ── Quick Actions ─────────────────────────────────────
+    -# ── Quick Actions（未実装ページへのリンクは置かない — §25.10） ──
     .raku-quick-actions
       %a.raku-quick-actions__btn{href: new_listing_path}
         📝 新規出品
-      %a.raku-quick-actions__btn{href: "#"}
-        📋 下書き
-      %a.raku-quick-actions__btn{href: "#"}
-        💰 売上確認
-      %a.raku-quick-actions__btn{href: "#"}
-        📈 分析レポート
+      %a.raku-quick-actions__btn{href: person_path(username: person.username, show_closed: true)}
+        📋 出品管理
 
     -# ── Skill Table ──────────────────────────────────────
     %h2.raku-table-title 出品中スキル
@@ -114,9 +97,9 @@
         %thead
           %tr
             %th スキル名
-            %th 利用数
+            %th 閲覧数
             %th 評価
-            %th 売上
+            %th 価格
             %th ステータス
             %th 操作
         %tbody
@@ -131,15 +114,23 @@
                   %div
                     .raku-table__skill-name= listing.title
                     .raku-table__skill-desc= StringUtils.first_words(listing.description, 40)
-              %td 0
+              %td= number_with_delimiter(listing.times_viewed.to_i)
               %td
                 .raku-table__rating
-                  ★ 0.0
-              %td ¥0
+                  - if listing.avg_rating.to_f > 0
+                    = "★ #{listing.avg_rating.round(1)}"
+                  - else
+                    = "—"
+              %td= number_to_currency(listing.price_cents.to_i / 100.0, unit: "¥", precision: 0, delimiter: ",")
               %td
-                .raku-table__status.raku-table__status--active
-                  %span.raku-table__status-dot
-                  公開中
+                - if listing.open?
+                  .raku-table__status.raku-table__status--active
+                    %span.raku-table__status-dot
+                    公開中
+                - else
+                  .raku-table__status
+                    %span.raku-table__status-dot
+                    終了
               %td
                 .raku-table__actions
                   %a.raku-table__action-btn{href: edit_listing_path(listing), title: "編集"} ✏️

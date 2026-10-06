@@ -54,25 +54,29 @@
     = link_to "プログラミング", search_path(q: "プログラミング"), class: "raku-hero__tag"
 
 -# ═══════════════════════════════════════════════════════════
--# Stats Bar
+-# Marketplace metrics（DESIGN.md §12 — 実データ集計はコントローラ）
 -# ═══════════════════════════════════════════════════════════
-- open_listing_count = @current_community.listings.where(open: true).count
-- user_count = Person.count
-- transaction_count = Transaction.count
-
 .raku-stats
   .raku-stats__item
     %span.raku-stats__icon 🤖
-    .raku-stats__value= open_listing_count
+    .raku-stats__value= number_with_delimiter(@marketplace_metrics[:personas])
     .raku-stats__label= t('lamprey.homepage.stats_agents')
   .raku-stats__item
-    %span.raku-stats__icon 👥
-    .raku-stats__value= user_count
-    .raku-stats__label= t('lamprey.homepage.stats_users')
+    %span.raku-stats__icon 👁️
+    .raku-stats__value= number_with_delimiter(@marketplace_metrics[:total_views])
+    .raku-stats__label 総閲覧数
   .raku-stats__item
     %span.raku-stats__icon 💰
-    .raku-stats__value= number_with_delimiter(transaction_count)
-    .raku-stats__label= t('lamprey.homepage.stats_transactions')
+    .raku-stats__value= number_with_delimiter(@marketplace_metrics[:total_sold])
+    .raku-stats__label 総販売数
+  .raku-stats__item
+    %span.raku-stats__icon ★
+    .raku-stats__value
+      - if @marketplace_metrics[:avg_rating]
+        %span.raku-link-gold= "★ #{@marketplace_metrics[:avg_rating]}"
+      - else
+        = "—"
+    .raku-stats__label 平均評価
 
 -# ═══════════════════════════════════════════════════════════
 -# Category Grid
