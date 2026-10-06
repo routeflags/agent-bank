@@ -81,6 +81,14 @@ body.dark-theme {
     background-color: var(--bg-primary);
   }
 
+  // コンテンツページのタイトル見出し（レガシー #474747 はカバー写真上
+  // 約1.7:1で不可読。ダークテーマの白文字に上書き。デフォルトの暗い
+  // カバー写真上では 6.9:1。カスタム写真対策で影も付与）
+  .marketplace-lander .marketplace-title-header h1 {
+    color: var(--text-primary);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  }
+
   // Forms
   input[type="text"],
   input[type="email"],

@@ -11,6 +11,11 @@ body.dark-theme {
     border-bottom: 1px solid var(--border-color) !important;
     position: relative;
     z-index: 100;
+    // レガシーの固定60pxは .raku-nav（+50px）をレイアウトに含めず、
+    // 下の .marketplace-lander（見出し領域）がナビの下に重なっていた。
+    // auto にしてヘッダー全体（トップバー + サブナビ = 110px）の高さで
+    // コンテンツを押し下げる。
+    height: auto;
   }
 
   // レガシー wrapper の白背景（views/_header.scss の wrapper mixin）が
