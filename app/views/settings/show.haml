@@ -44,7 +44,7 @@
 
     -# username
     .inline-label-container
-      = form.label :display_name, t("settings.profile.username"), class: "inline"
+      = form.label :username, t("settings.profile.username"), class: "inline"
     %span.alert-box-icon
       = icon_tag("information", ["icon-fix"])
     %small
@@ -85,7 +85,7 @@
 
     -# Profile picture
     .inline-label-container
-      = form.label :image, t("settings.profile.profile_picture")
+      = form.label :image, t("settings.profile.profile_picture"), for: "avatar_file"
     %span.alert-box-icon
       = icon_tag("information", ["icon-fix"])
     %small

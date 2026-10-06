@@ -8,6 +8,8 @@ async function auditPage(page, label) {
     const els = [...document.querySelectorAll('a, button, input[type="submit"], .toggle')];
     let i = 0;
     for (const el of els) {
+      // サードパーティウィジェット（Intercom / Google Maps）は監査対象外
+      if (/dismissButton|gm-|intercom/i.test(typeof el.className === 'string' ? el.className : '')) continue;
       const r = el.getBoundingClientRect();
       const cs = getComputedStyle(el);
       if (r.width < 4 || r.height < 4 || cs.visibility === 'hidden' || cs.display === 'none') continue;
@@ -116,6 +118,11 @@ async function auditPage(page, label) {
   await page.goto(BASE + '/ja/listings/new', { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
   total += await auditPage(page, '出品フォーム（ログイン中）');
+
+  // 設定画面（左ナビ選択チップ / フォームコントロール）
+  await page.goto(BASE + '/ja/gourutailangte/settings', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+  total += await auditPage(page, '設定（ログイン中）');
 
   const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'ja-JP' });
   const page2 = await ctx2.newPage();

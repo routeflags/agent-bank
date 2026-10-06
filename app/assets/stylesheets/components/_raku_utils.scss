@@ -60,19 +60,19 @@
   color: #e8e8e8 !important;
 }
 
-// 検索ツールバーの切替ボタン（レガシー: 背景 #e8e8e8 / 選択時 #4a90e2 で
-// それぞれ #999=2.32:1・gold=1.49:1 だったため、通常 #666=4.7:1、
-// 選択/ホバーは gold 背景 + dark テキスト = 8.9:1 に変更）
+// 検索ツールバーの切替ボタン（デザインレビュー P1-c: 旧 #e8e8e8+#666 の明色
+// チップからダークサーフェス+明色テキストへ。#999 on #242424 = 5.5:1。
+// 選択/ホバーは Gold + dark text = 8.9:1（§8 Selected → Gold）
 body.dark-theme .home-toolbar-button-group-button {
-  background-color: #e8e8e8 !important;
-  border-color: #cccccc !important;
-  color: #666 !important;
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-secondary) !important;
 }
 
 body.dark-theme .home-toolbar-button-group-button.selected,
 body.dark-theme .home-toolbar-button-group-button:hover {
-  background-color: #d4a843 !important;
-  border-color: #b8922e !important;
+  background-color: var(--accent-gold) !important;
+  border-color: var(--accent-gold-hover) !important;
   color: #0d0d0d !important;
 }
 

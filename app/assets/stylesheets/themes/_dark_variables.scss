@@ -81,6 +81,59 @@ body.dark-theme {
     background-color: var(--bg-primary);
   }
 
+  // ── レガシー残存のライト部品（2026-10-06 デザインレビュー P1-b） ──
+  // カバー写真のフェード帯（_flash 等以外のレガシー #e8e8e8 90% 塗り）
+  .coverimage-fade {
+    background-color: transparent !important;
+  }
+
+  // 設定画面 左ナビの選択チップ（#e8e8e8 のまま残存）。
+  // 選択状態は Gold（DESIGN.md §8: Selected → Gold line / surface）
+  .selected.left-navi-link,
+  .left-navi-link.selected {
+    background-color: rgba(212, 168, 83, 0.14) !important;
+    color: var(--accent-gold) !important;
+    border-left: 3px solid var(--accent-gold);
+  }
+
+  .left-navi-link:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+  }
+
+  // 段落内リンクは下線で色だけに依存しない識別（axe link-in-text-block）
+  .settings-section p a {
+    text-decoration: underline;
+  }
+
+  // 設定画面の Google Maps をダークテーマへ（グレースケール反転）
+  #settings_map_canvas.map {
+    background-color: var(--bg-card) !important;
+    filter: grayscale(1) invert(0.92) hue-rotate(180deg) contrast(0.9);
+  }
+
+  // ホームツールバーのレガシーライト部品（P1-c）。
+  // .toggle.with-borders / 内部 .toggle-header（$highlight の #e8e8e8 塗り）を
+  // ダークサーフェス化。toggled（選択）は Gold（§8）。
+  .toggle.with-borders,
+  .toggle.with-borders .toggle-header {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .toggle.with-borders:hover,
+  .toggle.with-borders:hover .toggle-header {
+    background-color: var(--bg-card-hover) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .toggle.with-borders.toggled,
+  .toggle.with-borders.toggled .toggle-header {
+    background-color: rgba(212, 168, 83, 0.14) !important;
+    color: var(--accent-gold) !important;
+  }
+
   // コンテンツページのタイトル見出し（レガシー #474747 はカバー写真上
   // 約1.7:1で不可読。ダークテーマの白文字に上書き。デフォルトの暗い
   // カバー写真上では 6.9:1。カスタム写真対策で影も付与）
