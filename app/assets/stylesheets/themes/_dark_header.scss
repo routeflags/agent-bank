@@ -35,6 +35,56 @@ body.dark-theme {
     height: 60px;
   }
 
+  // ── Header compact search (DESIGN.md §7 / §11) ────────
+  // 通常画面ではGlobal Header内のcompact searchに縮小する。
+  // 送信先はHero検索と同じ `q` パラメータで homepage#index へ。
+  // .visible-tablet により 768px 未満では非表示（モバイルはHero検索が主導線）。
+  .header-search {
+    flex: 0 1 320px;
+    min-width: 160px;
+    margin-left: 16px;
+
+    &__form {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    &__input {
+      flex: 1;
+      min-width: 0;
+      // §11: light surface + dark text
+      background: #f5f5f5;
+      color: #333333;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 14px;
+
+      &::placeholder { color: #6b6b6b; }
+
+      &:focus {
+        border-color: var(--accent-gold);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(212, 168, 83, 0.35);
+      }
+    }
+
+    &__button {
+      // §10: Primary CTA = Gold + dark text
+      background: var(--accent-gold);
+      color: #1a1a1a;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+
+      &:hover { background: var(--accent-gold-hover); }
+    }
+  }
+
   // Logo
   .header-logo {
     display: flex;

@@ -6,6 +6,13 @@
       = link_to landing_page_path, :class => "header-logo", :id => "header-logo" do
         %span.header-wide-logo-text 楽市楽間
 
+    -# Desktop/tablet compact search (DESIGN.md §7/§11)
+    .header-search.visible-tablet
+      = form_tag landing_page_path, method: :get, class: "header-search__form" do
+        = text_field_tag :q, params[:q], class: "header-search__input", placeholder: t("homepage.index.what_do_you_need"), aria: { label: "検索" }
+        = button_tag type: :submit, class: "header-search__button", aria: { label: "検索する" } do
+          🔍
+
     -# Desktop auth / actions (right side)
     .header-right.header-padding.visible-tablet
       = link_to t("homepage.index.post_new_listing"), new_listing_path, :class => "new-listing-link", :id => "new-listing-link"

@@ -249,9 +249,24 @@ async function assertUrlContains(page, expected, msg) {
         throw new Error(`アクティブ項目が「出品」ではない: ${active}`);
       }
     });
+
+    await run('TC-24: ヘッダー検索 → 検索結果へ遷移', async () => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(BASE);
+      await page.waitForTimeout(1500);
+      const searchInput = page.locator('.header-search__input');
+      if ((await searchInput.count()) === 0) throw new Error('ヘッダー検索が存在しない');
+      await searchInput.fill('SEO');
+      await page.click('.header-search__button');
+      await page.waitForTimeout(2500);
+      const url = decodeURIComponent(page.url());
+      if (!url.includes('q=SEO')) throw new Error(`検索クエリがURLにない: ${page.url()}`);
+    });
   } else {
     results.push({ name: 'TC-22: 出品ページ → 「出品」がアクティブ（ログイン時）', status: 'SKIP', error: 'AUDIT_TOKEN 未設定' });
     console.log('  ⏭️  TC-22: 出品ページ → 「出品」がアクティブ（AUDIT_TOKEN 未設定のためスキップ）');
+    results.push({ name: 'TC-24: ヘッダー検索 → 検索結果へ遷移', status: 'SKIP', error: 'AUDIT_TOKEN 未設定' });
+    console.log('  ⏭️  TC-24: ヘッダー検索 → 検索結果へ遷移（AUDIT_TOKEN 未設定のためスキップ）');
   }
 
   // ── 結果サマリー ──
