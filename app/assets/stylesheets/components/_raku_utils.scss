@@ -92,10 +92,12 @@ body.dark-theme .home-list-author-name {
 
 // 送信ボタン（問い合わせフォーム等: white on #4a90e2 = 3.29:1 だった部分。
 // レッド CTA #c41e3a + white = 6.8:1）
+// 送信/ログインボタン（DESIGN.md §10: Primary = Gold + dark text。
+// Red は Battle/破壊的操作限定のため、レッドCTAはGoldに統一）
 .send_button {
-  background-color: #c41e3a;
-  border-color: #c41e3a;
-  color: #ffffff;
+  background-color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #1a1a1a;
 }
 
 // 問い合わせフォーム見出し内のリンク（色のみに頼らない識別にする）
@@ -113,9 +115,9 @@ body.dark-theme .ajax-notice .ajax-text {
 // Rails フォームビルダの button（devise 等: white on #4a90e2 = 3.29:1 だった部分。
 // レッド CTA で統一）
 button.button {
-  background-color: #c41e3a;
-  border-color: #c41e3a;
-  color: #ffffff;
+  background-color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #1a1a1a;
 }
 
 // フラッシュ通知内のリンク（通知背景は _flash.scss の #e8e8e8 のまま。
@@ -136,15 +138,15 @@ body.dark-theme .ajax-warning a:hover {
   color: #17554a;
 }
 
-// 送信/ログインボタンの hover/active（mixins/_forms.scss の汎用 button:hover は
-// #3483de + white = 3.86:1 で不足。ダークレッド hover + white = 7.3:1）
+// 送信/ログインボタンの hover/active（mixins/_forms.scss の汎用 button:hover の
+// #3483de + white = 3.86:1 は不足。Gold hover + dark text = 6.4:1）
 .send_button:hover,
 .send_button:active,
 button.button:hover,
 button.button:active {
-  background-color: #a81830;
-  border-color: #a81830;
-  color: #ffffff;
+  background-color: var(--accent-gold-hover);
+  border-color: var(--accent-gold-hover);
+  color: #1a1a1a;
 }
 
 // マイページのトレンド指標（--down: #f44336 on #242424 = 4.21:1 だった部分）。

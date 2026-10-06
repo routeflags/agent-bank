@@ -2298,19 +2298,21 @@ body.dark-theme {
 
     &.primary-button,
     &.action-button {
-      background-color: #c41e3a;
-      color: #fff;
-      border-color: #c41e3a;
+      // DESIGN.md §10: Primary CTA = Gold + dark text（RedはBattle/破壊的操作限定）
+      background-color: var(--accent-gold);
+      color: #1a1a1a;
+      border-color: var(--accent-gold);
       &:hover {
-        background-color: #a81830;
+        background-color: var(--accent-gold-hover);
+        color: #1a1a1a;
       }
     }
   }
 
   .inline-big-button .content {
-    background-color: #c41e3a;
-    color: #fff;
-    border-color: #c41e3a;
+    background-color: var(--accent-gold);
+    color: #1a1a1a;
+    border-color: var(--accent-gold);
   }
 
   // Filter toggles
@@ -2343,9 +2345,10 @@ body.dark-theme {
     }
 
     &.current {
-      background-color: #c41e3a;
-      color: #fff;
-      border-color: #c41e3a;
+      // 現在ページ（選択状態）は Gold（DESIGN.md §8 Selected → Gold）
+      background-color: var(--accent-gold);
+      color: #1a1a1a;
+      border-color: var(--accent-gold);
     }
   }
 
@@ -2390,7 +2393,7 @@ body.dark-theme {
   // Checkbox & Radio
   input[type="checkbox"],
   input[type="radio"] {
-    accent-color: #c41e3a;
+    accent-color: var(--accent-gold);
   }
 
   // ── Force dark on Sharetribe core components ──────────
