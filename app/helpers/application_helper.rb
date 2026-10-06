@@ -759,6 +759,19 @@ module ApplicationHelper
       locale_param: params[:locale])
   end
 
+  # Marks the active item in the raku sub-navigation based on the current page.
+  # マーケット = marketplace/homepage; 出品 = new listing form.
+  def raku_nav_active?(section)
+    case section
+    when :marketplace
+      controller_name.in?(%w[homepage landing_page])
+    when :new_listing
+      controller_name == "listings" && action_name == "new"
+    else
+      false
+    end
+  end
+
   # Give an array of translation keys you need in JavaScript. The keys will be loaded and ready to be used in JS
   # with `ST.t` function
   def js_t(keys, run_js_immediately=false)

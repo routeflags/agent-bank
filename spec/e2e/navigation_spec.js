@@ -199,11 +199,50 @@ async function assertUrlContains(page, expected, msg) {
     });
   }
 
+  // ── ナビゲーションアクティブ状態 ──
+  console.log('\n--- ナビゲーションアクティブ状態 ---');
+
+  async function activeNavText() {
+    return page.evaluate(() => {
+      const el = document.querySelector('.raku-nav__link.is-active');
+      return el ? el.textContent.trim().replace(/\s+/g, ' ') : null;
+    });
+  }
+
+  await run('TC-21: トップページ → 「マーケット」がアクティブ', async () => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(BASE);
+    await page.waitForTimeout(2000);
+    const active = await activeNavText();
+    if (!active || !active.includes('マーケット')) {
+      throw new Error(`アクティブ項目が「マーケット」ではない: ${active}`);
+    }
+  });
+
+  const AUDIT_TOKEN = process.env.AUDIT_TOKEN || '';
+  if (AUDIT_TOKEN) {
+    await run('TC-22: 出品ページ → 「出品」がアクティブ（ログイン時）', async () => {
+      await page.goto(`${BASE.replace(/\/ja$/, '/')}?auth=${AUDIT_TOKEN}`);
+      await page.waitForTimeout(2000);
+      await page.goto(`${BASE}/listings/new`);
+      await page.waitForTimeout(2000);
+      const active = await activeNavText();
+      if (!active || !active.includes('出品')) {
+        throw new Error(`アクティブ項目が「出品」ではない: ${active}`);
+      }
+    });
+  } else {
+    results.push({ name: 'TC-22: 出品ページ → 「出品」がアクティブ（ログイン時）', status: 'SKIP', error: 'AUDIT_TOKEN 未設定' });
+    console.log('  ⏭️  TC-22: 出品ページ → 「出品」がアクティブ（AUDIT_TOKEN 未設定のためスキップ）');
+  }
+
   // ── 結果サマリー ──
   console.log('\n=== 結果サマリー ===');
+  const skipped = results.filter(r => r.status === 'SKIP').length;
   console.log(`✅ 合格: ${passed} 件`);
   console.log(`❌ 不合格: ${failed} 件`);
-  console.log(`合計: ${passed + failed} 件`);
+  if (skipped > 0) console.log(`⏭️  スキップ: ${skipped} 件`);
+  console.log(`合計: ${passed + failed + skipped} 件`);
 
   if (failed > 0) {
     console.log('\n不合格一覧:');

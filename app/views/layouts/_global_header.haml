@@ -46,10 +46,10 @@
   -# ── Sub navigation bar ──────────────────────────────────
   .raku-nav
     .raku-nav__inner
-      = link_to landing_page_path, class: "raku-nav__link is-active" do
+      = link_to landing_page_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:marketplace)}" do
         %span.raku-nav__icon 🔍
         マーケット
-      = link_to new_listing_path, class: "raku-nav__link" do
+      = link_to new_listing_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:new_listing)}" do
         %span.raku-nav__icon 📦
         出品
       = link_to landing_page_path, class: "raku-nav__link" do
