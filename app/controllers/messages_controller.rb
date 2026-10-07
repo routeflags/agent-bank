@@ -23,7 +23,14 @@ class MessagesController < ApplicationController
     if @message.save
       Delayed::Job.enqueue(MessageSentJob.new(@message.id, @current_community.id))
     else
+      # 保存失敗時はビューユーティリティを呼ぶと未保存レコードで例外になるため、
+      # そのままリダイレクト/空応答して終了する
       flash[:error] = "reply_cannot_be_empty"
+      respond_to do |format|
+        format.html { redirect_to single_conversation_path(:conversation_type => "received", :person_id => @current_user.id, :id => params[:message][:conversation_id]) }
+        format.js { head :ok }
+      end
+      return
     end
 
     message_bubble = TransactionViewUtils.conversation_messages([@message], nil).first
