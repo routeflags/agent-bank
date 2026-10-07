@@ -291,6 +291,8 @@ function MessageBubble(props) {
   var onTopupClick = props.onTopupClick;
   var showPurchaseButton = props.showPurchaseButton;
   var onPurchaseClick = props.onPurchaseClick;
+  // 特別な成果表示（DESIGN.md §13）は明示フラグが付いた回答にのみ適用する
+  var isResult = props.is_result === true;
 
   var isUser = role === 'user';
   var isSystem = role === 'system';
@@ -304,9 +306,9 @@ function MessageBubble(props) {
     lineHeight: '1.6',
     marginBottom: '8px',
     alignSelf: isUser ? 'flex-end' : isSystem ? 'center' : 'flex-start',
-    background: isUser ? '#c41e3a' : isSystem ? 'rgba(255,255,255,0.05)' : '#242424',
+    background: isUser ? 'var(--chat-surface-user)' : isSystem ? 'rgba(255,255,255,0.05)' : '#242424',
     color: isUser ? '#fff' : isSystem ? '#999' : '#e0e0e0',
-    border: isAssistant ? '1px solid #333' : isSystem ? '1px solid #333' : 'none',
+    border: isUser ? '1px solid var(--chat-border-user)' : isAssistant ? '1px solid #333' : isSystem ? '1px solid #333' : 'none',
     fontStyle: isSystem ? 'italic' : 'normal',
     fontSize: isSystem ? '12px' : '14px',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -334,7 +336,8 @@ function MessageBubble(props) {
   return React.createElement('div', { className: 'chatMessage chatMessage--' + (role || 'user') + (isAssistant && !isStreaming && displayContent ? ' chatMessage--assistant-done' : '') },
     React.createElement('div', { className: 'chatMessage__bubble' },
       // RESULT Best Answer card header (designs/chat-sp.png §7-3)
-      isAssistant && !isStreaming && displayContent && React.createElement('div', { className: 'chatMessage__result' },
+      // DESIGN.md §13: 特別な成果表示であり通常の回答すべてには出さない
+      isAssistant && !isStreaming && displayContent && isResult && React.createElement('div', { className: 'chatMessage__result' },
         React.createElement('span', { className: 'chatMessage__result-badge' }, 'RESULT'),
         React.createElement('span', { className: 'chatMessage__result-title' }, 'Best Answer')
       ),
@@ -849,7 +852,7 @@ class ChatPanelApp extends React.Component {
         style: {
           position: 'fixed', bottom: '24px', right: '24px',
           width: '56px', height: '56px', borderRadius: '50%',
-          background: '#c41e3a', color: '#fff', border: 'none',
+          background: 'var(--chat-brand-gold)', color: '#070707', border: 'none',
           cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 999, fontSize: '24px',
@@ -1008,7 +1011,7 @@ class ChatPanelApp extends React.Component {
               value: state.inputText,
               onChange: this.handleInputChange,
               onKeyDown: this.handleKeyDown,
-              placeholder: 'メッセージを入力...',
+              placeholder: 'メッセージを入力してください...',
               rows: 1,
               disabled: state.isLoading,
               'aria-label': 'Chat message input',

@@ -41,22 +41,34 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        rules: [
+        oneOf: [
           {
-            loader: MiniCssExtractPlugin.loader,
+            // ChatPanel uses raw BEM classNames in JS — keep its CSS global
+            include: [
+              `${__dirname}/app/components/ChatPanel/chatPanel.css`,
+              `${__dirname}/app/components/ChatPanel/wallet-topup.css`,
+            ],
+            use: [
+              { loader: MiniCssExtractPlugin.loader },
+              { loader: 'css-loader', options: { modules: false } },
+              { loader: 'postcss-loader' },
+            ],
           },
           {
-            loader: 'css-loader',
-            options: {
-              modules: {
-                mode: 'local',
-                localIdentName: '[name]__[local]__[hash:base64:5]',
+            use: [
+              { loader: MiniCssExtractPlugin.loader },
+              {
+                loader: 'css-loader',
+                options: {
+                  modules: {
+                    mode: 'local',
+                    localIdentName: '[name]__[local]__[hash:base64:5]',
+                  },
+                  importLoaders: 0,
+                },
               },
-              importLoaders: 0,
-            },
-          },
-          {
-            loader: 'postcss-loader',
+              { loader: 'postcss-loader' },
+            ],
           },
         ],
       },
