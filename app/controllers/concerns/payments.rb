@@ -87,7 +87,7 @@ module Payments
 
   def paypal_index
     paypal_account = paypal_accounts_api.get(community_id: @current_community.id).data
-    { order_permission_action: admin_paypal_preferences_account_create_path,
+    { order_permission_action: account_create_admin2_payment_system_paypal_index_path,
       paypal_account: paypal_account }
   end
 

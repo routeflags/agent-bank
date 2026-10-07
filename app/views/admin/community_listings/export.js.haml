@@ -1,5 +1,0 @@
-- if @export_result
-  window.ST.initializeExportPolling({
-  pollingUrl: '#{export_status_admin_community_listings_path(token: @export_result.token)}',
-  loading: '#{j render('loading')}'
-  });

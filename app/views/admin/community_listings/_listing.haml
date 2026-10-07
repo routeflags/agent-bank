@@ -16,9 +16,7 @@
   %td
     - status = t("admin.communities.listings.#{presenter.listing_status(listing)}")
     - if presenter.show_approval_link?(listing)
-      = link_to status,
-        edit_admin_community_listing_path(presenter.community.id, listing.id),
-        remote: true
+      = link_to status, admin2_listings_manage_listings_path(presenter.community)
     - else
       = status
   %td
