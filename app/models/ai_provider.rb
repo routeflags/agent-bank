@@ -9,7 +9,7 @@
 #  slug              :string(255)      not null
 #  api_key_encrypted :string(255)
 #  base_url          :string(255)
-#  config            :json
+#  config            :text(4294967295)
 #  is_active         :boolean          default(TRUE)
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null

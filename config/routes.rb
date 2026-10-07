@@ -721,6 +721,7 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       resources :chat_sessions, only: [:index, :show, :create, :update] do
+        resources :attachments, only: [:create], controller: 'chat_attachments'
       end
 
       # Wallet top-up: create PaymentIntent + confirm after Stripe checkout

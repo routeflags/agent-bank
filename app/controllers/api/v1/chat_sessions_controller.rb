@@ -189,6 +189,9 @@ class API::V1::ChatSessionsController < ApplicationController
 
     if include_messages
       data[:messages] = session.chat_messages.chronological.map { |m|
+        attachment = if m.metadata.is_a?(Hash) && m.metadata['attachment_id']
+                       session.chat_attachments.find_by(id: m.metadata['attachment_id'])
+                     end
         {
           id: m.id,
           sender_type: m.sender_type,
@@ -199,6 +202,10 @@ class API::V1::ChatSessionsController < ApplicationController
           input_tokens: m.input_tokens,
           output_tokens: m.output_tokens,
           metadata: m.metadata,
+          attachment: attachment && {
+            id: attachment.id,
+            url: attachment.image.url(:medium)
+          },
           created_at: m.created_at.iso8601
         }
       }

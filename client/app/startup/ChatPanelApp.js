@@ -103,6 +103,81 @@ function renderMarkdown(text) {
   return '<p>' + html + '</p>';
 }
 
+// ─── i18n ─────────────────────────────────────────────────────
+// Server-provided strings (props.i18n from lamprey.chat.*) with
+// Japanese defaults so the panel never renders blank keys.
+var DEFAULT_I18N = {
+  wallet_topup_title: 'クレジットを追加',
+  wallet_topup_close: '閉じる',
+  wallet_current_balance: '現在の残高: ¥',
+  wallet_custom_label: 'カスタム:',
+  wallet_amount_placeholder: '金額を入力（円）',
+  wallet_invalid_amount: '金額は100円〜10,000円の間で指定してください。',
+  wallet_pay_failed: '決済に失敗しました。',
+  wallet_success: '✅ 追加が完了しました！',
+  wallet_processing: '処理中...',
+  wallet_submit: '追加する',
+  wallet_add_credits: 'クレジットを追加する',
+  wallet_buy: '購入する',
+  wallet_add_preparing: '追加する（準備中）',
+  wallet_add_preparing_body: 'ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。',
+  purchase_preparing_body: 'このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。',
+  new_chat_title: '新しいチャット',
+  insufficient_tokens: 'トークンが不足しています。',
+  purchase_required: 'このペルソナを利用するには購入が必要です。',
+  error_generic: 'エラーが発生しました。',
+  wallet_insufficient: 'ウォレットの残高が不足しています。',
+  connect_failed: 'チャットに接続できませんでした。しばらくしてからもう一度お試しください。',
+  session_create_failed: 'セッションの作成に失敗しました。',
+  history_title: '履歴',
+  history_new: '＋ 新規',
+  history_today: '今日',
+  history_past_week: '過去7日',
+  history_earlier: 'それ以前',
+  history_empty: 'まだチャット履歴がありません。',
+  loading: '接続中...',
+  empty_state: '%{name} にメッセージを送信してください。',
+  input_placeholder: 'メッセージを入力してください...',
+  disclaimer: '⚠️ AIの回答は必ずしも正確とは限りません。重要な判断はご自身で確認してください。',
+  balance_label: '残高',
+  settings_title: '⚙️ 実行設定',
+  settings_model: 'モデル',
+  settings_token_limit: 'トークン上限',
+  settings_tokens_unit: '%{count} トークン',
+  settings_output_length: '出力の長さ',
+  output_short: '短め',
+  output_standard: '標準',
+  output_long: '長め',
+  settings_tone: 'トーン',
+  tone_polite: '丁寧に',
+  tone_casual: 'カジュアル',
+  tone_professional: 'ビジネス',
+  tone_friendly: 'フレンドリー',
+  message_tokens: '%{count} トークン',
+  result_badge: 'RESULT',
+  result_title: 'Best Answer',
+  attach_button: '画像を添付',
+  attach_remove: '添付を取り消す',
+  attach_upload_failed: '画像のアップロードに失敗しました。',
+  attach_invalid_type: '画像ファイル（JPG/PNG/GIF/WebP）を選択してください。',
+  attach_too_large: '画像は5MB以下にしてください。',
+  a11y_dialog: 'AIチャット',
+  a11y_open: 'AIチャットを開く',
+  a11y_close: 'チャットを閉じる',
+  a11y_input: 'チャットメッセージ入力',
+  a11y_send: 'メッセージを送信'
+};
+var I18N = Object.assign({}, DEFAULT_I18N);
+function t(key) { return I18N[key] != null ? I18N[key] : (DEFAULT_I18N[key] || key); }
+function setI18n(obj) { I18N = Object.assign({}, DEFAULT_I18N, obj || {}); }
+function tFormat(key, vars) {
+  var s = t(key);
+  Object.keys(vars || {}).forEach(function (k) {
+    s = s.split('%{' + k + '}').join(String(vars[k]));
+  });
+  return s;
+}
+
 // ─── Wallet Top-up Modal ──────────────────────────────────
 
 var TOPUP_AMOUNTS = [
@@ -147,7 +222,7 @@ class WalletTopupModal extends React.Component {
     var amountCents = this.getAmountCents();
 
     if (amountCents < 100 || amountCents > 10000) {
-      self.setState({ error: '金額は100円〜10,000円の間で指定してください。' });
+      self.setState({ error: t('wallet_invalid_amount') });
       return;
     }
 
@@ -190,7 +265,7 @@ class WalletTopupModal extends React.Component {
         setTimeout(function () { self.props.onClose(); }, 1200);
       })
       .catch(function (err) {
-        self.setState({ isProcessing: false, error: err.message || '決済に失敗しました。' });
+        self.setState({ isProcessing: false, error: err.message || t('wallet_pay_failed') });
       });
   }
 
@@ -206,14 +281,14 @@ class WalletTopupModal extends React.Component {
       className: 'wallet-topup-modal__overlay',
       onClick: this.handleOverlayClick,
     },
-      React.createElement('div', { className: 'wallet-topup-modal', role: 'dialog', 'aria-label': 'ウォレットトップアップ' },
+      React.createElement('div', { className: 'wallet-topup-modal', role: 'dialog', 'aria-label': t('wallet_topup_title') },
         // Header
         React.createElement('div', { className: 'wallet-topup-modal__header' },
-          React.createElement('h3', { className: 'wallet-topup-modal__title' }, '💰 クレジットを追加'),
+          React.createElement('h3', { className: 'wallet-topup-modal__title' }, '💰 ' + t('wallet_topup_title')),
           React.createElement('button', {
             className: 'wallet-topup-modal__closeBtn',
             onClick: this.props.onClose,
-            'aria-label': '閉じる',
+            'aria-label': t('wallet_topup_close'),
             type: 'button',
           },
             React.createElement('svg', { width: '18', height: '18', viewBox: '0 0 20 20', fill: 'none' },
@@ -229,7 +304,7 @@ class WalletTopupModal extends React.Component {
         // Current balance
         React.createElement('div', {
           style: { fontSize: '13px', color: '#999', marginBottom: '16px' }
-        }, '現在の残高: ¥' + (this.props.balance || 0).toLocaleString()),
+        }, t('wallet_current_balance') + (this.props.balance || 0).toLocaleString()),
 
         // Amount grid
         React.createElement('div', { className: 'wallet-topup-modal__amounts' },
@@ -245,12 +320,12 @@ class WalletTopupModal extends React.Component {
 
         // Custom amount
         React.createElement('div', { className: 'wallet-topup-modal__customAmount' },
-          React.createElement('span', { className: 'wallet-topup-modal__customLabel' }, 'カスタム:'),
+          React.createElement('span', { className: 'wallet-topup-modal__customLabel' }, t('wallet_custom_label')),
           React.createElement('input', {
             className: 'wallet-topup-modal__customInput',
             type: 'text',
             inputMode: 'numeric',
-            placeholder: '金額を入力（円）',
+            placeholder: t('wallet_amount_placeholder'),
             value: state.customAmount,
             onChange: this.handleCustomChange,
           })
@@ -258,7 +333,7 @@ class WalletTopupModal extends React.Component {
 
         // Status messages
         state.error && React.createElement('div', { className: 'wallet-topup-modal__error' }, state.error),
-        state.success && React.createElement('div', { className: 'wallet-topup-modal__success' }, '✅ 追加が完了しました！'),
+        state.success && React.createElement('div', { className: 'wallet-topup-modal__success' }, t('wallet_success')),
 
         // Submit
         React.createElement('button', {
@@ -270,9 +345,9 @@ class WalletTopupModal extends React.Component {
           state.isProcessing
             ? React.createElement('span', null,
                 React.createElement('span', { className: 'wallet-topup-modal__spinner' }),
-                '処理中...'
+                t('wallet_processing')
               )
-            : '追加する'
+            : t('wallet_submit')
         )
       )
     );
@@ -291,6 +366,7 @@ function MessageBubble(props) {
   var onTopupClick = props.onTopupClick;
   var showPurchaseButton = props.showPurchaseButton;
   var onPurchaseClick = props.onPurchaseClick;
+  var attachment = props.attachment;
   // 特別な成果表示（DESIGN.md §13）は明示フラグが付いた回答にのみ適用する
   var isResult = props.is_result === true;
 
@@ -338,10 +414,15 @@ function MessageBubble(props) {
       // RESULT Best Answer card header (designs/chat-sp.png §7-3)
       // DESIGN.md §13: 特別な成果表示であり通常の回答すべてには出さない
       isAssistant && !isStreaming && displayContent && isResult && React.createElement('div', { className: 'chatMessage__result' },
-        React.createElement('span', { className: 'chatMessage__result-badge' }, 'RESULT'),
-        React.createElement('span', { className: 'chatMessage__result-title' }, 'Best Answer')
+        React.createElement('span', { className: 'chatMessage__result-badge' }, t('result_badge')),
+        React.createElement('span', { className: 'chatMessage__result-title' }, t('result_title'))
       ),
       renderedContent,
+      attachment && attachment.url && React.createElement('img', {
+        className: 'chatMessage__attachment',
+        src: attachment.url,
+        alt: '',
+      }),
       isStreaming && React.createElement('span', { className: 'chatMessage__streaming' })
     ),
     // Show topup button for insufficient balance errors
@@ -350,7 +431,7 @@ function MessageBubble(props) {
         className: 'wallet-topup-prompt__btn',
         onClick: onTopupClick,
         type: 'button',
-      }, 'クレジットを追加する')
+      }, t('wallet_add_credits'))
     ),
     // Show purchase button for purchase_required errors
     showPurchaseButton && onPurchaseClick && React.createElement('div', { className: 'wallet-topup-prompt' },
@@ -358,10 +439,10 @@ function MessageBubble(props) {
         className: 'wallet-topup-prompt__btn',
         onClick: onPurchaseClick,
         type: 'button',
-      }, '購入する')
+      }, t('wallet_buy'))
     ),
     role === 'assistant' && totalTokens > 0 && (
-      React.createElement('span', { className: 'chatMessage__tokens' }, totalTokens + ' tokens')
+      React.createElement('span', { className: 'chatMessage__tokens' }, tFormat('message_tokens', { count: totalTokens }))
     ),
     timeStr && role !== 'system' && (
       React.createElement('span', { className: 'chatMessage__meta' }, timeStr)
@@ -374,6 +455,7 @@ function MessageBubble(props) {
 class ChatPanelApp extends React.Component {
   constructor(props) {
     super(props);
+    setI18n(props.i18n);
     this.state = {
       isOpen: false,
       sessionId: null,
@@ -393,6 +475,8 @@ class ChatPanelApp extends React.Component {
       walletBalance: 0,
       walletLoading: false,
       showTopupModal: false,
+      // Attachment (composer 📎)
+      pendingAttachment: null,
     };
 
     this.streamingId = null;
@@ -411,6 +495,9 @@ class ChatPanelApp extends React.Component {
     this.handleTokenChange = this.handleTokenChange.bind(this);
     this.handleOutputLength = this.handleOutputLength.bind(this);
     this.handleToneChange = this.handleToneChange.bind(this);
+    this.handleAttachClick = this.handleAttachClick.bind(this);
+    this.handleFileSelected = this.handleFileSelected.bind(this);
+    this.handleRemoveAttachment = this.handleRemoveAttachment.bind(this);
     this.handleOpenTopup = this.handleOpenTopup.bind(this);
     this.handleCloseTopup = this.handleCloseTopup.bind(this);
     this.handleTopupSuccess = this.handleTopupSuccess.bind(this);
@@ -432,7 +519,7 @@ class ChatPanelApp extends React.Component {
         if (!response.ok) {
           return response.json().catch(function () { return {}; }).then(function (body) {
             // エラータイプを保持して、呼び出し元で適切なメッセージを表示できるようにする
-            var err = new Error(body.error || 'セッションの作成に失敗しました。');
+            var err = new Error(body.error || t('session_create_failed'));
             err.error_type = body.error_type || null;
             throw err;
           });
@@ -448,7 +535,7 @@ class ChatPanelApp extends React.Component {
             isLoading: false,
             sessionHistory: prev.sessionHistory.concat([{
               id: session.id,
-              title: '新しいチャット',
+              title: t('new_chat_title'),
               timestamp: new Date().toISOString(),
             }]),
           };
@@ -484,6 +571,7 @@ class ChatPanelApp extends React.Component {
             isStreaming: false,
             created_at: m.created_at,
             total_tokens: (m.input_tokens || 0) + (m.output_tokens || 0),
+            attachment: m.attachment || null,
           };
         });
         self.setState({ messages: messages });
@@ -539,12 +627,14 @@ class ChatPanelApp extends React.Component {
     }
   }
 
-  sendMessage(content) {
+  sendMessage(content, attachment) {
     if (!this.subscription) return;
-    this.subscription.perform('receive', {
+    var payload = {
       chat_session_id: this.state.sessionId,
       content: content,
-    });
+    };
+    if (attachment && attachment.id) payload.attachment_id = attachment.id;
+    this.subscription.perform('receive', payload);
   }
 
   disconnect() {
@@ -585,7 +675,7 @@ class ChatPanelApp extends React.Component {
           messages: prev.messages.concat([{
             id: 'sys-err-' + Date.now(),
             role: 'system',
-            content: data.error || 'トークンが不足しています。',
+            content: data.error || t('insufficient_tokens'),
             isStreaming: false,
             created_at: new Date().toISOString(),
             showTopupButton: true,
@@ -598,7 +688,7 @@ class ChatPanelApp extends React.Component {
           messages: prev.messages.concat([{
             id: 'sys-err-' + Date.now(),
             role: 'system',
-            content: data.error || 'このペルソナを利用するには購入が必要です。',
+            content: data.error || t('purchase_required'),
             isStreaming: false,
             created_at: new Date().toISOString(),
             showPurchaseButton: true,
@@ -606,18 +696,19 @@ class ChatPanelApp extends React.Component {
         };
       });
     } else {
-      this.addMessage('sys-err-' + Date.now(), 'system', data.error || 'エラーが発生しました。', false);
+      this.addMessage('sys-err-' + Date.now(), 'system', data.error || t('error_generic'), false);
     }
   }
 
   // ─── Message helpers ──────────────────────────────────
 
-  addMessage(id, role, content, isStreaming) {
+  addMessage(id, role, content, isStreaming, attachment) {
     this.setState(function (prev) {
       return {
         messages: prev.messages.concat([{
           id: id, role: role, content: content,
           isStreaming: isStreaming, created_at: new Date().toISOString(),
+          attachment: attachment || null,
         }]),
       };
     });
@@ -664,19 +755,24 @@ class ChatPanelApp extends React.Component {
   handleSend() {
     var self = this;
     var text = this.state.inputText.trim();
-    if (!text || this.sending) return;
+    var pending = this.state.pendingAttachment;
+    if ((!text && !(pending && pending.status === 'ready')) || this.sending) return;
+    if (pending && pending.status === 'uploading') return;
     this.sending = true;
 
-    this.addMessage('user-' + Date.now(), 'user', text, false);
-    this.setState({ inputText: '' });
+    var attachment = pending && pending.status === 'ready'
+      ? { id: pending.id, url: pending.url }
+      : null;
+    this.addMessage('user-' + Date.now(), 'user', text, false, attachment);
+    this.setState({ inputText: '', pendingAttachment: null });
 
     if (this.state.sessionId) {
-      this.sendMessage(text);
+      this.sendMessage(text, attachment);
       this.sending = false;
     } else {
       this.createSession().then(function (result) {
         if (result && result.id) {
-          self.sendMessage(text);
+          self.sendMessage(text, attachment);
         } else {
           // エラータイプに応じて適切なメッセージを表示
           var errorType = result ? result.error_type : null;
@@ -702,7 +798,7 @@ class ChatPanelApp extends React.Component {
                 messages: prev.messages.concat([{
                   id: 'sys-balance-' + Date.now(),
                   role: 'system',
-                  content: 'ウォレットの残高が不足しています。',
+                  content: t('wallet_insufficient'),
                   isStreaming: false,
                   created_at: new Date().toISOString(),
                   showTopupButton: true,
@@ -711,12 +807,70 @@ class ChatPanelApp extends React.Component {
             });
           } else {
             // その他の接続エラー
-            self.addMessage('sys-err-' + Date.now(), 'system', 'チャットに接続できませんでした。しばらくしてからもう一度お試しください。', false);
+            self.addMessage('sys-err-' + Date.now(), 'system', t('connect_failed'), false);
           }
         }
         self.sending = false;
       });
     }
+  }
+
+  handleAttachClick() {
+    if (this.fileInputRef) this.fileInputRef.click();
+  }
+
+  handleRemoveAttachment() {
+    this.setState({ pendingAttachment: null });
+    if (this.fileInputRef) this.fileInputRef.value = '';
+  }
+
+  handleFileSelected(e) {
+    var self = this;
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    var allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowed.indexOf(file.type) === -1) {
+      this.addMessage('sys-attach-' + Date.now(), 'system', t('attach_invalid_type'), false);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.addMessage('sys-attach-' + Date.now(), 'system', t('attach_too_large'), false);
+      return;
+    }
+
+    this.setState({ pendingAttachment: { status: 'uploading', name: file.name } });
+
+    var upload = this.state.sessionId
+      ? Promise.resolve(this.state.sessionId)
+      : this.createSession().then(function (result) { return result && result.id; });
+
+    upload.then(function (sessionId) {
+      if (!sessionId) {
+        self.setState({ pendingAttachment: null });
+        self.addMessage('sys-attach-' + Date.now(), 'system', t('attach_upload_failed'), false);
+        return;
+      }
+      var formData = new FormData();
+      formData.append('image', file);
+      return fetch('/api/v1/chat_sessions/' + sessionId + '/attachments', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken() },
+        credentials: 'same-origin',
+        body: formData,
+      }).then(function (res) {
+        if (!res.ok) throw new Error('upload failed');
+        return res.json();
+      }).then(function (data) {
+        self.setState({
+          sessionId: sessionId,
+          pendingAttachment: { status: 'ready', id: data.id, url: data.url, name: file.name },
+        });
+      });
+    }).catch(function () {
+      self.setState({ pendingAttachment: null });
+      self.addMessage('sys-attach-' + Date.now(), 'system', t('attach_upload_failed'), false);
+    });
   }
 
   handleNewChat() {
@@ -792,7 +946,7 @@ class ChatPanelApp extends React.Component {
         messages: prev.messages.concat([{
           id: 'sys-topup-' + Date.now(),
           role: 'system',
-          content: 'ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。',
+          content: t('wallet_add_preparing_body'),
           isStreaming: false,
           created_at: new Date().toISOString(),
         }]),
@@ -815,7 +969,7 @@ class ChatPanelApp extends React.Component {
         messages: prev.messages.concat([{
           id: 'sys-purchase-' + Date.now(),
           role: 'system',
-          content: 'このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。',
+          content: t('purchase_preparing_body'),
           isStreaming: false,
           created_at: new Date().toISOString(),
         }]),
@@ -847,7 +1001,7 @@ class ChatPanelApp extends React.Component {
       return React.createElement('button', {
         onClick: this.handleOpen,
         className: 'chatPanel__trigger',
-        'aria-label': 'Open AI chat',
+        'aria-label': t('a11y_open'),
         type: 'button',
         style: {
           position: 'fixed', bottom: '24px', right: '24px',
@@ -881,7 +1035,7 @@ class ChatPanelApp extends React.Component {
         className: 'chatPanel',
         onClick: function (e) { e.stopPropagation(); },
         role: 'dialog',
-        'aria-label': 'AI Chat',
+        'aria-label': t('a11y_dialog'),
         style: {
           display: 'flex',
           flexDirection: 'row',
@@ -900,16 +1054,16 @@ class ChatPanelApp extends React.Component {
         // ═══ LEFT: History sidebar ═══
         React.createElement('div', { className: 'chatPanel__history', style: { width: '240px', background: '#1e1e1e', borderRight: '1px solid #333', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden' } },
           React.createElement('div', { className: 'chatPanel__historyHeader' },
-            React.createElement('h4', { className: 'chatPanel__historyTitle' }, '履歴'),
+            React.createElement('h4', { className: 'chatPanel__historyTitle' }, t('history_title')),
             React.createElement('button', {
               className: 'chatPanel__newChatBtn',
               onClick: this.handleNewChat,
               type: 'button',
-            }, '＋ 新規')
+            }, t('history_new'))
           ),
           React.createElement('div', { className: 'chatPanel__historyList' },
             today.length > 0 && React.createElement('div', { className: 'chatPanel__historyGroup' },
-              React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, '今日'),
+              React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, t('history_today')),
               today.map(function (item) {
                 return React.createElement('div', {
                   key: item.id,
@@ -921,7 +1075,7 @@ class ChatPanelApp extends React.Component {
               })
             ),
             thisWeek.length > 0 && React.createElement('div', { className: 'chatPanel__historyGroup' },
-              React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, '過去7日'),
+              React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, t('history_past_week')),
               thisWeek.map(function (item) {
                 return React.createElement('div', {
                   key: item.id,
@@ -933,7 +1087,7 @@ class ChatPanelApp extends React.Component {
               })
             ),
             older.length > 0 && React.createElement('div', { className: 'chatPanel__historyGroup' },
-              React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, 'それ以前'),
+              React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, t('history_earlier')),
               older.map(function (item) {
                 return React.createElement('div', {
                   key: item.id,
@@ -946,7 +1100,7 @@ class ChatPanelApp extends React.Component {
             ),
             state.sessionHistory.length === 0 && React.createElement('div', {
               style: { color: '#666', fontSize: '13px', textAlign: 'center', padding: '24px 12px' }
-            }, 'まだチャット履歴がありません。')
+            }, t('history_empty'))
           )
         ),
 
@@ -963,7 +1117,7 @@ class ChatPanelApp extends React.Component {
             React.createElement('button', {
               onClick: this.handleClose,
               className: 'chatPanel__closeBtn',
-              'aria-label': 'Close chat',
+              'aria-label': t('a11y_close'),
               type: 'button',
             },
               React.createElement('svg', { width: '20', height: '20', viewBox: '0 0 20 20', fill: 'none' },
@@ -980,14 +1134,14 @@ class ChatPanelApp extends React.Component {
           state.error && React.createElement('div', { className: 'chatPanel__error' }, state.error),
 
           // Loading
-          state.isLoading && React.createElement('div', { className: 'chatPanel__loading' }, '接続中...'),
+          state.isLoading && React.createElement('div', { className: 'chatPanel__loading' }, t('loading')),
 
           // Messages
           React.createElement('div', { className: 'chatPanel__messages' },
             state.messages.length === 0 && !state.isLoading
               ? React.createElement('div', { className: 'chatPanel__emptyState' },
                   React.createElement('div', { className: 'chatPanel__emptyStateIcon' }, '🤖'),
-                  personaName + ' にメッセージを送信してください。'
+                  tFormat('empty_state', { name: personaName || '' })
                 )
               : state.messages.map(function (msg) {
                   return React.createElement(MessageBubble, {
@@ -999,28 +1153,60 @@ class ChatPanelApp extends React.Component {
                     onTopupClick: msg.showTopupButton ? self.handleOpenTopup : null,
                     showPurchaseButton: msg.showPurchaseButton,
                     onPurchaseClick: msg.showPurchaseButton ? self.handlePurchase : null,
+                    attachment: msg.attachment,
                   });
                 }),
             React.createElement('div', { ref: function (el) { self.messagesEndRef = el; } })
           ),
 
+          // Attachment preview chip
+          state.pendingAttachment && state.pendingAttachment.status !== 'uploading'
+            ? React.createElement('div', { className: 'chatPanel__attachPreview' },
+                state.pendingAttachment.url && React.createElement('img', {
+                  src: state.pendingAttachment.url, alt: '',
+                }),
+                React.createElement('span', { className: 'chatPanel__attachName' }, state.pendingAttachment.name || ''),
+                React.createElement('button', {
+                  className: 'chatPanel__attachRemove',
+                  onClick: this.handleRemoveAttachment,
+                  'aria-label': t('attach_remove'),
+                  type: 'button',
+                }, '✕')
+              )
+            : null,
+
           // Input
           React.createElement('div', { className: 'chatPanel__inputArea' },
+            React.createElement('input', {
+              type: 'file',
+              accept: 'image/jpeg,image/png,image/gif,image/webp',
+              ref: function (el) { self.fileInputRef = el; },
+              className: 'chatPanel__attachInput',
+              onChange: this.handleFileSelected,
+              'aria-label': t('attach_button'),
+            }),
+            React.createElement('button', {
+              className: 'chatPanel__attachBtn',
+              onClick: this.handleAttachClick,
+              disabled: state.isLoading || (state.pendingAttachment && state.pendingAttachment.status === 'uploading'),
+              'aria-label': t('attach_button'),
+              type: 'button',
+            }, '📎'),
             React.createElement('textarea', {
               className: 'chatPanel__input',
               value: state.inputText,
               onChange: this.handleInputChange,
               onKeyDown: this.handleKeyDown,
-              placeholder: 'メッセージを入力してください...',
+              placeholder: t('input_placeholder'),
               rows: 1,
               disabled: state.isLoading,
-              'aria-label': 'Chat message input',
+              'aria-label': t('a11y_input'),
             }),
             React.createElement('button', {
               className: 'chatPanel__sendBtn',
               onClick: this.handleSend,
-              disabled: state.isLoading || !state.inputText.trim(),
-              'aria-label': 'Send message',
+              disabled: state.isLoading || (!state.inputText.trim() && !(state.pendingAttachment && state.pendingAttachment.status === 'ready')) || (state.pendingAttachment && state.pendingAttachment.status === 'uploading'),
+              'aria-label': t('a11y_send'),
               type: 'button',
             },
               React.createElement('svg', { width: '18', height: '18', viewBox: '0 0 18 18', fill: 'none' },
@@ -1033,9 +1219,7 @@ class ChatPanelApp extends React.Component {
           ),
 
           // Disclaimer
-          React.createElement('div', { className: 'chatPanel__disclaimer' },
-            '⚠️ AIの回答は必ずしも正確とは限りません。重要な判断はご自身で確認してください。'
-          )
+          React.createElement('div', { className: 'chatPanel__disclaimer' }, t('disclaimer'))
         ),
 
         // ═══ RIGHT: Settings panel ═══
@@ -1045,7 +1229,7 @@ class ChatPanelApp extends React.Component {
             className: 'wallet-balance' + (state.walletLoading ? ' wallet-balance--loading' : ''),
           },
             React.createElement('div', { className: 'wallet-balance__info' },
-              React.createElement('span', { className: 'wallet-balance__label' }, '残高'),
+              React.createElement('span', { className: 'wallet-balance__label' }, t('balance_label')),
               state.walletLoading
                 ? React.createElement('div', { className: 'wallet-balance__skeleton' })
                 : React.createElement('span', { className: 'wallet-balance__amount' },
@@ -1057,14 +1241,14 @@ class ChatPanelApp extends React.Component {
               className: 'wallet-balance__topupBtn',
               onClick: this.handleOpenTopup,
               type: 'button',
-            }, '追加する（準備中）')
+            }, t('wallet_add_preparing'))
           ),
 
-          React.createElement('h4', { className: 'chatPanel__settingsTitle' }, '⚙️ 実行設定'),
+          React.createElement('h4', { className: 'chatPanel__settingsTitle' }, t('settings_title')),
 
           // Model selection
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, 'モデル'),
+            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_model')),
             React.createElement('select', {
               className: 'chatPanel__settingsSelect',
               value: state.selectedModel,
@@ -1079,7 +1263,7 @@ class ChatPanelApp extends React.Component {
 
           // Token limit
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, 'トークン上限'),
+            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_token_limit')),
             React.createElement('input', {
               type: 'range',
               className: 'chatPanel__settingsSlider',
@@ -1090,16 +1274,16 @@ class ChatPanelApp extends React.Component {
               onChange: this.handleTokenChange,
             }),
             React.createElement('div', { className: 'chatPanel__settingsValue' },
-              state.tokenLimit.toLocaleString() + ' トークン'
+              tFormat('settings_tokens_unit', { count: state.tokenLimit.toLocaleString() })
             )
           ),
 
           // Output length
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, '出力の長さ'),
+            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_output_length')),
             React.createElement('div', { className: 'chatPanel__toneButtons' },
               ['short', 'standard', 'long'].map(function (length) {
-                var labels = { short: '短め', standard: '標準', long: '長め' };
+                var labels = { short: t('output_short'), standard: t('output_standard'), long: t('output_long') };
                 return React.createElement('button', {
                   key: length,
                   className: 'chatPanel__toneBtn' + (state.outputLength === length ? ' is-active' : ''),
@@ -1112,16 +1296,16 @@ class ChatPanelApp extends React.Component {
 
           // Tone
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, 'トーン'),
+            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_tone')),
             React.createElement('select', {
               className: 'chatPanel__settingsSelect',
               value: state.tone,
               onChange: function (e) { self.handleToneChange(e.target.value); },
             },
-              React.createElement('option', { value: 'polite' }, '丁寧に'),
-              React.createElement('option', { value: 'casual' }, 'カジュアル'),
-              React.createElement('option', { value: 'professional' }, 'ビジネス'),
-              React.createElement('option', { value: 'friendly' }, 'フレンドリー')
+              React.createElement('option', { value: 'polite' }, t('tone_polite')),
+              React.createElement('option', { value: 'casual' }, t('tone_casual')),
+              React.createElement('option', { value: 'professional' }, t('tone_professional')),
+              React.createElement('option', { value: 'friendly' }, t('tone_friendly'))
             )
           )
         )

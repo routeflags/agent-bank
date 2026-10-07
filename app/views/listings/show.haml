@@ -223,4 +223,4 @@
 - if @listing.default_run_mode.present? && @listing.default_run_mode == 'run_online'
   -# Strip whitespace-only lines from the react-rails output: HAML indents
   -# multiline helper output, which otherwise emits trailing-whitespace lines.
-  = raw(react_component("ChatPanelApp", props: { listing_id: @listing.id, persona_name: @listing.author&.given_name_or_username || 'AI Assistant' }, prerender: false).to_s.gsub(/^[ \t]+\n/, ""))
+  = raw(react_component("ChatPanelApp", props: { listing_id: @listing.id, persona_name: @listing.author&.given_name_or_username || 'AI Assistant', i18n: chat_panel_i18n }, prerender: false).to_s.gsub(/^[ \t]+\n/, ""))

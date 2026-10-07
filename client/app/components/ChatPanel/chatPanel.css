@@ -632,3 +632,81 @@
     display: none;
   }
 }
+
+/* ── Composer attachment (DESIGN.md §15 📎 secondary control) ─ */
+.chatPanel__attachInput {
+  display: none;
+}
+
+.chatPanel__attachBtn {
+  background: transparent;
+  border: 1px solid #3a3a3a;
+  color: #a7a7a7;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.chatPanel__attachBtn:hover:not(:disabled) {
+  color: #fff;
+  border-color: #555;
+}
+
+.chatPanel__attachBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.chatPanel__attachPreview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 8px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 13px;
+}
+
+.chatPanel__attachPreview img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.chatPanel__attachName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chatPanel__attachRemove {
+  background: none;
+  border: none;
+  color: #a7a7a7;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.chatPanel__attachRemove:hover {
+  color: #fff;
+}
+
+.chatMessage__attachment {
+  display: block;
+  margin-top: 8px;
+  max-width: 240px;
+  max-height: 240px;
+  border-radius: 8px;
+}

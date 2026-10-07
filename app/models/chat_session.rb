@@ -33,6 +33,7 @@ class ChatSession < ApplicationRecord
   # Referential integrity is enforced at the application level.
   belongs_to :person
   has_many :chat_messages, dependent: :destroy
+  has_many :chat_attachments, dependent: :destroy
 
   validates :person_id, presence: true
   validates :listing_id, presence: true

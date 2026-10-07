@@ -44,12 +44,20 @@ class PersonaChatChannel < ApplicationCable::Channel
     end
 
     next_seq = chat_session.chat_messages.maximum(:seq)&.next || 1
+    metadata = {}
+    attachment_id = data['attachment_id'].presence
+    if attachment_id
+      attachment = chat_session.chat_attachments.find_by(id: attachment_id, person_id: current_user.id)
+      metadata['attachment_id'] = attachment.id if attachment
+    end
+
     message = chat_session.chat_messages.create!(
       content: data['content'],
       sender_type: 'Person',
       sender_id: current_user.id,
       role: 'user',
-      seq: next_seq
+      seq: next_seq,
+      metadata: metadata.presence
     )
 
     # Phase 4: PersonaExecutorJob will call the AI provider API
