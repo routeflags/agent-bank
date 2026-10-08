@@ -24,6 +24,22 @@
 
 CLS=0は全ページ良好。モバイルの低スコアは主に開発サーバーのTTFB（〜980ms・シングルスレッドPuma+debugモード）と4Gスロットリングの複合によるもので、デスクトップ96が実装品質の目安。
 
+## コード分割後の再計測（2026-10-08 実施）
+
+webpackエントリ分割（vendor / common / sections / アプリ別）+ 本番minifyビルド導入後の同一条件再計測:
+
+| 指標 | home mobile 前→後 | listing mobile 前→後 |
+|---|---|---|
+| Performance | 54 → **69** | 33 → **79** |
+| LCP | 19.5s → 6.8s | 17.7s → **5.4s** |
+| TBT | 510ms → **80ms** | 1,000ms → **40ms** |
+| FCP | 1.9s → 3.4s | 16.4s → **1.7s** |
+| Accessibility | 98 → **100** | 98 → **100** |
+| 未使用JS削減見込み | 813KiB → 616KiB | 806KiB → 545KiB |
+
+残る最大の未使用JSは vendor-bundle（react等1.15MB・全ページ共通ロード）。次段階は vendor のアプリ別再分割。
+バンドル配信は `ClientAssetsHelper`（vendor + common + sections + アプリ別、未指定ページは従来のフルバンドルfallback）。
+
 ## 判明した改善ポイント
 
 1. **未使用JavaScript約813KiB**（webpackが全機能を単一バンドルに同梱）— 本番影響大。チャット/管理/オンボーディング等の領域別コード分割が次の一手。

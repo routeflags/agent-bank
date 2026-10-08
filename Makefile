@@ -61,7 +61,8 @@ server: ## Puma で開発サーバー起動 (port 3000)
 
 .PHONY: server-bg
 server-bg: ## 開発サーバーをバックグラウンドで起動
-	@bundle exec rails server -p 3000 -d
+	@bundle exec rails server -p 3000 >> log/server.log 2>&1 &
+	@sleep 2
 	@echo "$(GREEN)✔ サーバーをバックグラウンドで起動しました (port 3000)$(RESET)"
 
 .PHONY: stop

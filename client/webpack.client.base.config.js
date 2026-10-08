@@ -14,6 +14,15 @@ module.exports = {
     app: [
       './app/startup/clientRegistration',
     ],
+
+    // Split per-app entries (code splitting — pages load only what they need).
+    // Loaded after vendor-bundle + common-bundle via ClientAssetsHelper.
+    common: ['./app/startup/commonRuntime'],
+    topbar: ['./app/startup/entries/topbar'],
+    chat_panel: ['./app/startup/entries/chatPanel'],
+    onboarding: ['./app/startup/entries/onboarding'],
+    search_page: ['./app/startup/entries/searchPage'],
+    availability: ['./app/startup/entries/availability'],
   },
   resolve: {
     extensions: ['*', '.js'],
@@ -30,6 +39,19 @@ module.exports = {
           chunks: 'initial',
           enforce: true,
         },
+        // Shared first-party component tree (app/components, app/assets) —
+        // extracted once instead of duplicated into every per-app entry.
+        sections: {
+          test: /[\\/]client[\\/]app[\\/](components|assets)[\\/]/,
+          name: 'sections',
+          chunks: 'initial',
+          enforce: true,
+        },
+        // Disable webpack's remaining automatic shared/duplicate chunks —
+        // Rails loads bundles via explicit sprockets tags (ClientAssetsHelper),
+        // so each entrypoint must resolve to a known set of files.
+        default: false,
+        defaultVendors: false,
       },
     },
   },

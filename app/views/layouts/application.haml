@@ -1,3 +1,8 @@
+-# Split client bundles: topbar is global on raku pages (must be provided
+-# before the layout head renders the bundle tags).
+- if FeatureFlagHelper.feature_enabled?(:topbar_v1)
+  - provide_react_app :topbar
+
 = render 'layouts/head'
 
 %body.dark-theme
@@ -99,6 +104,7 @@
     = javascript_include_tag "i18n/#{I18n.locale}"
 
     = javascript_include_tag 'application'
+    = react_bundle_js_tags
 
     :javascript
       window.ST.jsonTranslations = #{raw JSONTranslations.get(I18n.locale)}

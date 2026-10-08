@@ -111,6 +111,9 @@ if (devBuild) {
   config.devtool = 'eval-source-map';
 } else {
   console.log('Webpack production build for Rails'); // eslint-disable-line no-console
+  // Production bundles are minified (base config keeps minimize:false for dev runs)
+  config.optimization = config.optimization || {};
+  config.optimization.minimize = true;
 }
 
 module.exports = config;

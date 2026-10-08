@@ -25,6 +25,18 @@ Rails.application.config.assets.precompile += %w(
   admin2/admin.scss
   popper.min.js
   bootstrap.min.js
+  webpack_bundles.js
+  vendor-bundle.js
+  app-bundle.js
+  app-bundle.css
+  common-bundle.js
+  sections-bundle.js
+  sections-bundle.css
+  topbar-bundle.js
+  chat_panel-bundle.js
+  onboarding-bundle.js
+  search_page-bundle.js
+  availability-bundle.js
 )
 
 if Rails.env == 'test'
