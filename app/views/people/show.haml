@@ -111,7 +111,7 @@
                   - else
                     .raku-table__skill-thumb.raku-thumb-placeholder 🤖
                   %div
-                    .raku-table__skill-name= listing.title
+                    .raku-table__skill-name= link_to listing.title, listing_path(listing), class: "raku-table__skill-link"
                     .raku-table__skill-desc= StringUtils.first_words(listing.description, 40)
               %td= number_with_delimiter(listing.times_viewed.to_i)
               %td

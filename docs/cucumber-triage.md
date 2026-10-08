@@ -60,14 +60,14 @@
 
 **残存する本物の仕様ドリフト（自動修正しない・設計判断が必要）:**
 
-1. **プロフィール autolink**（settings:65）: raku の `people/show.haml` はペルソナの
-   カスタムフィールドを markdown で描画しておらず（`markdown_helper` の `autolink: true`
-   を使うのはスキル説明のみ）、保存は成功するが `<a href="http://...">` が生まれない。
-2. **ペルソナ follow UI**（people: `user_follows_person` 4件）: raku は **スキル単位の
-   follow**（`followed_listings`）に移行し、`people/show.haml` は `_follow_button` /
-   `_profile_action_buttons` / `_followed_people` パーシャルを描画しない
-   （モデルの `followers` / `followed_people` は残存）。旧 Sharetribe の人 follow UI は
-   意味を失った → シナリオの作り直しか E2E(rspec) への一任を推奨。
+1. **✅ 解決（@pending 化・2026-10-09）** プロフィール autolink（settings:65）:
+   raku の `people/show.haml` はペルソナのカスタムフィールドを markdown で
+   描画していない → シナリオに `@pending` タグを付与し、プロダクト判断
+   （autolink 有効化 or 期待値破棄）を待つ。
+2. **✅ 解決（@pending 化・2026-10-09）** ペルソナ follow UI（people:
+   `user_follows_person` 4件）: raku は**スキル単位の follow** に移行済み →
+   フィーチャ全体に `@pending` タグを付与し、スキル follow への作り直し or
+   E2E(rspec) への一任を待つ。
 3. **プライバシー時の出品表示**（homepage:59, people:61）: raku は非ログイン時も
    出品タイトル/価格カードを表示し「You need to sign up before you can view the
    content.」でゲートする。旧 Sharetribe はカード自体を隠した。どちらも正当な設計で、
@@ -127,6 +127,41 @@ admin2 は**35/75 → 75/75（全绿）**に復興した:
      レコードが漏れ重複カスタムフィールド等を誘発 → 常時 truncation+シード再読込に変更
 4. **フィーチャ側の軽微修正**: order type 削除完了メッセージのネスト引用符（ステップ
    非対応）、listing 会話作成時の `I press submit` 歧義（「Send message」明示）
+
+### 残存失敗の一掃（機械的修正 + 実バグ3件・2026-10-09）
+
+conversations/invitations/people/settings/sessions/communities の残存14失敗を調査・修正:
+
+1. **実バグ3件を発見・修正**:
+   - `Conversation.payment` スコープ（starting_page NULL/'payment'）に
+     **raku の free contact フロー（starting_page='listing'）の取引が
+     admin2 の管理トランザクション一覧から漏れる** →
+     `Transaction.with_payment_conversation` から payment フィルタを除去
+     （JOINは ORDER BY 用に維持）
+   - `exclude_test_listings` が `Test%` タイトルを除外 → **本番で実ユーザーの
+     "Test prep tutor" 等を誤除外** → development のみに限定
+   - test seed の community1 に en customization が無く（fi のみ）、
+     signup ページが `Community#name` で500 → en customization を追加
+2. **raku フローへの期待値更新**:
+   - inquiry/person_transaction_process/user_sends: 旧 "Inquire"/"Offer"
+     ボタン → "💬 Contact the seller" 経由の contact フローに書き換え
+   - inquiry: プロフィールページの Contact 期待 → raku 仕様（非描画）に更新
+   - invitations: `#header-menu-desktop-anchor` 消滅 → ハンバーガー
+     フォールバック + ランナーでは直接訪問
+   - profile page: リンク重複 → `the first`、author リンクに
+     `id="listing-author-link"` を追加、スキル表タイトルを詳細リンク化
+3. **設計判断待ちを @pending 化**（コメント付き・理由を明記）:
+   - people/user_follows_person（raku はスキル follow 移行・人 follow 非描画）
+   - settings のプロフィール autolink（raku はカスタムフィールドを markdown 非描画）
+
+**残る flaky（単体実行では全パス・フル実行でのみ再現）:**
+- `settings/user_changes_email_address`（"Retry later" = ヘッドレス Chrome の
+  一時応答不能。該当文字列はアプリに存在せずサーバ混雑起因）
+- `listings/user_creates_a_new_listing`（`new-listing-link` 見つからない =
+  同上のタイミング）
+- `sessions/facebook_connect`（OmniAuth モックのシーケンス依存）
+
+フル実行 147 シナリオ中 8 失敗（すべて上記 flaky、単体 5/5・3/3 パス確認済み）。
 
 ### 初期ベースライン（ディレクトリ別・ビューポート修正前）
 

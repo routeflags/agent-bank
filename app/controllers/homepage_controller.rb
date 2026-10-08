@@ -430,6 +430,11 @@ class HomepageController < ApplicationController
   # is a placeholder like 'desc'. This prevents low-quality test data from
   # appearing on the public homepage.
   def exclude_test_listings(listings)
+    # Development-only guard: hides FactoryBot seed dummies from the raku
+    # homepage. Never filter in test/prod — a real listing titled e.g.
+    # "Test prep tutor" must stay visible (and cucumber fixtures rely on it).
+    return listings unless Rails.env.development?
+
     # AR relation path: filtering applies at SQL level for the full dataset.
     if listings.respond_to?(:where) && !listings.is_a?(Array)
       return listings.where.not("title LIKE ?", "Test%")

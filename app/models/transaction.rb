@@ -108,8 +108,13 @@ class Transaction < ApplicationRecord
   end
   scope :non_free_including_uninitialized, -> { where('current_state IS NULL OR current_state <> ?', ['free']) }
   scope :by_community, -> (community_id) { where(community_id: community_id) }
+  # Join the conversation for ORDER BY last_message_at and CSV export.
+  # NOTE: do NOT filter by Conversation.payment here — the raku free-contact
+  # flow sets starting_page='listing', and filtering by payment/NULL hid those
+  # free transactions from the admin manage-transactions page (bug caught by
+  # features/conversations/person_transaction_process.feature).
   scope :with_payment_conversation, -> {
-    left_outer_joins(:conversation).merge(Conversation.payment)
+    left_outer_joins(:conversation)
   }
   scope :with_payment_conversation_latest, -> (sort_direction) {
     with_payment_conversation.order(Arel.sql(

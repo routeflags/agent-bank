@@ -172,7 +172,7 @@
         = medium_avatar_thumb(@listing.author, {:class => "raku-seller-card__avatar"})
       %div
         .raku-seller-card__name
-          = link_to PersonViewUtils.person_display_name(@listing.author, @current_community), person_path(username: @listing.author.username), :class => "listing-author-name-link"
+          = link_to PersonViewUtils.person_display_name(@listing.author, @current_community), person_path(username: @listing.author.username), :class => "listing-author-name-link", :id => "listing-author-link"
 
     -# Detail panel
     .raku-detail-panel

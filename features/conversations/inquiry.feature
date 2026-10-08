@@ -14,10 +14,10 @@ Feature: Inquiry
       | main           | Free message      | Vapaa viesti   |
     And there is a listing with title "Test message" from "kassi_testperson1" with category "Free message" and with listing shape "Inquiry"
     And I am logged in as "kassi_testperson2"
-    When I follow "Test message"
+    When I follow the first "Test message"
     Then I should see "Contact"
-    When I press "Inquire"
-    And I fill in "message" with "Test content"
+    When I follow "💬 Contact the seller"
+    And I fill in "Message" with "Test content"
     And I press "Send message"
     And I log out
     And I log in as "kassi_testperson1"
@@ -40,12 +40,14 @@ Feature: Inquiry
     And there is a listing with title "Test message" from "kassi_testperson1" with category "Free message" and with listing shape "Inquiry"
     And I am logged in as "kassi_testperson2"
     And free conversations are disabled
-    When I follow "Test message"
+    When I follow the first "Test message"
     Then I should not see "Contact"
     When I follow "FirstUser"
     Then I should not see "Contact"
     When free conversations are enabled
-    When I follow "Test message"
+    When I follow the first "Test message"
     Then I should see "Contact"
     When I follow "FirstUser"
-    Then I should see "Contact"
+    # raku design: the profile page never shows a Contact button — contact
+    # lives on listing pages only (see admin2 recovery notes)
+    Then I should not see "Contact"

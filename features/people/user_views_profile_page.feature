@@ -49,7 +49,7 @@ Feature: User views profile page
     And that listing is closed
     And I am not logged in
     And I am on the home page
-    When I follow "car spare parts"
+    When I follow the first "car spare parts"
     When I follow "listing-author-link"
     Then I should see "car spare parts"
     And I should see "Helsinki - Turku"

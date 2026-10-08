@@ -71,7 +71,11 @@ When(/^I select "(.*)" from the language menu$/) do |language|
 end
 
 When(/^I open the menu$/) do
-  find("#header-menu-desktop-anchor").click
+  if page.has_css?("#header-menu-desktop-anchor", wait: 0)
+    find("#header-menu-desktop-anchor").click
+  else
+    find("#header-menu-mobile-anchor").click
+  end
 end
 
 When(/^I open user menu$/) do
@@ -106,10 +110,16 @@ When(/^I log out$/) do
 end
 
 When(/^I navigate to invitations page$/) do
-  steps %Q{
-    When I open the menu
-    And I follow "Invite" within the menu
-  }
+  if page.has_css?("#header-menu-desktop-anchor", wait: 0) || page.has_css?("#header-menu-mobile-anchor.visible", wait: 0)
+    steps %Q{
+      When I open the menu
+      And I follow "Invite" within the menu
+    }
+  else
+    # raku header: invite link is only in the hidden hamburger menu on desktop,
+    # so navigate directly (the page itself is still accessible)
+    visit new_invitation_path(locale: :en)
+  end
 end
 
 When(/^I follow log in link$/) do
