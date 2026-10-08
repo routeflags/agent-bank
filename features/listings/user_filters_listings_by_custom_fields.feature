@@ -93,8 +93,8 @@ Scenario: User combines custom filters with search and category
 	Given there is a listing with title "country and house music cd" from "kassi_testperson2" with category "Items" and with listing shape "Selling services"
   And the Listing indexes are processed
   
-  When I fill in "q" with "country"
-  And I press "search-button"
+  When I fill in the search box with "country"
+  And I press the hero search button
 
   Then I should see "Country house"
   And I should see "country and house music cd"
@@ -105,8 +105,8 @@ Scenario: User combines custom filters with search and category
   And I should not see "country and house music cd"
 	And I should not see "Small house"
 
-	When I fill in "q" with "house"
-  And I press "search-button"
+	When I fill in the search box with "house"
+  And I press the hero search button
   Then I should see "Country house"
   And I should not see "country and house music cd"
 	And I should see "Small house"
@@ -122,8 +122,8 @@ Scenario: User combines custom filters with search and category
   And I should not see "country and house music cd"
 	And I should see "Small house"
 
-	When I fill in "q" with ""
-	And I press "search-button"
+	When I fill in the search box with ""
+	And I press the hero search button
 	Then I should not see "Country house"
   And I should not see "country and house music cd"
 	And I should see "Small house"

@@ -12,7 +12,7 @@ Feature: User comments a listing
     And there is a listing with title "Massage" from "kassi_testperson1" with category "Services" and with listing shape "Requesting"
     And listing comments are in use in community "test"
     And I am logged in as "kassi_testperson2"
-    When I follow "Massage"
+    When I follow the first "Massage"
     And I should see "Get emails about new comments"
     And I should not see "Don't get emails about new comments"
     And I fill in "comment_content" with "Test comment"
@@ -24,14 +24,14 @@ Feature: User comments a listing
     And I should see "Don't get emails about new comments"
     When I log out
     And I log in as "kassi_testperson1"
-    And I follow "Massage"
+    And I follow the first "Massage"
     And I press "Send comment"
     And the system processes jobs
     When I log out
     And I log in as "kassi_testperson2"
     And the system processes jobs
     And I go to the home page
-    And I follow "Massage"
+    And I follow the first "Massage"
     And I fill in "comment_content" with "Test comment 2"
     And I uncheck "comment_author_follow_status"
     And I press "Send comment"
@@ -50,7 +50,7 @@ Feature: User comments a listing
   And there is a listing with title "Massage" from "kassi_testperson1" with category "Services" and with listing shape "Requesting"
   And listing comments are in use in community "test"
   And I am logged in as "kassi_testperson2"
-  When I follow "Massage"
+  When I follow the first "Massage"
   And I fill in "comment_content" with "Test comment"
   And I press "Send comment"
   And I should see "Test comment" within "#comments"
@@ -72,7 +72,7 @@ Feature: User comments a listing
     And listing comments are in use in community "test"
     And there is a listing with title "Massage" from "kassi_testperson1" with category "Services" and with listing shape "Requesting"
     And I am logged in as "kassi_testperson2"
-    When I follow "Massage"
+    When I follow the first "Massage"
     Then I should see "Public discussion" within "#comments"
     And I have "click" event handler on "#send_comment_button"
     And I press "Send comment"
@@ -88,7 +88,7 @@ Feature: User comments a listing
     And listing comments are in use in community "test"
     And I am not logged in
     And I am on the home page
-    When I follow "Massage"
+    When I follow the first "Massage"
     Then I should see "You must log in to send a new comment."
     And I should not see "Write a new comment:"
 
@@ -101,7 +101,7 @@ Feature: User comments a listing
     And there is a listing with title "Walking dogs" from "kassi_testperson11" with category "Services" and with listing shape "Requesting"
     And listing comments are in use in community "test"
     And I am logged in as "kassi_testperson22"
-    When I follow "Walking dogs"
+    When I follow the first "Walking dogs"
     Then I should see "Notify me of new comments and updates"
     When I fill in "comment_content" with "Test comment 1"
     And I press "Send comment"

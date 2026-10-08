@@ -26,6 +26,7 @@ Rails.application.config.assets.precompile += %w(
   popper.min.js
   bootstrap.min.js
   webpack_bundles.js
+  lodash_restore.js
   vendor-bundle.js
   vendor_dates-bundle.js
   app-bundle.js

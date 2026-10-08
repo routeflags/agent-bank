@@ -75,6 +75,31 @@
 4. **Terms 未同意時のログイン文言**（communities:17）: ヘッダがja（"ログイン"）で、
    英語 "Log in" の期待値がlocale差で失敗。
 
+### listings の復興（機械的修正 + 実バグ2件・2026-10-09）
+
+listings（旧判定「刷新前提・2P/34F/11U」）は調査の結果、**フォーム本体（カテゴリ→形状の
+多段ウィザード+Post listingボタン）が raku でも維持されており全面刷新は不要**だった。
+6P/47 → **42/42 green**（設計判断/削除で47→42シナリオ、全绿）:
+
+1. **実バグ2件を発見・修正（本番影響あり）**:
+   - `listing_form.js` の `_.any` が lodash4 で未定義 → ウィザードのカテゴリクリックが
+     クラッシュし2段目以降が表示されない → `_.some` に修正
+   - **webpack分割の後、window._ が lodash4（UMDグローバル）になり、lodash2前提の
+     sprockets JS（image_uploader の空配列 reduce 等）が例外を送出** → AJAX成功
+     コールバックが中断しフォームが hidden のまま。`lodash_restore.js`
+     （= lodash2 再読み込み）をバンドル後に配置して本来の動作に復元
+   - `en.yml` に `listings.form.run_mode.*` が欠落（ja のみ）→ **ENコミュニティで
+     出品フォームが500** → ENキーを追加
+2. **機械的期待値更新**: ホームの出品カード重複によるリンクAmbiguous→`the first "..."`、
+   `#listing-title`→`.raku-breadcrumb__current`、検索ボックスの`q`重複→ヒーロー検索専用
+   ステップ、カスタムフィールドのセットアップ/入力ステップ10種を新規実装、
+   「Edit listing」リンク消失→「I edit the listing just created」ステップ
+3. **削除（rakuでUI消滅）**: user_books_listing_per_hour（インライン日付ピッカー予約UI
+   は出品ページから削除済み）、user_closes_a_listing（個人のクローズ/再開UIが削除され
+   admin2管理パネルのみに）、viewsのソーシャルシェアシナリオ（カードから削除）
+4. **設計判断待ちとして @pending タグ**: プライバシー時の出品カード表示（homepage/
+   createsの2件）— rakuはタイトル/価格+サインアップゲートを表示する仕様
+
 ### admin2 の復興（未定義ステップ実装・2026-10-09）
 
 admin2 は**35/75 → 75/75（全绿）**に復興した:

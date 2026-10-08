@@ -1612,6 +1612,11 @@ en:
         location: Location
         origin: Origin
         the_exact_location: The exact location will not be shown to other users.
+      run_mode:
+        label: "AI run mode"
+        run_online: "Run online"
+        download: "Download"
+        free: "Free"
       send_button:
         save_listing: Post listing
         submit_for_review: Submit for review

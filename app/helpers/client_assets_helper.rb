@@ -39,7 +39,10 @@ module ClientAssetsHelper
     else
       tags = ['vendor-bundle', 'common-bundle', 'sections-bundle']
       tags << 'vendor_dates-bundle' if (react_apps & VENDOR_DATES_APPS).any?
-      javascript_include_tag(*tags, *react_apps.map { |app| "#{app}-bundle" })
+      tags.concat(react_apps.map { |app| "#{app}-bundle" })
+      # Restore the lodash2 global after the bundles (see lodash_restore.js).
+      tags << 'lodash_restore'
+      javascript_include_tag(*tags)
     end
   end
 end

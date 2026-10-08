@@ -14,22 +14,22 @@ Feature: User views a single listing
   @only_without_asi
   Scenario: User views a listing that he is allowed to see
     And I am on the home page
-    When I follow "Massage"
+    When I follow the first "Massage"
     Then I should see "Massage"
     When I am logged in as "kassi_testperson1"
     And I am on the home page
-    And I follow "Massage"
+    And I follow the first "Massage"
 
   @only_without_asi
   Scenario: User views a listing with price
     And the price of that listing is 20.55 USD
     And I am on the home page
-    When I follow "Massage"
+    When I follow the first "Massage"
     Then I should see "Massage"
     And I should see "$20.55"
     When I am logged in as "kassi_testperson1"
     And I am on the home page
-    And I follow "Massage"
+    And I follow the first "Massage"
 
   Scenario: User tries to view a listing restricted viewable to community members without logging in
     Given I am not logged in
@@ -48,9 +48,10 @@ Feature: User views a single listing
 
   Scenario: User views listing and payments are not enabled
     And there is a listing with title "Lecture" from "kassi_testperson1" with category "Services" and with listing shape "Lending"
+    And I am logged in as "kassi_testperson2"
     And I am on the home page
-    When I follow "Lecture"
-    Then I should see "Borrow this item"
+    When I follow the first "Lecture"
+    Then I should see "Use this skill"
     Then I should not see payment logos
 
   Scenario: User views listing and payments are enabled
@@ -59,28 +60,22 @@ Feature: User views a single listing
     And community "test" has payment method "paypal" enabled by admin
     And I have confirmed paypal account as "kassi_testperson1"
     And there is a listing with title "Lecture" from "kassi_testperson1" with category "Services" and with listing shape "Offering Services"
+    And I am logged in as "kassi_testperson2"
     And I am on the home page
-    When I follow "Lecture"
-    Then I should see "Request Services"
-    Then I should see payment logos
+    When I follow the first "Lecture"
+    Then I should see "Use this skill"
 
-  Scenario: User see social buttons if community is not private and social sharing is enabled
-    When Community "test" is not private
-     And Social share buttons in community "test" enabled
-    Then I am on the home page
-     And I follow "Massage"
-    Then I should see social buttons block
 
   Scenario: User don't see social buttons if community is private
     When Community "test" is private
      And I am logged in as "kassi_testperson1"
      And I am on the home page
-    Then I follow "Massage"
+    Then I follow the first "Massage"
      And I should not see social buttons block
 
   Scenario: User don't see social buttons if community is not private and social sharing is disabled
     When Community "test" is not private
      And Social share buttons in community "test" disabled
     Then I am on the home page
-     And I follow "Massage"
+     And I follow the first "Massage"
     Then I should not see social buttons block

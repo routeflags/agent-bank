@@ -62,7 +62,7 @@ Given(/^there is a custom field "(.+)" in community "(.+)" for category "(.+)"$/
   field.save!
 end
 
-Given(/^there is a custom dropdown field "(.+)" in community "(.*)" with options:$/) do |name, _community, table|
+Given(/^there is a custom dropdown field "(.+)" in community "([^"]+)" with options:$/) do |name, _community, table|
   community = admin2_test_community
   field = DropdownField.new(entity_type: :for_listing, required: false)
   field.community = community
@@ -76,7 +76,7 @@ Given(/^there is a custom dropdown field "(.+)" in community "(.*)" with options
   field.save!
 end
 
-Given(/^there is a custom user dropdown field "(.+)" in community "(.*)" with options:$/) do |name, _community, table|
+Given(/^there is a custom user dropdown field "(.+)" in community "([^"]+)" with options:$/) do |name, _community, table|
   community = admin2_test_community
   field = DropdownField.new(entity_type: :for_person, required: false)
   field.community = community
