@@ -54,6 +54,8 @@ module ChatPanelHelper
       tone_professional: chat[:tone_professional],
       tone_friendly: chat[:tone_friendly],
       message_tokens: chat[:message_tokens],
+      result_panel_heading: chat[:result_panel_heading],
+      result_panel_jump: chat[:result_panel_jump],
       result_badge: chat[:result_badge],
       result_title: chat[:result_title],
       attach_button: chat[:attach_button],

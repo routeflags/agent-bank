@@ -154,6 +154,8 @@ var DEFAULT_I18N = {
   tone_professional: 'ビジネス',
   tone_friendly: 'フレンドリー',
   message_tokens: '%{count} トークン',
+  result_panel_heading: '最新の成果',
+  result_panel_jump: '会話へ移動',
   result_badge: 'RESULT',
   result_title: 'Best Answer',
   attach_button: '画像を添付',
@@ -996,6 +998,16 @@ class ChatPanelApp extends React.Component {
     var self = this;
     var personaName = this.props.persona_name || 'AI Assistant';
 
+    // §13 Result/Artifact preview — latest completed assistant answer
+    var latestResult = null;
+    for (var i = state.messages.length - 1; i >= 0; i--) {
+      var m = state.messages[i];
+      if (m.role === 'assistant' && !m.isStreaming && m.content) {
+        latestResult = m;
+        break;
+      }
+    }
+
     // ── Trigger button ────────────────────────────────
     if (!state.isOpen) {
       return React.createElement('button', {
@@ -1224,6 +1236,30 @@ class ChatPanelApp extends React.Component {
 
         // ═══ RIGHT: Settings panel ═══
         React.createElement('div', { className: 'chatPanel__settings', style: { width: '220px', background: '#1e1e1e', borderLeft: '1px solid #333', display: 'flex', flexDirection: 'column', flexShrink: 0, padding: '16px', overflowY: 'auto' } },
+          // ── Result / Artifact preview (DESIGN.md §13) ──────
+          latestResult && React.createElement('div', { className: 'chatPanel__resultPanel' },
+            React.createElement('div', { className: 'chatPanel__resultBadgeRow' },
+              React.createElement('span', { className: 'chatPanel__resultBadge' }, t('result_badge')),
+              React.createElement('span', { className: 'chatPanel__resultTitle' }, t('result_title'))
+            ),
+            React.createElement('div', { className: 'chatPanel__resultHeading' }, t('result_panel_heading')),
+            React.createElement('div', {
+              className: 'chatPanel__resultBody chatMessage__markdown',
+              dangerouslySetInnerHTML: { __html: renderMarkdown(latestResult.content || '') },
+            }),
+            latestResult.total_tokens > 0 && React.createElement('div', { className: 'chatPanel__resultMeta' },
+              tFormat('message_tokens', { count: latestResult.total_tokens })),
+            React.createElement('button', {
+              className: 'chatPanel__resultJump',
+              onClick: function () {
+                if (self.messagesEndRef && self.messagesEndRef.scrollIntoView) {
+                  self.messagesEndRef.scrollIntoView({ behavior: 'smooth' });
+                }
+              },
+              type: 'button',
+            }, t('result_panel_jump'))
+          ),
+
           // ── Wallet balance ──────────────────────────────
           React.createElement('div', {
             className: 'wallet-balance' + (state.walletLoading ? ' wallet-balance--loading' : ''),

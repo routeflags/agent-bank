@@ -2346,6 +2346,8 @@ ja:
       tone_professional: "ビジネス"
       tone_friendly: "フレンドリー"
       message_tokens: "%{count} トークン"
+      result_panel_heading: "最新の成果"
+      result_panel_jump: "会話へ移動"
       result_badge: "RESULT"
       result_title: "Best Answer"
       attach_button: "画像を添付"

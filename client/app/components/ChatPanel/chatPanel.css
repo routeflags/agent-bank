@@ -710,3 +710,72 @@
   max-height: 240px;
   border-radius: 8px;
 }
+
+/* ── Result / Artifact preview panel (DESIGN.md §13) ─────────
+   Gold gradient badge + gold frame per designs/design.md §result card */
+.chatPanel__resultPanel {
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--chat-brand-gold);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(215, 164, 59, 0.10), rgba(215, 164, 59, 0.02));
+}
+
+.chatPanel__resultBadgeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chatPanel__resultBadge {
+  background: linear-gradient(135deg, var(--chat-brand-gold), var(--chat-brand-gold-light));
+  color: #070707;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.chatPanel__resultTitle {
+  color: #f5e6b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chatPanel__resultHeading {
+  color: #f2f2f2;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.chatPanel__resultBody {
+  color: #e0e0e0;
+  font-size: 13px;
+  line-height: 1.6;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.chatPanel__resultMeta {
+  color: #707070;
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+.chatPanel__resultJump {
+  margin-top: 8px;
+  background: none;
+  border: 1px solid #3a3a3a;
+  color: #a7a7a7;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chatPanel__resultJump:hover {
+  color: #fff;
+  border-color: var(--chat-brand-gold);
+}

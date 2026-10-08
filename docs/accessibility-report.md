@@ -1,6 +1,6 @@
 # アクセシビリティ監査レポート（axe-core）
 
-- **実施日時**: 2026/10/8 1:10:26
+- **実施日時**: 2026/10/8 13:23:02
 - **対象**: Agent Bank フロントエンド（日本語版 /ja）
 - **ツール**: axe-core（@axe-core/playwright 11.x）+ Chromium（Playwright）
 - **ルールセット**: wcag2a / wcag2aa / wcag21a / wcag21aa
