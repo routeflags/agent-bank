@@ -1,2 +1,4 @@
 //= require vendor-bundle
-//= require app-bundle
+//= require vendor_dates-bundle
+//= require sections-bundle.js
+//= require app-bundle.js

@@ -37,7 +37,10 @@ webpackエントリ分割（vendor / common / sections / アプリ別）+ 本番
 | Accessibility | 98 → **100** | 98 → **100** |
 | 未使用JS削減見込み | 813KiB → 616KiB | 806KiB → 545KiB |
 
-残る最大の未使用JSは vendor-bundle（react等1.15MB・全ページ共通ロード）。次段階は vendor のアプリ別再分割。
+vendor の再分割も実施済み（2026-10-08）: moment/react-dates/axios/react-form を
+vendor_dates（564KB）へ分離し、vendor-bundleは1.15MB→583KBに。出品ページは
+約550KB少ないJSでperf79を維持、ホームはperf73/LCP5.0s。未使用JSは
+423KiB（出品）/555KiB（ホーム）まで減少。
 バンドル配信は `ClientAssetsHelper`（vendor + common + sections + アプリ別、未指定ページは従来のフルバンドルfallback）。
 
 ## 判明した改善ポイント

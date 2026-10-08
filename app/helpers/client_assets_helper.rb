@@ -11,6 +11,10 @@
 # - Apps provided     -> vendor + common + per-app bundles emitted by the
 #   split webpack entries (see client/webpack.client.base.config.js).
 module ClientAssetsHelper
+  # Apps whose entry graph imports moment/react-dates/axios/react-form —
+  # these pages also load the vendor_dates chunk.
+  VENDOR_DATES_APPS = %w[availability onboarding search_page].freeze
+
   def provide_react_app(name)
     # content_for concatenates blocks, so store each app as a
     # comma-terminated value and split on read.
@@ -22,7 +26,7 @@ module ClientAssetsHelper
   end
 
   def react_bundle_css_tags
-    return stylesheet_link_tag('app-bundle') if react_apps.empty?
+    return stylesheet_link_tag('app-bundle', 'sections-bundle') if react_apps.empty?
 
     # All component CSS (including chat panel styles) is extracted into
     # sections-bundle.css by the webpack sections cacheGroup.
@@ -33,10 +37,9 @@ module ClientAssetsHelper
     if react_apps.empty?
       javascript_include_tag('webpack_bundles')
     else
-      javascript_include_tag(
-        'vendor-bundle', 'common-bundle', 'sections-bundle',
-        *react_apps.map { |app| "#{app}-bundle" }
-      )
+      tags = ['vendor-bundle', 'common-bundle', 'sections-bundle']
+      tags << 'vendor_dates-bundle' if (react_apps & VENDOR_DATES_APPS).any?
+      javascript_include_tag(*tags, *react_apps.map { |app| "#{app}-bundle" })
     end
   end
 end

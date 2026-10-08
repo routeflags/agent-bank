@@ -27,6 +27,7 @@ Rails.application.config.assets.precompile += %w(
   bootstrap.min.js
   webpack_bundles.js
   vendor-bundle.js
+  vendor_dates-bundle.js
   app-bundle.js
   app-bundle.css
   common-bundle.js

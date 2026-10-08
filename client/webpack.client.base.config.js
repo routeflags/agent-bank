@@ -34,8 +34,18 @@ module.exports = {
       chunks: 'all',
       cacheGroups: {
         vendor: {
-          test: /[\\/]node_modules[\\/]/,
+          // node_modules EXCEPT the heavy date/API deps (which go to
+          // vendor_dates) — cacheGroups have no `exclude`, so negate in test.
+          test: /[\\/]node_modules[\\/](?!moment|react-dates|react-with-|react-parent-portal|airbnb-|react-form|axios)/,
           name: 'vendor',
+          chunks: 'initial',
+          enforce: true,
+        },
+        // Date-picker & HTTP deps (moment/react-dates/axios/react-form) —
+        // only pages whose entries import them load this chunk.
+        vendor_dates: {
+          test: /[\\/]node_modules[\\/](moment|react-dates|react-with-|react-parent-portal|airbnb-|react-form|axios)/,
+          name: 'vendor_dates',
           chunks: 'initial',
           enforce: true,
         },
