@@ -10,8 +10,39 @@ include TestHelpers # rubocop:disable Style/MixinUsage
 ActionController::Base.allow_rescue = false
 
 # Initialize and configure Sphinx
+#
+# Runnability fixes:
+# - SafeSphinxStop (shared with the rspec suite) suppresses the SystemExit
+#   that autostop raises when searchd fails to stop, which otherwise
+#   destroys the run summary.
+# - Stop any leftover searchd before starting so a stale process (e.g.
+#   from a previous run) does not make Riddle::Controller#start fail the
+#   whole boot with Riddle::CommandFailedError.
+require File.expand_path('../../spec/support/thinking_sphinx', __dir__)
+begin
+  ThinkingSphinx::Test.stop
+rescue StandardError, SystemExit
+  nil
+end
 ThinkingSphinx::Test.init
-ThinkingSphinx::Test.start_with_autostop
+# searchd's stop is asynchronous: an immediately following start races the
+# dying process for the port (Riddle::CommandFailedError kills the whole
+# boot). Retry start a few times and never let Sphinx failures abort.
+3.times do
+
+    ThinkingSphinx::Test.start
+    break
+  rescue StandardError, SystemExit
+    sleep 2
+
+end
+at_exit do
+
+    ThinkingSphinx::Test.stop
+rescue StandardError, SystemExit
+    nil
+
+end
 ThinkingSphinx::Deltas.suspend!
 
 # Load test data once before all tests

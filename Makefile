@@ -65,6 +65,11 @@ server-bg: ## 開発サーバーをバックグラウンドで起動
 	@sleep 2
 	@echo "$(GREEN)✔ サーバーをバックグラウンドで起動しました (port 3000)$(RESET)"
 
+.PHONY: cucumber
+cucumber: ## Cucumber 全体を ci プロファイルで実行 (docs/cucumber-triage.md 参照)
+	@DISABLE_BOOTSNAP_COMPILE_CACHE=1 RAILS_ENV=test bundle exec cucumber -p ci --format progress
+	@echo "$(GREEN)✔ Cucumber 実行完了$(RESET)"
+
 .PHONY: stop
 stop: ## バックグラウンドサーバーを停止
 	@-kill `cat tmp/pids/server.pid 2>/dev/null` 2>/dev/null && echo "$(GREEN)✔ サーバーを停止しました$(RESET)" || echo "$(YELLOW)⚠ サーバーは稼働していません$(RESET)"
