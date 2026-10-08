@@ -91,7 +91,7 @@
           - cfv.with_type do |question_type|
             .raku-features__item
               %span.raku-features__check ✓
-              = cfv.question&.name || "機能"
+              = cfv.question&.name || t('lamprey.listings.features_default')
 
     -# ── Description ──────────────────────────────────────
     .row
@@ -150,7 +150,7 @@
       .raku-price-box__rating
         - if @listing.respond_to?(:average_rating) && @listing.average_rating.present?
           ★ #{@listing.average_rating.round(1)}
-          %span.raku-price-box__rating-count (#{@listing.reviews_count || 0}件の評価)
+          %span.raku-price-box__rating-count= t('lamprey.listings.reviews_count', count: @listing.reviews_count || 0)
         - else
           %span.raku-muted-label= t('lamprey.listings.rating_none')
 
@@ -200,15 +200,15 @@
           .raku-detail-panel__label= t('lamprey.listings.free_trial')
           .raku-detail-panel__value
             - if @listing.respond_to?(:free_trial) && @listing.free_trial.present?
-              あり
+              = t('lamprey.listings.yes')
             - else
-              なし
+              = t('lamprey.listings.no')
         .raku-detail-panel__item
           .raku-detail-panel__label= t('lamprey.listings.privacy')
-          .raku-detail-panel__value 外部APIとの連携あり
+          .raku-detail-panel__value= t('lamprey.listings.privacy_value')
         .raku-detail-panel__item
           .raku-detail-panel__label= t('lamprey.listings.cancellation')
-          .raku-detail-panel__value 購入後7日以内
+          .raku-detail-panel__value= t('lamprey.listings.cancellation_value')
 
     -# Seller activity
     - if @listing_presenter.received_testimonials.size > 0

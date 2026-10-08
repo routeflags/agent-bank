@@ -9,8 +9,8 @@
     -# Desktop/tablet compact search (DESIGN.md §7/§11)
     .header-search.visible-tablet
       = form_tag landing_page_path, method: :get, class: "header-search__form" do
-        = text_field_tag :q, params[:q], class: "header-search__input", placeholder: t("homepage.index.what_do_you_need"), aria: { label: "検索" }
-        = button_tag type: :submit, class: "header-search__button", aria: { label: "検索する" } do
+        = text_field_tag :q, params[:q], class: "header-search__input", placeholder: t("homepage.index.what_do_you_need"), aria: { label: t("lamprey.header.search_label") }
+        = button_tag type: :submit, class: "header-search__button", aria: { label: t("lamprey.header.search_submit") } do
           🔍
 
     -# Desktop auth / actions (right side)
@@ -37,10 +37,10 @@
     - unless logged_in
       .header-right
         = link_to login_path, class: "raku-nav__login", id: "header-login-link" do
-          ログイン
+          = t("lamprey.header.login")
       .header-right
         = link_to sign_up_path, class: "raku-nav__signup" do
-          新規登録
+          = t("lamprey.header.signup")
 
     -# Mobile hamburger
     .header-left.hidden-tablet
@@ -55,16 +55,16 @@
     .raku-nav__inner
       = link_to landing_page_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:marketplace)}" do
         %span.raku-nav__icon 🔍
-        マーケット
+        = t("lamprey.header.nav_marketplace")
       = link_to new_listing_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:new_listing)}" do
         %span.raku-nav__icon 📦
-        出品
+        = t("lamprey.header.nav_new_listing")
       = link_to rankings_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:rankings)}" do
         %span.raku-nav__icon 🏆
-        ランキング
+        = t("lamprey.header.nav_rankings")
       = link_to battles_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:battles)}" do
         %span.raku-nav__icon ⚔️
-        バトル
+        = t("lamprey.header.nav_battles")
       = link_to docs_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:docs)}" do
         %span.raku-nav__icon 📚
-        ドキュメント
+        = t("lamprey.header.nav_docs")

@@ -25,36 +25,35 @@
           = person.username[0].upcase
       %h2.raku-profile__name= PersonViewUtils.person_display_name(person, @service.community)
       %p.raku-profile__username @#{person.username}
-      .raku-profile__verified ✓ 認証済み出品者
+      .raku-profile__verified= t('lamprey.mypage.verified_seller')
       .raku-profile__tags
-        .raku-profile__tag 日本
-        .raku-profile__tag 開発・プログラミング
-        .raku-profile__tag データ分析
+        - t('lamprey.mypage.profile_tags').each do |tag|
+          .raku-profile__tag= tag
       .raku-profile__stats
         .raku-profile__stat
           .raku-profile__stat-value= @raku_stats[:published]
-          .raku-profile__stat-label 出品数
+          .raku-profile__stat-label= t('lamprey.mypage.stats_published')
         .raku-profile__stat
           .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_views])
-          .raku-profile__stat-label 総閲覧数
+          .raku-profile__stat-label= t('lamprey.mypage.stats_total_views')
         .raku-profile__stat
           .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_sold])
-          .raku-profile__stat-label 総販売数
+          .raku-profile__stat-label= t('lamprey.mypage.stats_total_sold')
 
     .raku-sidebar__nav
-      .raku-sidebar__section-label メニュー
+      .raku-sidebar__section-label= t('lamprey.mypage.menu')
       %a.raku-sidebar__link.is-active{href: person_path(username: person.username)}
         %span.raku-sidebar__icon 📊
-        ダッシュボード
+        = t('lamprey.mypage.dashboard')
       %a.raku-sidebar__link{href: person_path(username: person.username, show_closed: true)}
         %span.raku-sidebar__icon 📦
-        出品管理
+        = t('lamprey.mypage.manage_listings')
       .raku-sidebar__divider
-      .raku-sidebar__section-label アカウント
+      .raku-sidebar__section-label= t('lamprey.mypage.account')
       - if current_user?(person)
         %a.raku-sidebar__link{href: person_settings_path(person)}
           %span.raku-sidebar__icon ⚙️
-          設定
+          = t('lamprey.mypage.settings')
 
   -# ── Main content ───────────────────────────────────────
   .raku-mypage__main
@@ -63,45 +62,45 @@
       .raku-summary__item
         .raku-summary__label
           %span.raku-summary__icon 📦
-          出品中のペルソナ
+          = t('lamprey.mypage.summary_published')
         .raku-summary__value= @raku_stats[:published]
       .raku-summary__item
         .raku-summary__label
           %span.raku-summary__icon 💰
-          総販売数
+          = t('lamprey.mypage.summary_total_sold')
         .raku-summary__value= number_with_delimiter(@raku_stats[:total_sold])
       .raku-summary__item
         .raku-summary__label
           %span.raku-summary__icon 👆
-          総閲覧数
+          = t('lamprey.mypage.summary_total_views')
         .raku-summary__value= number_with_delimiter(@raku_stats[:total_views])
       - if @raku_stats[:avg_rating]
         .raku-summary__item
           .raku-summary__label
             %span.raku-summary__icon ★
-            平均評価
+            = t('lamprey.mypage.summary_avg_rating')
           .raku-summary__value
             %span.raku-link-gold= "★ #{@raku_stats[:avg_rating]}"
 
     -# ── Quick Actions（未実装ページへのリンクは置かない — §25.10） ──
     .raku-quick-actions
       %a.raku-quick-actions__btn{href: new_listing_path}
-        📝 新規出品
+        = "📝 #{t('lamprey.mypage.new_listing')}"
       %a.raku-quick-actions__btn{href: person_path(username: person.username, show_closed: true)}
-        📋 出品管理
+        = "📋 #{t('lamprey.mypage.manage_listings')}"
 
     -# ── Skill Table ──────────────────────────────────────
-    %h2.raku-table-title 出品中スキル
+    %h2.raku-table-title= t('lamprey.mypage.table_title')
     - if @skill_listings.total_entries > 0
       %table.raku-table
         %thead
           %tr
-            %th スキル名
-            %th 閲覧数
-            %th 評価
-            %th 価格
-            %th ステータス
-            %th 操作
+            %th= t('lamprey.mypage.th_skill')
+            %th= t('lamprey.mypage.th_views')
+            %th= t('lamprey.mypage.th_rating')
+            %th= t('lamprey.mypage.th_price')
+            %th= t('lamprey.mypage.th_status')
+            %th= t('lamprey.mypage.th_actions')
         %tbody
           - @skill_listings.each do |listing|
             %tr
@@ -126,31 +125,31 @@
                 - if listing.open?
                   .raku-table__status.raku-table__status--active
                     %span.raku-table__status-dot
-                    公開中
+                    = t('lamprey.mypage.status_published')
                 - else
                   .raku-table__status
                     %span.raku-table__status-dot
-                    終了
+                    = t('lamprey.mypage.status_closed')
               %td
                 .raku-table__actions
-                  %a.raku-table__action-btn{href: edit_listing_path(listing), title: "編集"} ✏️
-                  %a.raku-table__action-btn{href: listing_path(listing), title: "表示"} 👁️
+                  %a.raku-table__action-btn{href: edit_listing_path(listing), title: t('lamprey.mypage.action_edit')} ✏️
+                  %a.raku-table__action-btn{href: listing_path(listing), title: t('lamprey.mypage.action_view')} 👁️
     - else
       .raku-table__empty
         .raku-table__empty-icon 📦
-        まだ出品がありません
+        = t('lamprey.mypage.empty_listings')
         %br
-        %a.raku-link-gold{href: new_listing_path} 新規出品 → をクリックしてスキルを登録しましょう
+        %a.raku-link-gold{href: new_listing_path}= t('lamprey.mypage.empty_listings_cta')
 
     -# ── Reviews ──────────────────────────────────────────
     .raku-reviews
       .raku-reviews__header
         %h2.raku-reviews__title
-          レビュー
-          %span.raku-reviews__count (0件)
+          = t('lamprey.mypage.reviews_title')
+          %span.raku-reviews__count= t('lamprey.mypage.reviews_count', count: 0)
       .raku-reviews__list
         .raku-reviews__empty
-          まだレビューがありません
+          = t('lamprey.mypage.reviews_empty')
 
 -# ── Original profile content (preserved) ────────────────
 - content_for :extra_javascript do

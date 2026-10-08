@@ -1,10 +1,10 @@
-- content_for :title, "ペルソナランキング - #{@current_community.name(I18n.locale)}"
+- content_for :title, "#{t('lamprey.rankings.title')} - #{@current_community.name(I18n.locale)}"
 
 - content_for :title_header do
-  %h1 ペルソナランキング
+  %h1= t('lamprey.rankings.title')
 
 .raku-page
-  %p.raku-page__lead 平均評価と販売実績に基づくペルソナの一覧です。
+  %p.raku-page__lead= t('lamprey.rankings.lead')
 
   - if @ranked_listings.any?
     %ol.raku-rank-list
@@ -17,11 +17,11 @@
             .raku-rank-item__meta
               = link_to author_name, person_path(username: listing.author.username), class: "raku-rank-item__author"
               %span.raku-rank-item__rating
-                %span.raku-muted-label> 平均評価:
+                %span.raku-muted-label= t('lamprey.rankings.avg_rating_label')
                 = "★ #{listing.avg_rating.round(1)}"
               - if listing.total_sold.to_i > 0
                 %span.raku-rank-item__sold
-                  %span.raku-muted-label> 販売実績:
-                  = "#{listing.total_sold} 件"
+                  %span.raku-muted-label= t('lamprey.rankings.sold_label')
+                  = t('lamprey.rankings.sold_count', count: listing.total_sold)
   - else
-    %p.raku-page__empty 現在ランキング対象のペルソナはありません。
+    %p.raku-page__empty= t('lamprey.rankings.empty')

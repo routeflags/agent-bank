@@ -45,13 +45,8 @@
   -# Popular search tags
   .raku-hero__tags
     = link_to "SEO", search_path(q: "SEO"), class: "raku-hero__tag"
-    = link_to "データ分析", search_path(q: "データ分析"), class: "raku-hero__tag"
-    = link_to "記事生成", search_path(q: "記事生成"), class: "raku-hero__tag"
-    = link_to "画像生成", search_path(q: "画像生成"), class: "raku-hero__tag"
-    = link_to "要約", search_path(q: "要約"), class: "raku-hero__tag"
-    = link_to "自動化", search_path(q: "自動化"), class: "raku-hero__tag"
-    = link_to "翻訳", search_path(q: "翻訳"), class: "raku-hero__tag"
-    = link_to "プログラミング", search_path(q: "プログラミング"), class: "raku-hero__tag"
+    - t("lamprey.homepage.hero_tags").each do |tag|
+      = link_to tag, search_path(q: tag), class: "raku-hero__tag"
 
 -# ═══════════════════════════════════════════════════════════
 -# Marketplace metrics（DESIGN.md §12 — 実データ集計はコントローラ）
@@ -64,11 +59,11 @@
   .raku-stats__item
     %span.raku-stats__icon 👁️
     .raku-stats__value= number_with_delimiter(@marketplace_metrics[:total_views])
-    .raku-stats__label 総閲覧数
+    .raku-stats__label= t('lamprey.homepage.stats_total_views')
   .raku-stats__item
     %span.raku-stats__icon 💰
     .raku-stats__value= number_with_delimiter(@marketplace_metrics[:total_sold])
-    .raku-stats__label 総販売数
+    .raku-stats__label= t('lamprey.homepage.stats_total_sold')
   .raku-stats__item
     %span.raku-stats__icon ★
     .raku-stats__value
@@ -76,7 +71,7 @@
         %span.raku-link-gold= "★ #{@marketplace_metrics[:avg_rating]}"
       - else
         = "—"
-    .raku-stats__label 平均評価
+    .raku-stats__label= t('lamprey.homepage.stats_avg_rating')
 
 -# ═══════════════════════════════════════════════════════════
 -# Category Grid
@@ -142,7 +137,7 @@
               - if listing.author
                 %span= listing.author.display_name || listing.author.username
               - else
-                %span 出品者
+                %span= t('lamprey.homepage.card_author_unknown')
             %p.raku-card__description= StringUtils.first_words(listing.description, 60)
           .raku-card__footer
             .raku-card__rating
