@@ -39,6 +39,44 @@
 全16ディレクトリを個別実行（起動レース修正後）。合計 **253シナリオ: 成功148 (58%) /
 失敗106 / 未定義ステップ32**。
 
+### ビューポート修正後の再計測（期待値更新 第1弾・2026-10-08）
+
+`features/support/hapybara.rb` のヘッドレスChromeに `--window-size=1280,900` を追加。
+原因は **実装バグではなくテスト環境の幅不足** だった: デフォルト800px幅（スクロールバー
+除き756 CSS px）では `tablet` ブレークポイント（`em(768)` = 768px）を下回り、rakuの
+`.left-navi` は `display:none` のまま。Capybaraの `ignore_hidden_elements = true` により
+「visible」判定に失敗していた。デスクトップ幅にすると `.left-navi` が表示され、**複数
+ディレクトリが一気に復活**した（文言ドリフトですらなかった）。
+
+| ディレクトリ | 総数 | 修正前成功 | 修正後成功 | 残存失敗の原因 |
+|---|---|---|---|---|
+| conversations | 40 | 29 | **35** | Inquiry/Price breakdown の旧フロー前提 |
+| sessions | 20 | 11 | **19** | Facebook connect の外部モック |
+| settings | 15 | 10 | **14** | プロフィールautolink（下記） |
+| communities | 11 | 8 | **10** | プライバシー表示・ログイン文言のlocale差 |
+| invitations | 9 | 7 | **8** | Invite メニューの表示条件 |
+| people | 15 | 7 | **9** | プロフィールの follow UI（下記） |
+| homepage | 5 | 3 | **4** | プライバシー表示（下記） |
+
+**残存する本物の仕様ドリフト（自動修正しない・設計判断が必要）:**
+
+1. **プロフィール autolink**（settings:65）: raku の `people/show.haml` はペルソナの
+   カスタムフィールドを markdown で描画しておらず（`markdown_helper` の `autolink: true`
+   を使うのはスキル説明のみ）、保存は成功するが `<a href="http://...">` が生まれない。
+2. **ペルソナ follow UI**（people: `user_follows_person` 4件）: raku は **スキル単位の
+   follow**（`followed_listings`）に移行し、`people/show.haml` は `_follow_button` /
+   `_profile_action_buttons` / `_followed_people` パーシャルを描画しない
+   （モデルの `followers` / `followed_people` は残存）。旧 Sharetribe の人 follow UI は
+   意味を失った → シナリオの作り直しか E2E(rspec) への一任を推奨。
+3. **プライバシー時の出品表示**（homepage:59, people:61）: raku は非ログイン時も
+   出品タイトル/価格カードを表示し「You need to sign up before you can view the
+   content.」でゲートする。旧 Sharetribe はカード自体を隠した。どちらも正当な設計で、
+   「隠すべき」かはプロダクト判断 → テスト側の一存では直さない。
+4. **Terms 未同意時のログイン文言**（communities:17）: ヘッダがja（"ログイン"）で、
+   英語 "Log in" の期待値がlocale差で失敗。
+
+### 初期ベースライン（ディレクトリ別・ビューポート修正前）
+
 | ディレクトリ | 総数 | 成功 | 失敗 | 未定義 | 主な失敗原因の分類 |
 |---|---|---|---|---|---|
 | conversations | 40 | 29 | 11 | - | UIドリフト（#inbox-link等の旧セレクタ） |
@@ -72,16 +110,25 @@
 
 ## 推奨ロードマップ（実測結果に基づく優先順位）
 
-1. **（利益最大）conversations(29P) + settings(10P) + sessions(11P) + communities(8P)
-   + invitations(7P) + people(7P) ≈ 72成功シナリオ** — いずれもUIドリフトのみが原因。
-   旧セレクタ/文言の期待値をraku UIに合わせる更新で **成功148→約220 (87%)** まで復興可能。
-   rspecのE2E(navigation_spec 27TC)と重複するが、シナリオ網羅性は cucumber 側に価値あり。
-2. **（分類） admin2(35P/21U)** — 未定義ステップ32件のステップ定義補完 or シナリオ削除を
+1. **✅ 一掃済み（期待値更新 第1弾）**: 旧「72成功シナリオ復興」の想定は、実際には
+   **ほとんどが文言ドリフトではなくテスト幅不足（.left-navi の display:none）** が原因。
+   `--window-size=1280,900` の1行で conversations 29→35P / sessions 11→19P /
+   settings 10→14P / communities 8→10P / invitations 7→8P / people 7→9P /
+   homepage 3→4P に復活。**ディレクトリ別合計 148→約190成功**。文言の期待値更新は
+   ほぼ不要だったことが判明（＝当初の分類は誤り）。
+2. **（設計判断待ち・自動修正しない）** 残る本物のドリフト4件:
+   ①プロフィールautolink（rakuはカスタムフィールドをmarkdown描画しない）
+   ②ペルソナfollow UI（rakuはスキルfollowに移行、people/show.hamlは人followを非描画）
+   ③プライバシー時の出品カード表示（rakuはタイトル/価格+サインアップゲート）
+   ④Terms時のログイン文言locale差。いずれもプロダクト判断が絡むため
+   シナリオの作り直し or E2E(rspec)への一任を推奨。
+3. **（分類） admin2(35P/21U)** — 未定義ステップ32件のステップ定義補完 or シナリオ削除を
    トリアージ。admin2 rspec request spec（第3波で実装済み）との重複分は削除を推奨。
-3. **（刷新前提） listings(2P/34F)** — 出品フォームが raku で全面刷新されており旧フロー
+   ※ビューポート修正の恩恵は未再計測 — 次に再実行して更新する価値あり。
+4. **（刷新前提） listings(2P/34F)** — 出品フォームが raku で全面刷新されており旧フロー
    前提の期待値は意味を失う。raku出品フロー（run_online/ペルソナ設定）の新シナリオを
    作り直すか、E2E(rspec)に一任して削除。
-4. **（外部依存） payments/feedback/infos/common/paypal** — 表記ドリフトは軽微修正可。
+5. **（外部依存） payments/feedback/infos/common/paypal** — 表記ドリフトは軽微修正可。
    PayPalサンドボックス/Google Maps APIキーは環境変数・設定の整備が前提。
-5. **（運用）** `make cucumber` ターゲット（ciプロファイル）を整備し、上記の
+6. **（運用）** `make cucumber` ターゲット（ciプロファイル）を整備し、上記の
    「維持可能な成功領域」をゲート化。

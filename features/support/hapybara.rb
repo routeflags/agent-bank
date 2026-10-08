@@ -3,6 +3,7 @@ Capybara.register_driver :selenium_chrome_headless do |app|
 
   [
     "--headless",
+    "--window-size=1280,900",
     "--disable-gpu",
     "--no-sandbox",
     "--disable-dev-shm-usage",
