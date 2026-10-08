@@ -58,11 +58,12 @@ end
 
 # Handle JavaScript tests
 Before('@javascript') do
-  # Reload test data if database is empty
-  if Person.count == 0 || Community.count == 0
-    DatabaseCleaner.clean_with(:truncation)
-    load_default_test_data_to_db_before_suite
-  end
+  # Always reset to the seeded baseline. JS scenarios commit data
+  # (truncation strategy), so skipping the reload when rows exist lets
+  # records leak between scenarios — e.g. duplicate custom fields broke
+  # "changes custom field name" in full-suite runs.
+  DatabaseCleaner.clean_with(:truncation)
+  load_default_test_data_to_db_before_suite
 
   # Load test-specific data
   load_default_test_data_to_db_before_test

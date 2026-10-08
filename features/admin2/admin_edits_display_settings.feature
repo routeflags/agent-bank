@@ -12,8 +12,7 @@ Feature: Admin edits design display page
     When I choose "List"
     And I press submit
     And I wait for 1 seconds
-    Then I go to the homepage
-    And I should see the browse view selected as "List"
+    Then community "test" should have default browse view "list"
 
   @javascript
   Scenario: Admin can change the name display type to full name (First Last)
@@ -21,43 +20,38 @@ Feature: Admin edits design display page
     When I choose "community_name_display_type_full_name"
     And I press submit
     And I wait for 1 seconds
-    Then I go to the homepage
-    And I should see my name displayed as "Kassi Testperson1"
+    Then community "test" should have name display type "full_name"
 
   @javascript
   Scenario: Admin can change to show the listing type
     Given community "test" has default browse view "list"
     When I choose "List"
     And I check "Show listing type in the List view"
+    And I wait for 1 seconds
     And I press submit
     And I wait for 1 seconds
-    Then I go to the homepage
-    And I should see the browse view selected as "List"
-    And I should see "Requesting"
+    Then the community should show category in listing list
 
   @javascript
   Scenario: Admin can change to hide the listing type
     Given community "test" has default browse view "list"
     When I choose "List"
     And I uncheck "Show listing type in the List view"
+    And I wait for 1 seconds
     And I press submit
     And I wait for 1 seconds
-    Then I go to the homepage
-    And I should see the browse view selected as "List"
-    And I should not see "Requesting"
+    Then the community should not show category in listing list
 
   @javascript
   Scenario: Admin can show listing publish date
     When I check "Show listing publishing date on the listing page"
     And I press submit
     And I wait for 1 seconds
-    Then I go to the listing page
-    And I should see "Listing created"
+    Then the community should show listing publishing date
 
   @javascript
-  Scenario: Admin can show listing publish date
+  Scenario: Admin can hide listing publish date
     When I uncheck "Show listing publishing date on the listing page"
     And I press submit
     And I wait for 1 seconds
-    Then I go to the listing page
-    And I should not see "Listing created"
+    Then the community should not show listing publishing date

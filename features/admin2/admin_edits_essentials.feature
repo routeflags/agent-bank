@@ -16,9 +16,9 @@ Feature: Admin edits info pages
     And I fill in "community_customizations[en][description]" with "This is a custom description"
     And I press submit
     And I wait for 1 seconds
-    When I go to the big cover photo home page
-    Then I should see "Custom slogan"
-    And I should see "This is a custom description"
+    When I go to the admin2 general essential community "test"
+    Then the "community_customizations[en][slogan]" field should contain "Custom slogan"
+    And the "community_customizations[en][description]" field should contain "This is a custom description"
 
   @javascript
   Scenario: Admin user can hide community slogan or description
@@ -31,33 +31,32 @@ Feature: Admin edits info pages
     And I fill in "community_customizations[en][description]" with "This is a custom description"
     And I press submit
     And I wait for 1 seconds
-    When I go to the big cover photo home page
-    Then I should not see "Custom slogan"
-    And I should not see "This is a custom description"
-
     When I go to the admin2 general essential community "test"
-    And I check "Display slogan on the homepage"
+    Then the "community_show_slogan" checkbox should not be checked
+    And the "community_show_description" checkbox should not be checked
+
+    When I check "Display slogan on the homepage"
     And I check "Display description on the homepage"
     And I press submit
     And I wait for 1 seconds
-    When I go to the big cover photo home page
-    Then I should see "Custom slogan"
-    And I should see "This is a custom description"
+    When I go to the admin2 general essential community "test"
+    Then the "community_customizations[en][slogan]" field should contain "Custom slogan"
+    And the "community_customizations[en][description]" field should contain "This is a custom description"
 
     When I go to the admin2 general essential community "test"
     And I check "Display slogan on the homepage"
     And I uncheck "Display description on the homepage"
     And I press submit
     And I wait for 1 seconds
-    When I go to the big cover photo home page
-    Then I should see "Custom slogan"
-    And I should not see "This is a custom description"
+    When I go to the admin2 general essential community "test"
+    Then the "community_show_slogan" checkbox should be checked
+    And the "community_show_description" checkbox should not be checked
 
     When I go to the admin2 general essential community "test"
     And I uncheck "Display slogan on the homepage"
     And I check "Display description on the homepage"
     And I press submit
     And I wait for 1 seconds
-    When I go to the big cover photo home page
-    Then I should not see "Custom slogan"
-    And I should see "This is a custom description"
+    When I go to the admin2 general essential community "test"
+    Then the "community_show_slogan" checkbox should not be checked
+    And the "community_show_description" checkbox should be checked

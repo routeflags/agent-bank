@@ -133,3 +133,7 @@ Then(/^I should not be logged in$/) do
     assert page.has_css?("#header-login-link")
   end
 end
+
+When(/^I follow the signup link$/) do
+  find('.raku-nav__signup').click
+end

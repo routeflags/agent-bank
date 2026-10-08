@@ -98,6 +98,10 @@ Given /^there are following users:$/ do |person_table|
     @hash_person = force_override_model_id(id, @hash_person, Person, [Email]) if id
 
     if hash['email']
+      # The person may be reused from the BeforeAll seed data and already
+      # own this address; the emails table has a unique index, so clear
+      # before re-adding (rolled back with the scenario transaction).
+      @hash_person.emails.destroy_all
       @hash_person.emails = [Email.create(
                               address: hash['email'],
                               send_notifications: true,

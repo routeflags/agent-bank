@@ -136,3 +136,18 @@ end
 Given(/free conversations are (disabled|enabled)/) do |state|
   @current_community.update(allow_free_conversations: state == 'enabled')
 end
+
+# Profile-started conversation without UI (raku profile has no Contact link).
+Given /^"(.+)" sends a profile message to "(.+)" with "(.+)"$/ do |sender_username, receiver_username, content|
+  community = Community.find_by(ident: 'test') || Community.first
+  sender = Person.find_by!(username: sender_username)
+  receiver = Person.find_by!(username: receiver_username)
+  conversation = Conversation.new(
+    community: community,
+    starting_page: Conversation::PROFILE,
+    message_attributes: { content: content, sender_id: sender.id }
+  )
+  conversation.build_starter_participation(sender)
+  conversation.build_participation(receiver)
+  conversation.save!
+end
