@@ -282,6 +282,34 @@ async function assertUrlContains(page, expected, msg) {
     if (status) throw new Error(status);
   });
 
+  // ── Chat Result / Artifact パネル ──
+  // DESIGN.md §13: 成果物にのみ RESULT バッジを付ける仕様の描画回帰チェック。
+  // 履歴に is_result=true のアシスタントメッセージが1件以上あるセッション
+  // （セッション1・出品14）を開き、チャットパネルを展開してバッジと
+  // 右側 Result パネルが描画されることを確認する。
+  console.log('\n--- Chat Result パネル ---');
+
+  await run('TC-26: チャット → is_result メッセージに RESULT バッジが付く', async () => {
+    await page.goto(`${BASE}/listings/14-sakura-raiteinguasisutanto`);
+    await page.waitForTimeout(2500);
+    const trigger = page.locator('.chatPanel__trigger');
+    if ((await trigger.count()) === 0) throw new Error('チャットトリガーがない');
+    await trigger.click();
+    await page.waitForTimeout(2500);
+    const status = await page.evaluate(() => {
+      const badges = document.querySelectorAll('.chatMessage__result');
+      const badgeTexts = Array.from(document.querySelectorAll('.chatMessage__result-badge')).map(e => e.textContent.trim());
+      const codeBlocks = document.querySelectorAll('.chatMessage__markdown pre code').length;
+      const panel = document.querySelector('.chatPanel__resultPanel');
+      if (badges.length === 0) return 'RESULT バッジが描画されていない';
+      if (!badgeTexts.includes('RESULT')) return `バッジ文言が不正: ${badgeTexts.join(',')}`;
+      if (codeBlocks === 0) return '成果物コードブロックが描画されていない';
+      if (!panel) return '右側 Result パネルが描画されていない';
+      return null;
+    });
+    if (status) throw new Error(status);
+  });
+
   // ── 結果サマリー ──
   console.log('\n=== 結果サマリー ===');
   const skipped = results.filter(r => r.status === 'SKIP').length;
