@@ -154,14 +154,31 @@ conversations/invitations/people/settings/sessions/communities の残存14失敗
    - people/user_follows_person（raku はスキル follow 移行・人 follow 非描画）
    - settings のプロフィール autolink（raku はカスタムフィールドを markdown 非描画）
 
-**残る flaky（単体実行では全パス・フル実行でのみ再現）:**
-- `settings/user_changes_email_address`（"Retry later" = ヘッドレス Chrome の
-  一時応答不能。該当文字列はアプリに存在せずサーバ混雑起因）
-- `listings/user_creates_a_new_listing`（`new-listing-link` 見つからない =
-  同上のタイミング）
-- `sessions/facebook_connect`（OmniAuth モックのシーケンス依存）
+### flaky の根本原因（Rack::Attack ログインスロットル）— 解決済み
 
-フル実行 147 シナリオ中 8 失敗（すべて上記 flaky、単体 5/5・3/3 パス確認済み）。
+フル実行でのみ再現していた8件の flaky（settings/email・listings/user_creates・
+sessions/facebook_connect）の**単一原因**を特定・修正した:
+
+- 症状: これらの失敗はすべて `Retry later`（Chrome がサーバに到達できない時の
+  画面）または `new-listing-link` / `header-login-link` 見つからない（＝ページが
+  未読込）だった。単体実行では全パス、フル実行でのみ失敗。
+- 発生源: `Retry later` はアプリコードに存在せず、**Rack::Attack ジェムの
+  デフォルトスロットル応答**（429 + `"Retry later\n"`）だった
+  （`rack-attack-6.6.1/lib/rack/attack/configuration.rb`）。
+- 悪化要因: `config/application.rb` は `APP_CONFIG.use_rack_attack` が true の
+  場合のみ `Rack::Attack` を middleware に挿入するが、**ジェムの Railtie が
+  独自に middleware へ自動挿入**するため、config を false（test 環境の既定）に
+  しても実際には有効になっていた（`Rails.application.middleware` に存在）。
+- なぜフル実行でのみ: `sessions/login` スロットルが **10回/20秒/IP**。フル実行では
+  @javascript シナリオが数十回連続で同一 IP（127.0.0.1）からログイン POST を
+  送るため閾値を超え、2回目以降のログインが 429「Retry later」になり失敗。
+  単体実行はログイン回数が少なく閾値未満なので通り、OmniAuth モックの
+  シーケンス依存やサーバ混雑とは無関係だった。
+- 修正: `config/initializers/rack_attack.rb` の末尾に
+  `self.enabled = false if Rails.env.test?` を追加（test 環境のみ明示的に無効化。
+  本番のスロットルは不変）。
+- 検証: 連続20回のログイン POST で 429ゼロ・`Retry later` ゼロ。全147シナリオ
+  （72 + 75）が green（従来 139/147 で8件失敗）。
 
 ### 初期ベースライン（ディレクトリ別・ビューポート修正前）
 

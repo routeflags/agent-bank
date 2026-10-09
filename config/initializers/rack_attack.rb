@@ -65,7 +65,7 @@ class Rack::Attack
   # Blocklist from Rails cache. See
   # https://github.com/kickstarter/rack-attack/wiki/Advanced-Configuration
   # Our implementation relies on redis cache for O(1) complexity in checking blocks
-  if Rails.cache.class.to_s == "ActiveSupport::Cache::RedisCacheStore"
+  if Rails.cache.is_a?(::ActiveSupport::Cache::RedisCacheStore)
     Rack::Attack.blocklist('block') do |req|
       # if variable `block <ip>` exists in cache store, then we'll block the request
       Rails.cache.redis.sismember('blocked', req.env['action_dispatch.remote_ip'].to_s)
@@ -100,5 +100,14 @@ class Rack::Attack
     }
     Rails.logger.info(data.to_json)
   end
+
+  # The rack-attack gem's Railtie inserts this middleware into the stack
+  # unconditionally, so APP_CONFIG.use_rack_attack (which only controls the
+  # insert_after in config/application.rb) cannot actually turn it off.
+  # Leaving the throttle active in test made full cucumber runs flaky: dozens
+  # of @javascript scenarios log in from 127.0.0.1, blowing past the
+  # "sessions/login" limit (10 / 20s) and getting Rack::Attack's default
+  # 429 "Retry later" response — which headless Chrome renders as a dead page.
+  self.enabled = false if Rails.env.test?
 
 end
