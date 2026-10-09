@@ -571,6 +571,7 @@ class ChatPanelApp extends React.Component {
             role: m.role,
             content: m.content,
             isStreaming: false,
+            is_result: m.is_result === true,
             created_at: m.created_at,
             total_tokens: (m.input_tokens || 0) + (m.output_tokens || 0),
             attachment: m.attachment || null,
@@ -658,7 +659,7 @@ class ChatPanelApp extends React.Component {
 
   handleDone(data) {
     if (this.streamingId) {
-      this.finalizeMessage(this.streamingId, data.message_id || this.streamingId);
+      this.finalizeMessage(this.streamingId, data.message_id || this.streamingId, data.is_result === true);
       this.streamingId = null;
     }
   }
@@ -728,12 +729,16 @@ class ChatPanelApp extends React.Component {
     });
   }
 
-  finalizeMessage(tempId, finalId) {
+  finalizeMessage(tempId, finalId, isResult) {
     this.setState(function (prev) {
       return {
         messages: prev.messages.map(function (m) {
           if (m.id === tempId) {
-            return Object.assign({}, m, { id: finalId, isStreaming: false });
+            return Object.assign({}, m, {
+              id: finalId,
+              isStreaming: false,
+              is_result: isResult === true,
+            });
           }
           return m;
         }),
@@ -1159,6 +1164,7 @@ class ChatPanelApp extends React.Component {
                   return React.createElement(MessageBubble, {
                     key: msg.id, role: msg.role, content: msg.content,
                     isStreaming: msg.isStreaming,
+                    is_result: msg.is_result,
                     total_tokens: msg.total_tokens,
                     created_at: msg.created_at,
                     showTopupButton: msg.showTopupButton,

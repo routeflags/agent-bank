@@ -32,6 +32,8 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     ApplicationHelper.store_community_service_name_to_thread_from_community_id(nil) if chat_session
   end
 
+  # rubocop:disable Metrics/MethodLength -- pre-existing long method (109 lines
+  # before this change); refactoring the streaming/billing flow is out of scope.
   def perform
     Rails.logger.info(
       "[PersonaExecutorJob] Processing message #{message_id} " \
@@ -102,6 +104,7 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
 
     assistant_message = nil
     billing_result = nil
+    is_result = Ai::ResultDetector.result?(full_content)
 
     ActiveRecord::Base.transaction do
       next_seq = chat_session.chat_messages.maximum(:seq)&.next || 1
@@ -110,7 +113,8 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
         role: "assistant",
         seq: next_seq,
         input_tokens: usage_result.input_tokens,
-        output_tokens: usage_result.output_tokens
+        output_tokens: usage_result.output_tokens,
+        metadata: is_result ? { "is_result" => true } : nil
       )
 
       usage_record = UsageRecord.create!(
@@ -144,6 +148,7 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
         seq: assistant_message.seq,
         role: "assistant",
         content: assistant_message.content,
+        is_result: is_result,
         time: (assistant_message.created_at.to_f * 1000).to_i,
         tokens: {
           input: usage_result.input_tokens,
@@ -156,26 +161,23 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
       "[PersonaExecutorJob] Completed message #{message_id}. " \
       "Tokens: #{usage_result.input_tokens}in/#{usage_result.output_tokens}out"
     )
-
   rescue Ai::ProviderFactory::ProviderNotConfiguredError => e
     Rails.logger.error("[PersonaExecutorJob] Provider not configured: #{e.message}")
     broadcast_error("このペルソナのAIプロバイダーが設定されていません。")
-
   rescue Ai::OpenAiAdapter::ApiError, Ai::AnthropicAdapter::ApiError => e
     Rails.logger.error("[PersonaExecutorJob] AI API error: #{e.message}")
     broadcast_error("リクエストの処理中にエラーが発生しました。もう一度お試しください。")
-
   rescue Wallet::InsufficientBalanceError => e
     Rails.logger.warn("[PersonaExecutorJob] Insufficient balance: #{e.message}")
     broadcast_error(
       "残高が不足しています。ウォレットにチャージしてください。",
       error_type: "insufficient_balance"
     )
-
   rescue StandardError => e
     Rails.logger.error("[PersonaExecutorJob] Unexpected error: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
     broadcast_error("予期しないエラーが発生しました。しばらくしてからもう一度お試しください。")
   end
+  # rubocop:enable Metrics/MethodLength
 
   private
 

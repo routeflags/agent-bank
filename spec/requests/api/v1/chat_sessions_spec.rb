@@ -244,6 +244,46 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
       end
     end
 
+    context "成果物メッセージに is_result が付く" do
+      let!(:session_record) do
+        FactoryBot.create(:chat_session, person_id: person.id, listing_id: listing.id)
+      end
+
+      before do
+        FactoryBot.create(:chat_message,
+               chat_session: session_record,
+               sender_type: nil,
+               sender_id: nil,
+               content: "```ruby\nputs 'artifact'\n```",
+               role: "assistant",
+               seq: 1,
+               metadata: { "is_result" => true })
+        FactoryBot.create(:chat_message,
+               chat_session: session_record,
+               sender_type: nil,
+               sender_id: nil,
+               content: "了解しました。",
+               role: "assistant",
+               seq: 2,
+               metadata: nil)
+
+        sign_in_as(person)
+        get "/api/v1/chat_sessions/#{session_record.id}"
+      end
+
+      it "returns is_result true for artifact messages" do
+        json = JSON.parse(response.body)
+        messages = json["chat_session"]["messages"]
+        expect(messages.first["is_result"]).to be true
+      end
+
+      it "returns is_result false for normal messages" do
+        json = JSON.parse(response.body)
+        messages = json["chat_session"]["messages"]
+        expect(messages.last["is_result"]).to be false
+      end
+    end
+
     context "他人のセッション詳細を取得 (#9)" do
       let!(:other_session) do
         FactoryBot.create(:chat_session, person_id: other_person.id, listing_id: other_listing.id)
@@ -351,7 +391,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
     context "サブスクリプションが期限切れの場合" do
       before do
         FactoryBot.create(:user_plan_subscription, person: person, listing: listing,
-          status: "expired", current_period_end: 1.day.ago)
+                                                   status: "expired", current_period_end: 1.day.ago)
         sign_in_as(person)
         post "/api/v1/chat_sessions", params: { listing_id: listing.id }
       end
@@ -368,7 +408,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
     context "サブスクリプションがキャンセル済みの場合" do
       before do
         FactoryBot.create(:user_plan_subscription, person: person, listing: listing,
-          status: "cancelled")
+                                                   status: "cancelled")
         sign_in_as(person)
         post "/api/v1/chat_sessions", params: { listing_id: listing.id }
       end

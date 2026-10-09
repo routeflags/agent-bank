@@ -109,6 +109,84 @@ RSpec.describe PersonaExecutorJob, type: :model do
     end
   end
 
+  # ── is_result auto-detection (Result panel) ──────────────────────
+
+  describe "成果物判定 (is_result)" do
+    let!(:wallet) { FactoryBot.create(:wallet, person: person, community: community, balance_cents: 1000) }
+
+    before do
+      allow_any_instance_of(Person).to receive(:wallet).and_return(wallet)
+      allow(adapter).to receive(:last_usage).and_return(
+        OpenStruct.new(input_tokens: 10, output_tokens: 5)
+      )
+      billing_service = instance_double(BillingService)
+      allow(BillingService).to receive(:new).and_return(billing_service)
+      allow(billing_service).to receive(:process!).and_return(
+        { base_cost_cents: 1, platform_commission_cents: 0, seller_commission_cents: 0, total_charge_cents: 1 }
+      )
+    end
+
+    context "応答にコードブロックが含まれる場合" do
+      before do
+        allow(adapter).to receive(:stream).and_yield({ content: "```ruby\nputs 'hi'\n```" })
+        allow(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(type: "stream_chunk")
+        )
+      end
+
+      it "stream_done に is_result: true を broadcast する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(type: "stream_done", is_result: true)
+        ).and_call_original
+
+        job = PersonaExecutorJob.new(chat_session.id, "msg-1", "コードを書いて")
+        job.perform
+      end
+
+      it "メッセージの metadata に is_result を保存する" do
+        allow(ActionCable.server).to receive(:broadcast)
+
+        job = PersonaExecutorJob.new(chat_session.id, "msg-1", "コードを書いて")
+        job.perform
+
+        message = chat_session.chat_messages.order(:seq).last
+        expect(message.metadata["is_result"]).to be true
+      end
+    end
+
+    context "通常の短い応答の場合" do
+      before do
+        allow(adapter).to receive(:stream).and_yield({ content: "はい、了解しました。" })
+        allow(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(type: "stream_chunk")
+        )
+      end
+
+      it "stream_done に is_result: false を broadcast する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(type: "stream_done", is_result: false)
+        ).and_call_original
+
+        job = PersonaExecutorJob.new(chat_session.id, "msg-1", "お願いします")
+        job.perform
+      end
+
+      it "metadata に is_result を保存しない" do
+        allow(ActionCable.server).to receive(:broadcast)
+
+        job = PersonaExecutorJob.new(chat_session.id, "msg-1", "お願いします")
+        job.perform
+
+        message = chat_session.chat_messages.order(:seq).last
+        expect(message.metadata).to be_nil
+      end
+    end
+  end
+
   # ── Wallet::InsufficientBalanceError rescue ───────────────────────
 
   describe "Wallet::InsufficientBalanceError の rescue 処理" do

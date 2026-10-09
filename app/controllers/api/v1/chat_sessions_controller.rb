@@ -202,6 +202,7 @@ class API::V1::ChatSessionsController < ApplicationController
           input_tokens: m.input_tokens,
           output_tokens: m.output_tokens,
           metadata: m.metadata,
+          is_result: m.metadata.is_a?(Hash) && m.metadata["is_result"] == true,
           attachment: attachment && {
             id: attachment.id,
             url: attachment.image.url(:medium)
