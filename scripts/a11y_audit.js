@@ -27,12 +27,15 @@ const SLUGS = {
   19: 'kenzi-detafen-xi',
 };
 
-// [name, path, auth?]
+// [name, path, needsAuth]
+// needsAuth=true  → ログイン必須ページ（メールボックス等）
+// needsAuth='public' → 未ログインで監査する認証ページ（ログインすると
+//   リダイレクトされて実体が監査できなくなるため独立コンテキストで巡回）
 const PAGES = [
   ['トップページ', '/', false],
-  ['ログイン', '/ja/login', false],
-  ['新規登録', '/ja/signup', false],
-  ['パスワード再設定', '/ja/people/password/new', false],
+  ['ログイン', '/ja/login', 'public'],
+  ['新規登録', '/ja/signup', 'public'],
+  ['パスワード再設定', '/ja/people/password/new', 'public'],
   ['購入者プロフィール', '/ja/gourutailangte', false],
   ['出品者プロフィール', '/ja/alexm', false],
   ...Object.entries(SLUGS).map(([id, slug]) => [
@@ -67,8 +70,18 @@ const PAGES = [
 
   const results = [];
 
+  // 未ログインで監査する認証ページ用の独立コンテキスト（クッキー共有なし）。
+  // ログイン済みコンテキストでは /ja/login 等がリダイレクトされ実体が
+  // 監査できず、label 違反等が検出されない穴になっていた。
+  const publicContext = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    locale: 'ja-JP',
+  });
+  const publicPage = await publicContext.newPage();
+
   for (const [name, p, needsAuth] of PAGES) {
-    const resp = await page.goto(`${BASE}${p}`, { waitUntil: 'networkidle' });
+    const targetPage = needsAuth === 'public' ? publicPage : page;
+    const resp = await targetPage.goto(`${BASE}${p}`, { waitUntil: 'networkidle' });
     const status = resp.status();
     if (status !== 200) {
       results.push({ name, path: p, status, violations: [], error: `HTTP ${status}` });
@@ -77,7 +90,7 @@ const PAGES = [
     }
 
     // axe 実行（既知の誤検知が多いルールは除外しないが、レビューで精査する）
-    const audit = await new AxeBuilder({ page })
+    const audit = await new AxeBuilder({ page: targetPage })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();
 
@@ -94,6 +107,7 @@ const PAGES = [
     console.log(`${status} ${name}: ${violations.length} rules / ${total} nodes`);
   }
 
+  await publicContext.close();
   await browser.close();
 
   // ---- レポート出力 ----
