@@ -71,6 +71,12 @@ class PersonaChatChannel < ApplicationCable::Channel
       metadata: metadata.presence
     )
 
+    # Auto-title: name the session after its first user message so the
+    # history sidebar shows meaningful labels instead of a constant.
+    if chat_session.title.blank? && data['content'].present?
+      chat_session.update!(title: data['content'].to_s.strip.truncate(30))
+    end
+
     # Phase 4: PersonaExecutorJob will call the AI provider API
     # and broadcast the streaming response back through Action Cable.
     # Use Delayed::Job.enqueue (Struct-based job pattern) — the job class

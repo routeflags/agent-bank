@@ -473,6 +473,8 @@ class ChatPanelApp extends React.Component {
       tone: 'polite',
       // History
       sessionHistory: [],
+      renamingId: null,
+      renameValue: '',
       // Wallet
       walletBalance: 0,
       walletLoading: false,
@@ -493,6 +495,8 @@ class ChatPanelApp extends React.Component {
     this.handleSend = this.handleSend.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleNewChat = this.handleNewChat.bind(this);
+    this.handleSelectSession = this.handleSelectSession.bind(this);
+    this.handleRenameSession = this.handleRenameSession.bind(this);
     this.handleModelChange = this.handleModelChange.bind(this);
     this.handleTokenChange = this.handleTokenChange.bind(this);
     this.handleOutputLength = this.handleOutputLength.bind(this);
@@ -537,8 +541,8 @@ class ChatPanelApp extends React.Component {
             isLoading: false,
             sessionHistory: prev.sessionHistory.concat([{
               id: session.id,
-              title: t('new_chat_title'),
-              timestamp: new Date().toISOString(),
+              title: session.title || t('new_chat_title'),
+              timestamp: session.created_at || new Date().toISOString(),
             }]),
           };
         });
@@ -897,9 +901,68 @@ class ChatPanelApp extends React.Component {
     });
   }
 
+  // Loads the session list from the backend for this listing so the
+  // history sidebar survives page reloads (not just client-side state).
+  fetchSessionHistory() {
+    var self = this;
+    return fetch('/api/v1/chat_sessions?listing_id=' + this.props.listing_id, {
+      headers: jsonHeaders(),
+    })
+      .then(function (r) { return r.ok ? r.json() : { chat_sessions: [] }; })
+      .then(function (data) {
+        var sessions = (data.chat_sessions || []).map(function (s) {
+          return { id: s.id, title: s.title || t('new_chat_title'), timestamp: s.updated_at };
+        });
+        self.setState({ sessionHistory: sessions });
+      })
+      .catch(function () {});
+  }
+
+  // Switches to a previously-created session and loads its messages.
+  handleSelectSession(sessionId) {
+    var self = this;
+    if (sessionId === this.state.sessionId) return;
+    this.disconnect();
+    this.setState({ isLoading: true, messages: [], sessionId: sessionId, error: null });
+    this.subscribeToChannel(sessionId);
+    this.loadSessionMessages(sessionId).then(function () {
+      self.setState({ isLoading: false });
+    });
+  }
+
+  // Renames a session. Called with the new title (or null to keep current).
+  handleRenameSession(sessionId, title) {
+    var self = this;
+    var trimmed = (title || '').trim();
+    this.setState({ renamingId: null, renameValue: '' });
+    if (!trimmed) return;
+
+    fetch('/api/v1/chat_sessions/' + sessionId, {
+      method: 'PATCH',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ title: trimmed }),
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.chat_session) return;
+        var updated = data.chat_session;
+        self.setState(function (prev) {
+          return {
+            sessionHistory: prev.sessionHistory.map(function (item) {
+              return item.id === updated.id
+                ? { id: updated.id, title: updated.title || item.title, timestamp: updated.updated_at }
+                : item;
+            }),
+          };
+        });
+      })
+      .catch(function () {});
+  }
+
   handleOpen() {
     this.setState({ isOpen: true });
     this.fetchWalletBalance();
+    this.fetchSessionHistory();
     if (!this.state.sessionId) {
       this.createSession();
     }
@@ -1008,6 +1071,57 @@ class ChatPanelApp extends React.Component {
 
   // ─── Render ───────────────────────────────────────────
 
+  renderHistoryItem(item) {
+    var self = this;
+    var state = this.state;
+    var isRenaming = state.renamingId === item.id;
+
+    if (isRenaming) {
+      return React.createElement('div', {
+        key: item.id,
+        className: 'chatPanel__historyItem is-active',
+      },
+        React.createElement('input', {
+          className: 'chatPanel__renameInput',
+          value: state.renameValue,
+          autoFocus: true,
+          onChange: function (e) { self.setState({ renameValue: e.target.value }); },
+          onBlur: function () { self.handleRenameSession(item.id, state.renameValue); },
+          onKeyDown: function (e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              self.handleRenameSession(item.id, state.renameValue);
+            } else if (e.key === 'Escape') {
+              self.setState({ renamingId: null, renameValue: '' });
+            }
+          },
+        })
+      );
+    }
+
+    return React.createElement('div', {
+      key: item.id,
+      className: 'chatPanel__historyItem' + (item.id === state.sessionId ? ' is-active' : ''),
+      onClick: function () { self.handleSelectSession(item.id); },
+      onDoubleClick: function () {
+        self.setState({ renamingId: item.id, renameValue: item.title });
+      },
+      title: item.title,
+    },
+      React.createElement('span', { className: 'chatPanel__historyItemIcon' }, '💬'),
+      React.createElement('span', { className: 'chatPanel__historyItemText' }, item.title),
+      React.createElement('button', {
+        className: 'chatPanel__historyRenameBtn',
+        type: 'button',
+        title: '名前を変更',
+        onClick: function (e) {
+          e.stopPropagation();
+          self.setState({ renamingId: item.id, renameValue: item.title });
+        },
+      }, '✎')
+    );
+  }
+
   render() {
     var state = this.state;
     var self = this;
@@ -1091,39 +1205,15 @@ class ChatPanelApp extends React.Component {
           React.createElement('div', { className: 'chatPanel__historyList' },
             today.length > 0 && React.createElement('div', { className: 'chatPanel__historyGroup' },
               React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, t('history_today')),
-              today.map(function (item) {
-                return React.createElement('div', {
-                  key: item.id,
-                  className: 'chatPanel__historyItem' + (item.id === state.sessionId ? ' is-active' : ''),
-                },
-                  React.createElement('span', { className: 'chatPanel__historyItemIcon' }, '💬'),
-                  React.createElement('span', { className: 'chatPanel__historyItemText' }, item.title)
-                );
-              })
+              today.map(function (item) { return self.renderHistoryItem(item); })
             ),
             thisWeek.length > 0 && React.createElement('div', { className: 'chatPanel__historyGroup' },
               React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, t('history_past_week')),
-              thisWeek.map(function (item) {
-                return React.createElement('div', {
-                  key: item.id,
-                  className: 'chatPanel__historyItem' + (item.id === state.sessionId ? ' is-active' : ''),
-                },
-                  React.createElement('span', { className: 'chatPanel__historyItemIcon' }, '💬'),
-                  React.createElement('span', { className: 'chatPanel__historyItemText' }, item.title)
-                );
-              })
+              thisWeek.map(function (item) { return self.renderHistoryItem(item); })
             ),
             older.length > 0 && React.createElement('div', { className: 'chatPanel__historyGroup' },
               React.createElement('div', { className: 'chatPanel__historyGroupLabel' }, t('history_earlier')),
-              older.map(function (item) {
-                return React.createElement('div', {
-                  key: item.id,
-                  className: 'chatPanel__historyItem' + (item.id === state.sessionId ? ' is-active' : ''),
-                },
-                  React.createElement('span', { className: 'chatPanel__historyItemIcon' }, '💬'),
-                  React.createElement('span', { className: 'chatPanel__historyItemText' }, item.title)
-                );
-              })
+              older.map(function (item) { return self.renderHistoryItem(item); })
             ),
             state.sessionHistory.length === 0 && React.createElement('div', {
               style: { color: '#666', fontSize: '13px', textAlign: 'center', padding: '24px 12px' }

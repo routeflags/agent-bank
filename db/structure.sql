@@ -290,6 +290,7 @@ CREATE TABLE `chat_sessions` (
   `started_at` datetime DEFAULT NULL,
   `ended_at` datetime DEFAULT NULL,
   `total_tokens` int(11) NOT NULL DEFAULT 0,
+  `title` varchar(100) DEFAULT NULL,
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`),
@@ -1835,6 +1836,7 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261012093707'),
 ('20261012083939'),
 ('20261007120000'),
 ('20260816063224'),

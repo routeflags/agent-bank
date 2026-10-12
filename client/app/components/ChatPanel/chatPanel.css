@@ -133,6 +133,41 @@
 .chatPanel__historyItemText {
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.chatPanel__historyRenameBtn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.chatPanel__historyItem:hover .chatPanel__historyRenameBtn {
+  opacity: 1;
+}
+
+.chatPanel__historyRenameBtn:hover {
+  color: #fff;
+}
+
+.chatPanel__renameInput {
+  flex: 1;
+  min-width: 0;
+  background: #2a2a2a;
+  border: 1px solid #c41e3a;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  padding: 4px 8px;
+  outline: none;
+  font-family: inherit;
 }
 
 /* ── Center: Chat area ──────────────────────────────────────── */

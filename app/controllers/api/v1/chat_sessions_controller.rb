@@ -45,6 +45,9 @@ class API::V1::ChatSessionsController < ApplicationController
       .includes(:listing)
       .order(updated_at: :desc)
 
+    # The chat sidebar is per-persona: only list sessions for this listing.
+    sessions = sessions.where(listing_id: params[:listing_id]) if params[:listing_id].present?
+
     render json: {
       chat_sessions: sessions.map { |s| serialize_session(s) }
     }
@@ -128,8 +131,11 @@ class API::V1::ChatSessionsController < ApplicationController
     if params[:status] == "closed"
       session.close!
       render json: { chat_session: serialize_session(session) }
+    elsif params.key?(:title)
+      session.update!(title: params[:title].to_s.strip.truncate(100).presence)
+      render json: { chat_session: serialize_session(session) }
     else
-      render json: { error: "無効なステータス更新です" }, status: :unprocessable_entity
+      render json: { error: "無効な更新です" }, status: :unprocessable_entity
     end
   end
 
@@ -186,6 +192,7 @@ class API::V1::ChatSessionsController < ApplicationController
       started_at: session.started_at&.iso8601,
       ended_at: session.ended_at&.iso8601,
       total_tokens: session.total_tokens,
+      title: session.title,
       created_at: session.created_at.iso8601,
       updated_at: session.updated_at.iso8601
     }
