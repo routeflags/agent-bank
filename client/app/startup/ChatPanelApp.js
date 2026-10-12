@@ -753,6 +753,8 @@ class ChatPanelApp extends React.Component {
   }
 
   handleKeyDown(e) {
+    // IME変換確定のEnterでは送信しない（isComposing / keyCode 229）
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       this.handleSend();
