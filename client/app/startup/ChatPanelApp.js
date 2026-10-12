@@ -1019,19 +1019,8 @@ class ChatPanelApp extends React.Component {
   }
 
   handleOpenTopup() {
-    // トップアップ機能は準備中（Stripe.js 統合前）
-    // モーダルの代わりに準備中メッセージを表示
-    this.setState(function (prev) {
-      return {
-        messages: prev.messages.concat([{
-          id: 'sys-topup-' + Date.now(),
-          role: 'system',
-          content: t('wallet_add_preparing_body'),
-          isStreaming: false,
-          created_at: new Date().toISOString(),
-        }]),
-      };
-    });
+    this.fetchWalletBalance();
+    this.setState({ showTopupModal: true });
   }
 
   handleCloseTopup() {

@@ -70,6 +70,17 @@ module API
 
         wallet = find_or_create_wallet!
 
+        # 開発/テスト環境で Stripe キー未設定の場合、実カード決済の代わりに
+        # デバッグ用の擬似 PaymentIntent を返す（ローカル開発でチャージ動作を検証するため）。
+        if dev_mode_topup?
+          return render json: {
+            client_secret: dev_secret_for(amount_cents, wallet),
+            payment_intent_id: dev_intent_id_for(amount_cents, wallet),
+            amount_cents: amount_cents,
+            dev_mode: true
+          }
+        end
+
         intent = create_payment_intent(amount_cents, wallet)
 
         render json: {
@@ -93,6 +104,11 @@ module API
           return render json: { error: "payment_intent_id は必須です" }, status: :bad_request
         end
 
+        # デバッグ用擬似 PaymentIntent（Stripe 不要）の場合
+        if dev_intent?(intent_id)
+          return confirm_dev_topup(intent_id)
+        end
+
         intent = Stripe::PaymentIntent.retrieve(intent_id)
 
         unless intent.metadata&.dig("user_id") == current_user.id
@@ -107,10 +123,11 @@ module API
           end
 
           # 冪等性チェック: 同一 PaymentIntent で既にチャージ済みか確認
-          already_credited = wallet.credit_transactions.exists?(
-            transaction_type: "topup",
-            metadata: "\"stripe_payment_id\":\"#{intent.id}\""
-          )
+          # metadata は {"stripe_payment_id":"..."} 形式で保存されるため、
+          # 完全一致ではなく LIKE で検索する（JSON書式の差異に頑健）。
+          already_credited = wallet.credit_transactions.where(
+            transaction_type: "topup"
+          ).where("metadata LIKE ?", "%#{intent.id}%").exists?
 
           if already_credited
             return render json: {
@@ -161,6 +178,92 @@ module API
       # @return [Wallet]
       def find_or_create_wallet!
         current_user.find_or_create_wallet!(community: current_user.community)
+      end
+
+      # ── デバッグ用擬似決済（Stripe キー未設定時のローカル動作） ──
+      #
+      # 開発/テスト環境で Stripe API キーが設定されていない場合、
+      # 実カード決済の代わりに Base64 エンコードした擬似 PaymentIntent を
+      # 発行し、confirm 時に Wallet#topup! で直接チャージする。
+      # これにより Stripe アカウントなしでもチャージ動作を検証できる。
+
+      # 擬似決済を有効にするか（開発環境のみ + Stripeキー未設定）
+      # テスト環境では Stripe パス（モック）を検証するため dev モードにしない。
+      def dev_mode_topup?
+        Rails.env.development? && !stripe_key_configured?
+      end
+
+      # Stripe API キーが設定されているか
+      def stripe_key_configured?
+        PaymentSettings.exists?(
+          community_id: current_user.community_id,
+          payment_gateway: "stripe",
+          active: true
+        ) || ENV["STRIPE_SECRET_KEY"].present?
+      end
+
+      # 擬似 PaymentIntent ID を生成（金額・ウォレット・ランダムトークンを埋め込む）
+      # ランダムトークンを含めることで、同一金額の再チャージでも一意な ID になる
+      def dev_intent_id_for(amount_cents, wallet)
+        payload = {
+          "uid" => current_user.id,
+          "wid" => wallet.id,
+          "amt" => amount_cents,
+          "rnd" => SecureRandom.hex(6)
+        }
+        "dev_pi_#{Base64.urlsafe_encode64(payload.to_json, padding: false)}"
+      end
+
+      def dev_secret_for(amount_cents, wallet)
+        "#{dev_intent_id_for(amount_cents, wallet)}_secret"
+      end
+
+      # 擬似 PaymentIntent ID かどうか
+      def dev_intent?(intent_id)
+        intent_id.to_s.start_with?("dev_pi_")
+      end
+
+      # 擬似決済を確定し、ウォレットをチャージする
+      def confirm_dev_topup(intent_id)
+        encoded = intent_id.delete_prefix("dev_pi_")
+        payload = JSON.parse(Base64.urlsafe_decode64(encoded))
+
+        unless payload["uid"] == current_user.id
+          return render json: { error: "認証されていません" }, status: :forbidden
+        end
+
+        wallet = Wallet.find_by(id: payload["wid"])
+        unless wallet
+          return render json: { error: "ウォレットが見つかりません" }, status: :not_found
+        end
+
+        # 冪等性チェック: 同一擬似 PI で既にチャージ済みか
+        # metadata は {"stripe_payment_id":"..."} 形式で保存されるため、
+        # 完全一致ではなく LIKE で検索する（JSON書式の差異に頑健）。
+        already_credited = wallet.credit_transactions.where(
+          transaction_type: "topup"
+        ).where("metadata LIKE ?", "%#{intent_id}%").exists?
+
+        if already_credited
+          return render json: {
+            status: "ok",
+            balance_cents: wallet.reload.balance_cents,
+            amount_credited: 0,
+            message: "既に処理済みです"
+          }
+        end
+
+        wallet.topup!(payload["amt"], stripe_payment_id: intent_id)
+
+        render json: {
+          status: "ok",
+          balance_cents: wallet.reload.balance_cents,
+          amount_credited: payload["amt"],
+          dev_mode: true
+        }
+      rescue ArgumentError, JSON::ParserError => e
+        Rails.logger.error("[WalletTopup] Invalid dev intent: #{e.message}")
+        render json: { error: "決済情報が不正です" }, status: :unprocessable_entity
       end
 
       # Creates a Stripe PaymentIntent for the wallet top-up.
