@@ -83,10 +83,13 @@ class API::V1::ChatSessionsController < ApplicationController
       }, status: :forbidden
     end
 
-    # Return existing session if one already exists (idempotent)
+    # Return existing ACTIVE session if one already exists (idempotent).
+    # Closed sessions must not block creation of a new chat — the "＋ 新規"
+    # button closes the current session then requests a fresh one.
     existing_session = ChatSession.find_by(
       person: current_user,
-      listing: listing
+      listing: listing,
+      status: "active"
     )
 
     if existing_session

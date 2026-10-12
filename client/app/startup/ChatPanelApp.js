@@ -888,10 +888,13 @@ class ChatPanelApp extends React.Component {
   }
 
   handleNewChat() {
+    var self = this;
     this.disconnect();
-    this.closeSession();
-    this.setState({ messages: [], sessionId: null, error: null });
-    this.createSession();
+    // Wait for the old session to close before creating a new one —
+    // otherwise the backend may still see the old session as active.
+    this.closeSession().then(function () {
+      self.createSession();
+    });
   }
 
   handleOpen() {
