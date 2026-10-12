@@ -103,7 +103,7 @@ CREATE TABLE `ai_providers` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `slug` varchar(255) NOT NULL,
-  `api_key_encrypted` varchar(255) DEFAULT NULL,
+  `api_key_encrypted` text DEFAULT NULL,
   `base_url` varchar(255) DEFAULT NULL,
   `config` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`config`)),
   `is_active` tinyint(1) DEFAULT 1,
@@ -1835,6 +1835,7 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261012083939'),
 ('20261007120000'),
 ('20260816063224'),
 ('20260815000008'),
