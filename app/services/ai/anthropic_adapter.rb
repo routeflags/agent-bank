@@ -25,8 +25,8 @@ module Ai
     # Raised when the Anthropic API returns an error response.
     class ApiError < StandardError; end
 
-    DEFAULT_BASE_URL = "https://api.anthropic.com".freeze
-    API_VERSION = "2023-06-01".freeze
+    DEFAULT_BASE_URL = "https://api.anthropic.com"
+    API_VERSION = "2023-06-01"
 
     attr_reader :ai_model, :accumulated_content
 
@@ -41,9 +41,7 @@ module Ai
     # Returns the usage from the most recent API call.
     #
     # @return [Usage, nil]
-    def last_usage
-      @last_usage
-    end
+    attr_reader :last_usage
 
     # Sends a messages request to Anthropic with true SSE streaming.
     #
@@ -58,7 +56,7 @@ module Ai
     # @yield [chunk] each streamed chunk { content: String, type: String }
     # @return [Usage] token usage from the response
     # @raise [ApiError] on non-200 responses or missing API key
-    def stream(messages)
+    def stream(messages, max_tokens: nil)
       api_key = @provider.api_key
       raise ApiError, "API key not configured for provider #{@provider.slug}" unless api_key.present?
 
@@ -72,7 +70,7 @@ module Ai
           "anthropic-version" => API_VERSION,
           "Content-Type" => "application/json"
         },
-        body: build_request_body(api_messages, system_text, stream: true)
+        body: build_request_body(api_messages, system_text, stream: true, max_tokens: max_tokens)
       ) do |data|
         event = parse_event(data)
         next unless event
@@ -134,13 +132,13 @@ module Ai
       end
 
       body = JSON.parse(response.body)
-      content_blocks = body.dig("content") || []
+      content_blocks = body["content"] || []
       message_content = content_blocks
         .select { |b| b["type"] == "text" }
         .map { |b| b["text"] }
         .join
 
-      usage = body.dig("usage") || {}
+      usage = body["usage"] || {}
 
       {
         content: message_content,
@@ -193,10 +191,10 @@ module Ai
     # @param system_text [String, nil]
     # @param stream [Boolean]
     # @return [String] JSON-encoded body
-    def build_request_body(messages, system_text, stream: true)
+    def build_request_body(messages, system_text, stream: true, max_tokens: nil)
       body = {
         model: @ai_model.model_id,
-        max_tokens: @ai_model.max_tokens || 4096,
+        max_tokens: max_tokens || @ai_model.max_tokens || 4096,
         messages: messages,
         stream: stream
       }

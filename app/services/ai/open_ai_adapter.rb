@@ -23,7 +23,7 @@ module Ai
     # Raised when the OpenAI API returns an error response.
     class ApiError < StandardError; end
 
-    DEFAULT_BASE_URL = "https://api.openai.com/v1".freeze
+    DEFAULT_BASE_URL = "https://api.openai.com/v1"
 
     attr_reader :ai_model, :accumulated_content
 
@@ -38,9 +38,7 @@ module Ai
     # Returns the usage from the most recent API call.
     #
     # @return [Usage, nil]
-    def last_usage
-      @last_usage
-    end
+    attr_reader :last_usage
 
     # Sends a chat completion request to OpenAI with true SSE streaming.
     #
@@ -53,7 +51,7 @@ module Ai
     # @yield [chunk] each streamed chunk { content: String, finish_reason: String }
     # @return [Usage] token usage from the response
     # @raise [ApiError] on non-200 responses or missing API key
-    def stream(messages)
+    def stream(messages, max_tokens: nil)
       api_key = @provider.api_key
       raise ApiError, "API key not configured for provider #{@provider.slug}" unless api_key.present?
 
@@ -66,7 +64,7 @@ module Ai
           "Authorization" => "Bearer #{api_key}",
           "Content-Type" => "application/json"
         },
-        body: build_request_body(messages, stream: true)
+        body: build_request_body(messages, stream: true, max_tokens: max_tokens)
       ) do |data|
         parsed = parse_chunk(data)
         next unless parsed
@@ -90,7 +88,7 @@ module Ai
           finish_reason = choice[:finish_reason]
         end
 
-        if content&.present?
+        if content.present?
           @accumulated_content += content
           yield({ content: content, finish_reason: finish_reason }) if block_given?
         end
@@ -131,7 +129,7 @@ module Ai
       body = JSON.parse(response.body)
       choice = body.dig("choices", 0) || {}
       message_content = choice.dig("message", "content") || ""
-      usage = body.dig("usage") || {}
+      usage = body["usage"] || {}
 
       {
         content: message_content,
@@ -164,11 +162,12 @@ module Ai
     # 16384 is the max output for most GPT-4o / GPT-4o-mini models.
     MAX_OUTPUT_TOKENS = 16384
 
-    def build_request_body(messages, stream: true)
+    def build_request_body(messages, stream: true, max_tokens: nil)
+      cap = max_tokens || @ai_model.max_tokens || 4096
       body = {
         model: @ai_model.model_id,
         messages: messages,
-        max_tokens: [(@ai_model.max_tokens || 4096), MAX_OUTPUT_TOKENS].min,
+        max_tokens: [cap, MAX_OUTPUT_TOKENS].min,
         stream: stream
       }
 

@@ -47,8 +47,15 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     # Step 1: Resolve the AI provider adapter
     adapter = Ai::ProviderFactory.for(listing)
 
+    # Read execution settings (token limit, output length, tone) saved on
+    # the triggering user message by PersonaChatChannel.
+    settings = extract_settings(chat_session)
+
     # Step 2: Build the messages array from session history
-    messages = Ai::ChatCompletionsBuilder.new(chat_session).build
+    messages = Ai::ChatCompletionsBuilder.new(chat_session, settings).build
+
+    # Resolve the output token cap: client override clamped to sane bounds.
+    max_tokens = settings.is_a?(Hash) && settings["token_limit"].to_i.positive? ? settings["token_limit"].to_i : nil
 
     # Step 3: Check wallet balance before making the API call
     wallet = person.wallet
@@ -70,7 +77,7 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     full_content = ""
     usage_result = nil
 
-    adapter.stream(messages) do |chunk|
+    adapter.stream(messages, max_tokens: max_tokens) do |chunk|
       full_content += chunk[:content]
 
       # Broadcast each chunk to connected clients
@@ -180,6 +187,18 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
   # rubocop:enable Metrics/MethodLength
 
   private
+
+  # Extracts execution settings (token limit, output length, tone) saved on
+  # the triggering user message by PersonaChatChannel.
+  #
+  # @param chat_session [ChatSession]
+  # @return [Hash, nil] the whitelisted settings hash, or nil
+  def extract_settings(chat_session)
+    user_message = chat_session.chat_messages.find_by(id: message_id)
+    return nil unless user_message&.metadata.is_a?(Hash)
+
+    user_message.metadata["settings"]
+  end
 
   # Broadcasts an error message to the chat session stream.
   #

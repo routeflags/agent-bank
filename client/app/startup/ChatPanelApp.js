@@ -635,6 +635,11 @@ class ChatPanelApp extends React.Component {
     var payload = {
       chat_session_id: this.state.sessionId,
       content: content,
+      settings: {
+        token_limit: this.state.tokenLimit,
+        output_length: this.state.outputLength,
+        tone: this.state.tone
+      }
     };
     if (attachment && attachment.id) payload.attachment_id = attachment.id;
     this.subscription.perform('receive', payload);

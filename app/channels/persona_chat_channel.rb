@@ -51,6 +51,17 @@ class PersonaChatChannel < ApplicationCable::Channel
       metadata['attachment_id'] = attachment.id if attachment
     end
 
+    # Execution settings from the client (token limit, output length, tone).
+    # Whitelisted — never trust raw client input beyond these keys.
+    settings = data['settings']
+    if settings.is_a?(Hash)
+      metadata['settings'] = {
+        'token_limit' => settings['token_limit'].to_i.clamp(100, 32_000),
+        'output_length' => %w[short standard long].include?(settings['output_length']) ? settings['output_length'] : 'standard',
+        'tone' => %w[polite casual professional friendly].include?(settings['tone']) ? settings['tone'] : 'polite'
+      }
+    end
+
     message = chat_session.chat_messages.create!(
       content: data['content'],
       sender_type: 'Person',
