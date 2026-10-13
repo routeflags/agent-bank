@@ -5,7 +5,8 @@ class HomepageController < ApplicationController
 
   APP_DEFAULT_VIEW_TYPE = "grid".freeze
   VIEW_TYPES_NO_LOCATION = ["grid".freeze, "list".freeze].freeze
-  VIEW_TYPES = (VIEW_TYPES_NO_LOCATION + ["map".freeze]).freeze
+  # マップビューは使用しない（計画20261012）ため選択肢から除外。
+  VIEW_TYPES = VIEW_TYPES_NO_LOCATION
 
   # rubocop:disable AbcSize
   # rubocop:disable MethodLength
