@@ -2276,6 +2276,11 @@ body.dark-theme {
     background-color: #242424;
   }
 
+  // home "no listings" empty state (legacy $highlight #e8e8e8 background)
+  .home-no-listings {
+    background-color: #242424;
+  }
+
   // account settings primary email row highlight
   // (original nests 3 classes deep: .account-settings .account-settings-row
   //  .account-settings-email-row-highlight → must match depth to override)

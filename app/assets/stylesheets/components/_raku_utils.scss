@@ -83,11 +83,18 @@ body.dark-theme #home_toolbar-select-share-type .toggle-header {
   background-color: #e8e8e8 !important;
 }
 
-// 検索結果グリッド / リストの出品者名（teal #59b3a2 on #e8e8e8 = 2.04:1 だった部分）
+// 検索結果グリッドの出品者バー（旧ライト背景 #e8e8e8 が残り、カード本体
+// #242424 と不整合。ダークテーマに合わせて暗色化し、文字を #999 に）
+body.dark-theme .home-fluid-thumbnail-grid-author {
+  background-color: #242424 !important;
+}
+
+// 検索結果グリッド / リストの出品者名。グリッドはダーク化したバー上、
+// リストはダーク背景 #1a1a1a 上に載るため #999 で 4.5:1 以上を確保。
 body.dark-theme .home-fluid-thumbnail-grid-author-name,
 body.dark-theme .home-fluid-thumbnail-grid-details-author-name,
 body.dark-theme .home-list-author-name {
-  color: #555 !important;
+  color: #999 !important;
 }
 
 // 送信ボタン（問い合わせフォーム等: white on #4a90e2 = 3.29:1 だった部分。

@@ -505,6 +505,13 @@ module ApplicationHelper
       locale_param: params[:locale])
   end
 
+  # Base path for listing-browse controls (view type, transaction type).
+  # Stays on the dedicated listing page (/browse) when already there;
+  # otherwise falls back to the homepage search path.
+  def raku_listing_index_path(options = {})
+    @listing_page ? browse_path(options) : search_path(options)
+  end
+
   # Marks the active item in the raku sub-navigation based on the current page.
   # マーケット = marketplace/homepage; 出品 = new listing form.
   def raku_nav_active?(section)

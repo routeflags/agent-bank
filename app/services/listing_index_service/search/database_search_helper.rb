@@ -20,6 +20,11 @@ module ListingIndexService::Search::DatabaseSearchHelper
     scope = scope.use_homepage_index if !search[:include_closed] && !search[:author_id]
     scope = scope.currently_open unless search[:include_closed]
 
+    # Category filter — the search engine (Sphinx) applies :categories, but
+    # this DB fallback previously ignored it, so category navigation showed
+    # unfiltered results whenever the engine was unavailable.
+    scope = scope.where(category_id: search[:categories]) if search[:categories].present?
+
     # AI Persona filters
     scope = scope.run_online if search[:run_mode] == 'run_online'
     scope = scope.download_mode if search[:run_mode] == 'download'
