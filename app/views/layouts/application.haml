@@ -48,25 +48,12 @@
           .banner--title-wrapper
             .banner--title
               = yield :banner_warning
-      -# aria-label turns this <section> into a named region landmark so its
-      -# content (cover + page title) is contained by a landmark (axe "region").
-      %section.marketplace-lander{ aria: { label: @current_community.full_name(I18n.locale) } }
-        - if @big_cover_photo
-          .coverimage
-            %figure.marketplace-cover.fluidratio
-              .lander-content.marketplace-lander-content
-                = yield :title_header
-        - elsif !(is_homepage && FeatureFlagHelper.feature_enabled?(:topbar_v1))
-          .coverimage
-            %figure.marketplace-cover-small.fluidratio
-            .coverimage-fade{:class => yield(:coverfade_class)}
-              %figure.marketplace-cover-small-fade.fluidratio
-          -# title_header が無いページ（トップ等）では空のブロックを出さない
-          - if content_for?(:title_header)
-            .title-container
-              .title-header-wrapper
-                .marketplace-title-header
-                  = yield :title_header
+      -# カバー画像セクションは使用しない（計画20261012）。タイトルがある
+      -# ページのみ、通常フローのヘッダーとして描画する。
+      - if content_for?(:title_header)
+        %section.raku-page-head
+          .raku-page-head__inner
+            = yield :title_header
 
       %main.page-content{class: is_homepage && !@big_cover_photo ? 'no-cover-photo' : ''}
         .wrapper

@@ -36,11 +36,8 @@
       });
     })();
 
-- content_for :title_header do
-  -# Title header is now handled by the hero section below
-
 -# ═══════════════════════════════════════════════════════════
--# ヒーロー/統計/カテゴリ（トップ用）— 一覧ページ(/s)では非表示
+-# ヒーロー/統計/カテゴリ（トップ用）— 一覧ページ(/browse)では非表示
 - unless @listing_page
   = render "homepage/intro"
 -# Featured Cards
