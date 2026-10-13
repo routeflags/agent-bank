@@ -56,6 +56,9 @@
       = link_to landing_page_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:marketplace)}" do
         %span.raku-nav__icon 🔍
         = t("lamprey.header.nav_marketplace")
+      = link_to browse_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:browse)}" do
+        %span.raku-nav__icon 🗂️
+        = t("lamprey.header.nav_browse")
       = link_to new_listing_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:new_listing)}" do
         %span.raku-nav__icon 📦
         = t("lamprey.header.nav_new_listing")

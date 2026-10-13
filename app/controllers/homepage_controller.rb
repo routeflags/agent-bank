@@ -12,6 +12,10 @@ class HomepageController < ApplicationController
   def index
     params = unsafe_params_hash.select{|k, v| v.present? }
 
+    # 一覧ページ（/browse）ではヒーロー（トップ用）を除外し、
+    # 「注目のスキル」セクション以下のみを表示する。
+    @listing_page = request.path.match?(%r{/browse$})
+
     redirect_to landing_page_path and return if no_current_user_in_private_clp_enabled_marketplace?
 
     # DESIGN.md §12: Marketplace metrics

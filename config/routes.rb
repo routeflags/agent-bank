@@ -573,6 +573,7 @@ Rails.application.routes.draw do
     get 'rankings' => 'rankings#index', as: :rankings
     get 'battles' => 'battles#index', as: :battles
     get 'docs' => 'docs#index', as: :docs
+    get 'browse' => 'homepage#index', as: :browse
 
     resources :infos do
       collection do

@@ -510,7 +510,9 @@ module ApplicationHelper
   def raku_nav_active?(section)
     case section
     when :marketplace
-      controller_name.in?(%w[homepage landing_page])
+      controller_name.in?(%w[homepage landing_page]) && !request.path.match?(%r{/browse$})
+    when :browse
+      controller_name == "homepage" && request.path.match?(%r{/browse$})
     when :new_listing
       controller_name == "listings" && action_name == "new"
     when :rankings
