@@ -2241,10 +2241,65 @@ figure.fluidratio {
 }
 
 // ═══════════════════════════════════════════════════════════
+// 楽市楽間 — Screen-reader-only utility (a11y)
+// ═══════════════════════════════════════════════════════════
+// Visually hides content while keeping it accessible to screen readers.
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// ═══════════════════════════════════════════════════════════
 // 楽市楽間 — Dark Theme overrides for Sharetribe core styles
 // ═══════════════════════════════════════════════════════════
 
 body.dark-theme {
+  // ── a11y: dark-theme contrast fixes ─────────────────────
+  // Light $highlight (#e8e8e8) backgrounds (zebra stripes, highlight
+  // boxes) kept their light color in dark theme while text became
+  // white → 1.22:1. Recolor these surfaces dark so light text passes.
+
+  // Global table zebra striping (partials/_table.scss)
+  tbody tr:nth-child(odd) {
+    background-color: #242424;
+  }
+
+  // initiate page price breakdown total box
+  .initiate-transaction-totals {
+    background-color: #242424;
+  }
+
+  // account settings primary email row highlight
+  // (original nests 3 classes deep: .account-settings .account-settings-row
+  //  .account-settings-email-row-highlight → must match depth to override)
+  .account-settings .account-settings-row .account-settings-email-row-highlight {
+    background-color: #242424;
+  }
+
+  // Submit buttons using mid-blue #4a90e2 with white text (3.29:1).
+  // Darken so white text clears 4.5:1.
+  #email_submit,
+  input[type="submit"].button {
+    background-color: #2f6fc4;
+    &:hover {
+      background-color: #2a63ae;
+    }
+  }
+
+  // Password change link inside body text (teal on white = 2.5:1).
+  // Underline so it's distinguishable without relying on color alone.
+  #account_password_link,
+  .link-in-text-block {
+    text-decoration: underline;
+  }
+
   // Home toolbar
   .home-toolbar {
     border-color: #333;

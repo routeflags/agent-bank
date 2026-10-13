@@ -20,6 +20,6 @@
     - else
       = status
   %td
-    = link_to edit_listing_path(listing) do
+    = link_to edit_listing_path(listing), aria: { label: t("admin.communities.listings.edit") } do
       = icon_tag("edit")
 

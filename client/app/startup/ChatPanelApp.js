@@ -1054,8 +1054,18 @@ class ChatPanelApp extends React.Component {
     }
   }
 
+  componentDidMount() {
+    // Expose a global hook so server-rendered CTAs (e.g. the
+    // "このスキルを利用する" button) can open this chat panel.
+    var self = this;
+    window.LampreyChat = {
+      open: function () { self.handleOpen(); }
+    };
+  }
+
   componentWillUnmount() {
     this.disconnect();
+    if (window.LampreyChat) delete window.LampreyChat;
   }
 
   // ─── Render ───────────────────────────────────────────

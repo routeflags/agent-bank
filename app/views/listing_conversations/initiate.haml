@@ -42,6 +42,7 @@
 
       .row
         .col-12
+          = label_tag :message, t("conversations.new.optional_message_label"), class: "sr-only"
           = text_area_tag :message, nil, :class => "text_area"
 
       - if @current_community.transaction_agreement_in_use

@@ -161,6 +161,7 @@ ja:
       message: メッセージ
       message_to: "%{author_name}さんへメッセージ"
       optional_message_to: "%{author_name}さんへのメッセージ（任意）"
+      optional_message_label: メッセージ（任意）
       send_message: メッセージ送信する
       send: 送信する
       this_message_is_private: このメッセージは、あなたと%{person}さんの間のプライベートなものです。%{person}さんは、メールでこのメッセージを通知されます。
@@ -711,6 +712,8 @@ ja:
           updated: 更新日
           category: カテゴリ
           status: ステータス
+          actions: 操作
+        edit: 編集
         open: 公開
         closed: 非公開
         expired: 期限切れ
@@ -2488,6 +2491,14 @@ ja:
       cancellation: "返金・キャンセル条件"
       features_default: "機能"
       reviews_count: "(%{count}件の評価)"
+      no_features: "このスキルの機能はまだ登録されていません。"
+      no_description: "このスキルの説明はまだありません。"
+      no_reviews: "まだレビューはありません。"
+      no_related: "関連するスキルは見つかりませんでした。"
+      how_to_step1: "「このスキルを利用する」を押してチャットを開きます。"
+      how_to_step2: "聞きたいことをメッセージで入力して送信します。"
+      how_to_step3: "AIが回答を生成します。設定パネルでトーンや出力長を調整できます。"
+      how_to_step4: "気に入った回答は保存・共有できます。"
       "yes": "あり"
       "no": "なし"
       privacy_value: "外部APIとの連携あり"

@@ -176,6 +176,7 @@ en:
       message: Message
       message_to: Message to %{author_name}
       optional_message_to: Optional message to %{author_name}
+      optional_message_label: Message (optional)
       send_message: Send message
       send: Send
       this_message_is_private: This message is private between you and %{person}.
@@ -861,6 +862,8 @@ en:
           updated: Updated
           category: Category
           status: Status
+          actions: Actions
+        edit: Edit
         open: Open
         closed: Closed
         expired: Expired
@@ -2855,6 +2858,14 @@ en:
       cancellation: "Refund & cancellation policy"
       features_default: "Features"
       reviews_count: "(%{count} reviews)"
+      no_features: "No features listed for this skill yet."
+      no_description: "No description for this skill yet."
+      no_reviews: "No reviews yet."
+      no_related: "No related skills found."
+      how_to_step1: "Press \"Use this skill\" to open the chat."
+      how_to_step2: "Type your question and send the message."
+      how_to_step3: "The AI generates a response. Adjust tone and length in the settings panel."
+      how_to_step4: "Save or share answers you like."
       "yes": "Yes"
       "no": "No"
       privacy_value: "Integrates with external APIs"

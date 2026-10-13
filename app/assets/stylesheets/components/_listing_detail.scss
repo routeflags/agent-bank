@@ -70,6 +70,72 @@ body.dark-theme {
     margin-left: 4px;
   }
 
+  // ── Tab panels ─────────────────────────────────────────
+  .raku-tab-panel {
+    display: none;
+
+    &.is-active {
+      display: block;
+    }
+
+    &__empty {
+      color: var(--text-muted);
+      font-size: 14px;
+      padding: 24px 0;
+      text-align: center;
+    }
+  }
+
+  .raku-howto {
+    &__title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    &__steps {
+      padding-left: 20px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+  }
+
+  .raku-related {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+
+    &__item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      text-decoration: none;
+      transition: border-color 0.15s ease;
+
+      &:hover {
+        border-color: var(--accent-gold);
+      }
+    }
+
+    &__icon {
+      font-size: 24px;
+    }
+
+    &__title {
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
   // ── Listing hero ───────────────────────────────────────
   .raku-listing-hero {
     display: grid;

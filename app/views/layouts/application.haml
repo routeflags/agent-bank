@@ -48,7 +48,9 @@
           .banner--title-wrapper
             .banner--title
               = yield :banner_warning
-      %section.marketplace-lander
+      -# aria-label turns this <section> into a named region landmark so its
+      -# content (cover + page title) is contained by a landmark (axe "region").
+      %section.marketplace-lander{ aria: { label: @current_community.full_name(I18n.locale) } }
         - if @big_cover_photo
           .coverimage
             %figure.marketplace-cover.fluidratio

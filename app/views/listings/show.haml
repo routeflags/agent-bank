@@ -1,19 +1,33 @@
 - provide_react_app :chat_panel
 
-- show_map = show_location? && @listing.origin_loc && @listing.origin_loc.address != ""
+- content_for :extra_javascript do
+  :javascript
+    // 楽市楽間 — listing detail tab switching
+    window.RakuTabs = {
+      show: function (name) {
+        var panels = document.querySelectorAll('.raku-tab-panel');
+        for (var i = 0; i < panels.length; i++) {
+          var on = panels[i].getAttribute('data-raku-panel') === name;
+          if (on) { panels[i].classList.add('is-active'); }
+          else { panels[i].classList.remove('is-active'); }
+        }
+        var tabs = document.querySelectorAll('.raku-tabs__item');
+        for (var j = 0; j < tabs.length; j++) {
+          var t = tabs[j];
+          var sel = t.getAttribute('data-raku-tab') === name;
+          if (sel) { t.classList.add('is-active'); t.setAttribute('aria-selected', 'true'); }
+          else { t.classList.remove('is-active'); t.setAttribute('aria-selected', 'false'); }
+        }
+      }
+    };
 
 - content_for :javascript do
   initialize_listing_view('#{I18n.locale}');
 
+-# Googleマップは不使用（計画20261012: 表示出力不要）。Maps JSの読み込みを無効化。
 - content_for :extra_javascript do
   :javascript
-    window.ST.listing({
-      fuzzy_location: #{@current_community.fuzzy_location.to_json},
-      listing_location: #{raw @listing.location&.coordinates(@current_community.fuzzy_location) || false}
-    });
-  - if @current_community.fuzzy_location && !(search_mode != :keyword)
-    - maps_key = MarketplaceHelper.google_maps_key(@current_community.id)
-    = javascript_include_tag "//maps.googleapis.com/maps/api/js?key=#{maps_key}"
+    window.ST.listing({});
 
 - content_for :title, raw(@listing.title)
 - content_for :meta_author, PersonViewUtils.person_display_name(@listing.author, @current_community)
@@ -41,14 +55,14 @@
   %span.raku-breadcrumb__current= @listing.title
 
 -# ── Tabs ───────────────────────────────────────────────
-.raku-tabs
-  %button.raku-tabs__item.is-active{type: "button"}= t('lamprey.listings.overview')
-  %button.raku-tabs__item{type: "button"}= t('lamprey.listings.features')
-  %button.raku-tabs__item{type: "button"}= t('lamprey.listings.how_to_use')
-  %button.raku-tabs__item{type: "button"}
+.raku-tabs{role: "tablist"}
+  %button.raku-tabs__item.is-active{type: "button", role: "tab", "aria-selected": "true", "data-raku-tab": "overview", onclick: "RakuTabs.show('overview')"}= t('lamprey.listings.overview')
+  %button.raku-tabs__item{type: "button", role: "tab", "aria-selected": "false", "data-raku-tab": "features", onclick: "RakuTabs.show('features')"}= t('lamprey.listings.features')
+  %button.raku-tabs__item{type: "button", role: "tab", "aria-selected": "false", "data-raku-tab": "how_to_use", onclick: "RakuTabs.show('how_to_use')"}= t('lamprey.listings.how_to_use')
+  %button.raku-tabs__item{type: "button", role: "tab", "aria-selected": "false", "data-raku-tab": "reviews", onclick: "RakuTabs.show('reviews')"}
     = t('lamprey.listings.reviews')
     %span.raku-tabs__count (#{@listing.comments_count})
-  %button.raku-tabs__item{type: "button"}= t('lamprey.listings.related_skills')
+  %button.raku-tabs__item{type: "button", role: "tab", "aria-selected": "false", "data-raku-tab": "related", onclick: "RakuTabs.show('related')"}= t('lamprey.listings.related_skills')
 
 -# ── Hero layout ────────────────────────────────────────
 .raku-listing-hero
@@ -84,55 +98,88 @@
                   - else
                     .raku-listing-hero__image-placeholder{style: "display:flex; align-items:center; justify-content:center; font-size:64px; background:var(--bg-card); border-radius:var(--radius-lg); aspect-ratio:16/10; color:var(--text-muted);"} 🤖
 
-    -# ── Feature bullets ───────────────────────────────────
-    - if @listing.custom_field_values.any?
-      .raku-features
-        - @listing.custom_field_values.each do |cfv|
-          - cfv.with_type do |question_type|
-            .raku-features__item
-              %span.raku-features__check ✓
-              = cfv.question&.name || t('lamprey.listings.features_default')
+    -# ── Tab panels ─────────────────────────────────────────
+    -# 機能・特徴パネル
+    .raku-tab-panel{"data-raku-panel" => "features"}
+      - if @listing.custom_field_values.any?
+        .raku-features
+          - @listing.custom_field_values.each do |cfv|
+            - cfv.with_type do |question_type|
+              .raku-features__item
+                %span.raku-features__check ✓
+                = cfv.question&.name || t('lamprey.listings.features_default')
+      - else
+        %p.raku-tab-panel__empty= t('lamprey.listings.no_features')
 
-    -# ── Description ──────────────────────────────────────
-    .row
-      .col-12.listing-description-content
-        - if @listing.description && !@listing.description.blank?
-          = markdown(@listing.description)
-          - if @listing_presenter.youtube_link_ids.present?
-            - @listing_presenter.youtube_link_ids.each do |youtube_id|
-              .listing-description-youtube-wrapper
-                %iframe.listing-description-youtube-iframe{ title: t("listings.show.youtube_video_player"), width: 640, height:390, src: "//www.youtube-nocookie.com/embed/#{ youtube_id }", frameborder: 0, allowfullscreen: true}
-
-    - @listing.custom_field_values.each do |custom_field_value|
+    -# 概要パネル（デフォルト表示）
+    .raku-tab-panel.is-active{"data-raku-panel" => "overview"}
       .row
-        .col-12
-          - custom_field_value.with_type do |question_type|
-            = render :partial => "listings/custom_field_partials/#{question_type}", :locals => { :custom_field_value => custom_field_value }
+        .col-12.listing-description-content
+          - if @listing.description && !@listing.description.blank?
+            = markdown(@listing.description)
+            - if @listing_presenter.youtube_link_ids.present?
+              - @listing_presenter.youtube_link_ids.each do |youtube_id|
+                .listing-description-youtube-wrapper
+                  %iframe.listing-description-youtube-iframe{ title: t("listings.show.youtube_video_player"), width: 640, height:390, src: "//www.youtube-nocookie.com/embed/#{ youtube_id }", frameborder: 0, allowfullscreen: true}
+          - else
+            %p.raku-tab-panel__empty= t('lamprey.listings.no_description')
 
-    - if @current_community.show_listing_publishing_date?
-      .row
-        .col-12
-          .icon-with-text-container
-            = icon_tag("calendar", ["icon-part"])
-            .text-part
-              %b
-                = t(".listing_created_at")
-                = l @listing.created_at, :format => :short_date
+      - @listing.custom_field_values.each do |custom_field_value|
+        .row
+          .col-12
+            - custom_field_value.with_type do |question_type|
+              = render :partial => "listings/custom_field_partials/#{question_type}", :locals => { :custom_field_value => custom_field_value }
 
-    - unless (@listing.closed? && !current_user?(@listing.author)) || !@current_community.listing_comments_in_use
-      .view-item
-        #comments.discussion.overflow-allowed
-          %h2
-            = icon_tag("chat_bubble", ["icon-with_text"])
-            .text-with-icon
-              = t(".comments")
-              %span#comment_count= "(#{@listing.comments_count})"
-          #follow-links.follow-links
-            = render :partial => "follow_links"
-          #comment-list
-            = render :partial => "comment", :collection => @listing.comments
-          #comment-form
-            = render :partial => "comment_form"
+      - if @current_community.show_listing_publishing_date?
+        .row
+          .col-12
+            .icon-with-text-container
+              = icon_tag("calendar", ["icon-part"])
+              .text-part
+                %b
+                  = t(".listing_created_at")
+                  = l @listing.created_at, :format => :short_date
+
+    -# 使い方パネル
+    .raku-tab-panel{"data-raku-panel" => "how_to_use"}
+      .raku-howto
+        %h3.raku-howto__title= t('lamprey.listings.how_to_use')
+        %ol.raku-howto__steps
+          %li= t('lamprey.listings.how_to_step1')
+          %li= t('lamprey.listings.how_to_step2')
+          %li= t('lamprey.listings.how_to_step3')
+          %li= t('lamprey.listings.how_to_step4')
+
+    -# レビューパネル
+    .raku-tab-panel{"data-raku-panel" => "reviews"}
+      - unless (@listing.closed? && !current_user?(@listing.author)) || !@current_community.listing_comments_in_use
+        .view-item
+          #comments.discussion.overflow-allowed
+            %h2
+              = icon_tag("chat_bubble", ["icon-with_text"])
+              .text-with-icon
+                = t(".comments")
+                %span#comment_count= "(#{@listing.comments_count})"
+            #follow-links.follow-links
+              = render :partial => "follow_links"
+            #comment-list
+              = render :partial => "comment", :collection => @listing.comments
+            #comment-form
+              = render :partial => "comment_form"
+      - else
+        %p.raku-tab-panel__empty= t('lamprey.listings.no_reviews')
+
+    -# 関連スキルパネル
+    .raku-tab-panel{"data-raku-panel" => "related"}
+      - related = @listing_presenter.related_listings
+      - if related.any?
+        .raku-related
+          - related.each do |rel|
+            %a.raku-related__item{href: listing_path(rel)}
+              %span.raku-related__icon 🤖
+              %span.raku-related__title= rel.title
+      - else
+        %p.raku-tab-panel__empty= t('lamprey.listings.no_related')
 
   -# ── Right sidebar: Price + CTA + Seller ───────────────
   .raku-listing-hero__sidebar
@@ -155,10 +202,15 @@
           %span.raku-muted-label= t('lamprey.listings.rating_none')
 
     -# CTA buttons
+    - chat_enabled = @listing.default_run_mode.present? && @listing.default_run_mode == 'run_online'
     .raku-cta-group
       - if logged_in?
-        = link_to initiate_order_path(listing_id: @listing.id), class: "raku-cta-btn raku-cta-btn--primary" do
-          = t('lamprey.listings.use_skill')
+        - if chat_enabled
+          %button.raku-cta-btn.raku-cta-btn--primary{type: "button", onclick: "window.LampreyChat && window.LampreyChat.open()"}
+            = t('lamprey.listings.use_skill')
+        - else
+          = link_to initiate_order_path(listing_id: @listing.id), class: "raku-cta-btn raku-cta-btn--primary" do
+            = t('lamprey.listings.use_skill')
       - else
         = link_to login_path, class: "raku-cta-btn raku-cta-btn--primary" do
           = t('lamprey.listings.login_to_use')
