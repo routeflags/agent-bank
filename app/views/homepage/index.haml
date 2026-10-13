@@ -5,13 +5,36 @@
   = "without-text"
 
 - content_for :extra_javascript do
-  - maps_key = MarketplaceHelper.google_maps_key(@current_community.id)
-  - key_param = maps_key ? "&key=#{maps_key}" : ""
-  - needs_maps = !FeatureFlagHelper.feature_enabled?(:topbar_v1) && (main_search != :keyword || @view_type.eql?("map"))
-  - if(needs_maps)
-    = javascript_include_tag "//maps.googleapis.com/maps/api/js?libraries=places#{key_param}"
-  - if(@view_type.eql?("map"))
-    = javascript_include_tag "markerclusterer.js"
+  :javascript
+    // 楽市楽間 — 注目のスキル横スクロールスライダー
+    window.RakuFeatured = {
+      scrollEl: function () { return document.getElementById('raku-featured-scroll'); },
+      slide: function (dir) {
+        var el = this.scrollEl();
+        if (!el) return;
+        var card = el.querySelector('.raku-featured__card');
+        var step = card ? (card.offsetWidth + 16) : 296;
+        el.scrollBy({ left: dir * step, behavior: 'smooth' });
+      }
+    };
+    (function () {
+      var el = window.RakuFeatured.scrollEl();
+      if (!el) return;
+      // ドラッグでスクロール
+      var down = false, startX = 0, startScroll = 0;
+      el.addEventListener('mousedown', function (e) {
+        down = true; startX = e.pageX; startScroll = el.scrollLeft;
+        el.classList.add('is-dragging');
+      });
+      window.addEventListener('mouseup', function () {
+        down = false; el.classList.remove('is-dragging');
+      });
+      window.addEventListener('mousemove', function (e) {
+        if (!down) return;
+        e.preventDefault();
+        el.scrollLeft = startScroll - (e.pageX - startX);
+      });
+    })();
 
 - content_for :title_header do
   -# Title header is now handled by the hero section below
@@ -123,30 +146,33 @@
       %button.raku-featured__tab.is-active{type: "button", data: {sort: "popular"}}= t('lamprey.homepage.tab_popular')
       %button.raku-featured__tab{type: "button", data: {sort: "newest"}}= t('lamprey.homepage.tab_newest')
       %button.raku-featured__tab{type: "button", data: {sort: "rating"}}= t('lamprey.homepage.tab_rating')
-  .raku-featured__scroll
-    - @listings.each do |listing|
-      = link_to listing_path(listing.url), class: "raku-featured__card" do
-        .raku-card
-          - if listing.listing_images.first
-            %img.raku-card__image{src: listing.listing_images.first[:small_3x2] || listing.listing_images.first[:thumb], alt: listing.title}
-          - else
-            .raku-card__image.raku-card__image--placeholder 🤖
-          .raku-card__body
-            %h3.raku-card__title= listing.title
-            .raku-card__author
-              - if listing.author
-                %span= listing.author.display_name || listing.author.username
-              - else
-                %span= t('lamprey.homepage.card_author_unknown')
-            %p.raku-card__description= StringUtils.first_words(listing.description, 60)
-          .raku-card__footer
-            .raku-card__rating
-              %span.raku-muted-label= t('lamprey.listings.rating_none')
-            .raku-card__price
-              - if listing.price
-                = MoneyViewUtils.to_humanized(listing.price)
-              - else
-                = t('lamprey.listings.free')
+  .raku-featured__slider
+    %button.raku-featured__arrow.raku-featured__arrow--prev{type: "button", "aria-label": t('lamprey.homepage.slide_prev'), onclick: "RakuFeatured.slide(-1)"} ‹
+    .raku-featured__scroll#raku-featured-scroll
+      - @listings.each do |listing|
+        = link_to listing_path(listing.url), class: "raku-featured__card" do
+          .raku-card
+            - if listing.listing_images.first
+              %img.raku-card__image{src: listing.listing_images.first[:small_3x2] || listing.listing_images.first[:thumb], alt: listing.title}
+            - else
+              .raku-card__image.raku-card__image--placeholder 🤖
+            .raku-card__body
+              %h3.raku-card__title= listing.title
+              .raku-card__author
+                - if listing.author
+                  %span= listing.author.display_name || listing.author.username
+                - else
+                  %span= t('lamprey.homepage.card_author_unknown')
+              %p.raku-card__description= StringUtils.first_words(listing.description, 60)
+            .raku-card__footer
+              .raku-card__rating
+                %span.raku-muted-label= t('lamprey.listings.rating_none')
+              .raku-card__price
+                - if listing.price
+                  = MoneyViewUtils.to_humanized(listing.price)
+                - else
+                  = t('lamprey.listings.free')
+    %button.raku-featured__arrow.raku-featured__arrow--next{type: "button", "aria-label": t('lamprey.homepage.slide_next'), onclick: "RakuFeatured.slide(1)"} ›
 
     - if @listings.empty?
       .raku-featured__empty

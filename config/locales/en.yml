@@ -2730,6 +2730,12 @@ en:
 
   # ── Lamprey: Custom UI strings (EN mirror of ja.yml) ──
   lamprey:
+    footer:
+      tagline: "AI persona marketplace"
+      docs: "Documentation"
+      terms: "Terms of Service"
+      privacy: "Privacy Policy"
+      copyright: "© %{year} %{marketplace_name}. All rights reserved."
     homepage:
       hero_tagline: "New skills added every day"
       hero_title: "Master the power of AI."
@@ -2738,6 +2744,8 @@ en:
       search_type_all: "All types"
       search_button: "Search"
       featured_title: "Featured skills"
+      slide_prev: "Previous"
+      slide_next: "Next"
       tab_popular: "Recommended"
       tab_newest: "Newest"
       tab_rating: "Top rated"

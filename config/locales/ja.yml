@@ -2301,6 +2301,13 @@ ja:
   # ── Lamprey: Custom UI strings ─────────────────────────
   lamprey:
 
+    footer:
+      tagline: "AIペルソナのマーケットプレイス"
+      docs: "ドキュメント"
+      terms: "利用規約"
+      privacy: "プライバシーポリシー"
+      copyright: "© %{year} %{marketplace_name}. All rights reserved."
+
     chat:
       wallet_topup_title: "クレジットを追加"
       wallet_topup_close: "閉じる"
@@ -2371,6 +2378,8 @@ ja:
       search_type_all: "すべてのタイプ"
       search_button: "検索"
       featured_title: "注目のスキル"
+      slide_prev: "前へ"
+      slide_next: "次へ"
       tab_popular: "おすすめ"
       tab_newest: "新着"
       tab_rating: "高評価"

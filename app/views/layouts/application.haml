@@ -61,10 +61,12 @@
             %figure.marketplace-cover-small.fluidratio
             .coverimage-fade{:class => yield(:coverfade_class)}
               %figure.marketplace-cover-small-fade.fluidratio
-          .title-container
-            .title-header-wrapper
-              .marketplace-title-header
-                = yield :title_header
+          -# title_header が無いページ（トップ等）では空のブロックを出さない
+          - if content_for?(:title_header)
+            .title-container
+              .title-header-wrapper
+                .marketplace-title-header
+                  = yield :title_header
 
       %main.page-content{class: is_homepage && !@big_cover_photo ? 'no-cover-photo' : ''}
         .wrapper
@@ -89,6 +91,9 @@
         = content_for(:page_content)
     - else
       = content_for(:page_content)
+
+    -# 楽市楽間固定フッター（カスタムフッター設定とは別に常に表示）
+    = render 'layouts/raku_footer'
 
     - if @custom_footer.try(:display?)
       = render 'layouts/footer'
