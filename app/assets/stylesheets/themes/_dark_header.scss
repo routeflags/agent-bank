@@ -11,10 +11,7 @@ body.dark-theme {
     border-bottom: 1px solid var(--border-color) !important;
     position: relative;
     z-index: 100;
-    // レガシーの固定60pxは .raku-nav（+50px）をレイアウトに含めず、
-    // 下の .marketplace-lander（見出し領域）がナビの下に重なっていた。
-    // auto にしてヘッダー全体（トップバー + サブナビ = 110px）の高さで
-    // コンテンツを押し下げる。
+    // ヘッダーは DESIGN.md §7 に従い1行（Logo/Nav/Search/User）。
     height: auto;
   }
 
@@ -35,14 +32,74 @@ body.dark-theme {
     height: 60px;
   }
 
+  // ── Logged-in user menu ───────────────────────────────
+  // Legacy rules use floats + fixed 60px heights, which break inside the
+  // single-row flex header (avatar cut off, name pushed below). Align the
+  // user toggle and inbox explicitly.
+  .header-user-toggle {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding-left: 8px;
+
+    #header-user-mobile-anchor {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .left {
+      float: none;
+    }
+
+    .header-user-avatar {
+      width: 32px;
+      height: 32px;
+      margin: 0;
+    }
+
+    .header-text-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: auto;
+      padding: 0 4px;
+      color: var(--text-secondary);
+    }
+  }
+
+  .header-inbox-link {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 8px;
+    color: var(--text-secondary);
+
+    &:hover {
+      color: var(--text-primary);
+    }
+  }
+
+  // ── Mobile menu ───────────────────────────────────────
+  // The hamburger sits at the right edge; anchor the dropdown to the right
+  // so it stays within the viewport (the legacy JS positions it off-screen).
+  #header-menu-toggle-menu {
+    left: auto !important;
+    right: 8px !important;
+    min-width: 200px;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
+  }
+
   // ── Header compact search (DESIGN.md §7 / §11) ────────
   // 通常画面ではGlobal Header内のcompact searchに縮小する。
   // 送信先はHero検索と同じ `q` パラメータで homepage#index へ。
   // .visible-tablet により 768px 未満では非表示（モバイルはHero検索が主導線）。
   .header-search {
-    flex: 0 1 320px;
-    min-width: 160px;
-    margin-left: 16px;
+    flex: 0 1 190px;
+    min-width: 120px;
+    margin-left: 12px;
 
     &__form {
       display: flex;
@@ -187,19 +244,21 @@ body.dark-theme {
     fill: currentColor;
   }
 
-  // ── Top Nav Bar (below header) ────────────────────────
+  // ── Primary navigation (inline in the single header row) ──
+  // DESIGN.md §7: Logo / Navigation / Search / Notification / Utility / User
+  // all share one row, so the nav is a flex child of .header-wrapper.
   .raku-nav {
-    background-color: var(--bg-primary);
-    border-bottom: 1px solid var(--border-color);
-    padding: 0 20px;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+    background-color: transparent;
+    border-bottom: 0;
   }
 
   .raku-nav__inner {
     display: flex;
     align-items: center;
-    gap: 4px;
-    max-width: 1200px;
-    margin: 0 auto;
+    gap: 0;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -209,23 +268,22 @@ body.dark-theme {
   .raku-nav__link {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 12px 16px;
+    gap: 5px;
+    padding: 8px 8px;
     color: var(--text-secondary);
     text-decoration: none;
-    font-size: 14px;
+    font-size: 13px;
     white-space: nowrap;
-    border-bottom: 2px solid transparent;
-    transition: color var(--transition-fast), border-color var(--transition-fast);
+    border-radius: var(--radius-sm);
+    transition: color var(--transition-fast), background-color var(--transition-fast);
 
     &:hover {
       color: var(--text-primary);
-      border-bottom-color: var(--border-color);
+      background-color: var(--bg-card-hover);
     }
 
     &.is-active {
       color: var(--accent-gold);
-      border-bottom-color: var(--accent-gold);
     }
   }
 
@@ -257,6 +315,7 @@ body.dark-theme {
     text-decoration: none;
     padding: 8px 12px;
     font-size: 14px;
+    white-space: nowrap;
     border-radius: var(--radius-sm);
     transition: color var(--transition-fast);
 
@@ -270,6 +329,7 @@ body.dark-theme {
     background-color: var(--accent-gold);
     color: #1a1a1a !important;
     text-decoration: none;
+    white-space: nowrap;
     border-radius: var(--radius-sm);
     font-size: 14px;
     font-weight: 600;

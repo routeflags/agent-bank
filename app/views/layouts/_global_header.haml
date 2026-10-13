@@ -6,6 +6,29 @@
       = link_to landing_page_path, :class => "header-logo", :id => "header-logo" do
         %span.header-wide-logo-text 楽市楽間
 
+    -# Primary navigation (DESIGN.md §7/§8) — inline in the single header row.
+    -# Hidden below tablet, where the hamburger menu carries these links.
+    .raku-nav.visible-tablet
+      .raku-nav__inner
+        = link_to landing_page_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:marketplace)}" do
+          %span.raku-nav__icon 🔍
+          = t("lamprey.header.nav_marketplace")
+        = link_to browse_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:browse)}" do
+          %span.raku-nav__icon 🗂️
+          = t("lamprey.header.nav_browse")
+        = link_to new_listing_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:new_listing)}" do
+          %span.raku-nav__icon 📦
+          = t("lamprey.header.nav_new_listing")
+        = link_to rankings_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:rankings)}" do
+          %span.raku-nav__icon 🏆
+          = t("lamprey.header.nav_rankings")
+        = link_to battles_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:battles)}" do
+          %span.raku-nav__icon ⚔️
+          = t("lamprey.header.nav_battles")
+        = link_to docs_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:docs)}" do
+          %span.raku-nav__icon 📚
+          = t("lamprey.header.nav_docs")
+
     -# Desktop/tablet compact search (DESIGN.md §7/§11)
     .header-search.visible-tablet
       = form_tag landing_page_path, method: :get, class: "header-search__form" do
@@ -49,25 +72,3 @@
           = icon_map_tag(icons, "rows", ["header-menu-icon"])
 
     = render :partial => "layouts/header_menu", locals: { locale_change_links: locale_change_links, icons: icons}
-
-  -# ── Sub navigation bar ──────────────────────────────────
-  .raku-nav
-    .raku-nav__inner
-      = link_to landing_page_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:marketplace)}" do
-        %span.raku-nav__icon 🔍
-        = t("lamprey.header.nav_marketplace")
-      = link_to browse_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:browse)}" do
-        %span.raku-nav__icon 🗂️
-        = t("lamprey.header.nav_browse")
-      = link_to new_listing_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:new_listing)}" do
-        %span.raku-nav__icon 📦
-        = t("lamprey.header.nav_new_listing")
-      = link_to rankings_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:rankings)}" do
-        %span.raku-nav__icon 🏆
-        = t("lamprey.header.nav_rankings")
-      = link_to battles_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:battles)}" do
-        %span.raku-nav__icon ⚔️
-        = t("lamprey.header.nav_battles")
-      = link_to docs_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:docs)}" do
-        %span.raku-nav__icon 📚
-        = t("lamprey.header.nav_docs")
