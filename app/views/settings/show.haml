@@ -2,11 +2,7 @@
 - content_for :javascript do
   initialize_update_profile_info_form("#{I18n.locale}","#{target_user.id.to_s}", #{@current_community.real_name_required?});
 
-- content_for :extra_javascript do
-  - maps_key = MarketplaceHelper.google_maps_key(@current_community.id)
-  - key_param = maps_key ? "?key=#{maps_key}" : ""
-  - needs_maps = !FeatureFlagHelper.feature_enabled?(:topbar_v1) || search_mode == :keyword
-  = javascript_include_tag "//maps.googleapis.com/maps/api/js#{key_param}" if needs_maps
+-# Googleマップは不使用（計画20261012）。
 
 - content_for :title_header do
   %h1= t("layouts.no_tribe.settings")
@@ -66,13 +62,7 @@
       %small
         = t("settings.profile.location_description")
       = form.text_field :street_address, :class => "text_field", :onkeyup => "timed_input(this)"
-      #settings_map_canvas.map
-        - content_for :extra_javascript do
-          :javascript
-            source = document.getElementById("person_street_address");
-            $(document).ready(function(){
-              googlemapMarkerInit("settings_map_canvas","person_location","person_street_address", true, #{tribe_latitude}, #{tribe_longitude});
-              });
+      -# 地図表示は使用しない（計画20261012）。住所はテキスト入力のみ。
 
     -# Phone number
     - show_phone_number = @service.fixed_phone_field?
