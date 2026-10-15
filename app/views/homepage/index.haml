@@ -6,34 +6,102 @@
 
 - content_for :extra_javascript do
   :javascript
-    // 楽市楽間 — 注目のスキル横スクロールスライダー
+    // 楽市楽間 — 注目のスキル横スクロールスライダー（矢印 + ドラッグ + 自動送り）
+    // PageSpeed 配慮: 追加ライブラリなし・レイアウトシフトなし。タブ非表示時、
+    // 画面外、ホバー/フォーカス/ドラッグ中、および reduced-motion 指定時は
+    // 自動送りを停止してメインスレッドとバッテリーへの影響を最小化する。
     window.RakuFeatured = {
       scrollEl: function () { return document.getElementById('raku-featured-scroll'); },
+      step: function () {
+        var el = this.scrollEl();
+        if (!el) return 296;
+        var card = el.querySelector('.raku-featured__card');
+        return card ? (card.offsetWidth + 16) : 296;
+      },
       slide: function (dir) {
         var el = this.scrollEl();
         if (!el) return;
-        var card = el.querySelector('.raku-featured__card');
-        var step = card ? (card.offsetWidth + 16) : 296;
-        el.scrollBy({ left: dir * step, behavior: 'smooth' });
+        el.scrollBy({ left: dir * this.step(), behavior: 'smooth' });
       }
     };
     (function () {
       var el = window.RakuFeatured.scrollEl();
       if (!el) return;
+
+      var motionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+      var hovering = false;    // ホバー中
+      var focused = false;     // フォーカス中
+      var dragging = false;    // ドラッグ中
+      var visible = true;      // 画面内か
+      var intervalId = null;
+      var AUTO_MS = 5000;
+
+      function isPaused() { return hovering || focused || dragging || document.hidden; }
+
       // ドラッグでスクロール
       var down = false, startX = 0, startScroll = 0;
       el.addEventListener('mousedown', function (e) {
-        down = true; startX = e.pageX; startScroll = el.scrollLeft;
+        down = true; dragging = true; startX = e.pageX; startScroll = el.scrollLeft;
         el.classList.add('is-dragging');
       });
       window.addEventListener('mouseup', function () {
-        down = false; el.classList.remove('is-dragging');
+        if (!down) return;
+        down = false; dragging = false;
+        el.classList.remove('is-dragging');
       });
       window.addEventListener('mousemove', function (e) {
         if (!down) return;
         e.preventDefault();
         el.scrollLeft = startScroll - (e.pageX - startX);
       });
+
+      // 端まで来たら先頭へ戻す
+      function advance() {
+        if (isPaused() || !visible) return;
+        var max = el.scrollWidth - el.clientWidth;
+        if (max <= 0) return;
+        if (el.scrollLeft >= max - 4) {
+          el.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          el.scrollBy({ left: window.RakuFeatured.step(), behavior: 'smooth' });
+        }
+      }
+
+      function start() {
+        if (intervalId || (motionQuery && motionQuery.matches)) return;
+        intervalId = window.setInterval(advance, AUTO_MS);
+      }
+      function stop() {
+        if (intervalId) { window.clearInterval(intervalId); intervalId = null; }
+      }
+
+      // ホバー / フォーカス中は停止（ユーザー操作を妨げない）
+      el.addEventListener('mouseenter', function () { hovering = true; });
+      el.addEventListener('mouseleave', function () { hovering = false; });
+      el.addEventListener('focusin', function () { focused = true; });
+      el.addEventListener('focusout', function () { focused = false; });
+
+      // タブが非表示の間は停止（バックグラウンド処理を排除）
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) { stop(); } else { start(); }
+      });
+
+      // 画面外では停止（不要なスクロール処理を排除）
+      if (window.IntersectionObserver) {
+        new IntersectionObserver(function (entries) {
+          visible = entries[0].isIntersecting;
+          if (visible) { start(); } else { stop(); }
+        }, { threshold: 0.1 }).observe(el);
+      }
+
+      // OS の「視差効果を減らす」設定に追従
+      if (motionQuery && motionQuery.addEventListener) {
+        motionQuery.addEventListener('change', function (e) {
+          if (e.matches) { stop(); } else { start(); }
+        });
+      }
+
+      start();
     })();
 
 -# ═══════════════════════════════════════════════════════════
