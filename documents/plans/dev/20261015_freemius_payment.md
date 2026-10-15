@@ -229,6 +229,7 @@ Freemius の Subscriptions API でプラン・更新・解約を管理する。
 | Freemius 障害時の決済停止 | 売上停止 | Stripe 直接連携コードは移行直後に削除せず、フラグで切り戻せるようにする |
 | 通貨・税率の差異 | 請求額の不一致 | `BillingService` の計算と Freemius の請求額を Webhook 時に突合し、差異があれば警告ログ |
 | 日本の消費税・インボイス対応 | 法務 | MoR である Freemius が税務を肩代わりすることを契約前に確認 |
+| 店子（出品者）への按分・分配払い | 出品者報酬の支払い方法 | **Freemius 単体では不可**。Freemius は単一ベンダー（自社）への売上集約・月次 payout が前提で、マーケットプレイス型の複数ベンダーへの自動分配（split payout）機能はない。下記「9. 店子への按分払い」を参照 |
 
 ---
 
@@ -244,7 +245,56 @@ Freemius の Subscriptions API でプラン・更新・解約を管理する。
 
 ---
 
-## 8. 参考: 既存コードへのポインタ
+## 9. 店子（出品者）への按分払い
+
+### 結論: Freemius 単体では不可。自社での按分計算＋別手段での送金が必要
+
+Freemius は**単一ベンダー（自社製品の販売者）向け**の Merchant of Record であり、
+マーケットプレイス型の**複数ベンダーへの自動分配（split payout / destination charges）機能はない**。
+Freemius の payout は「自社の売上 → 自社口座への月次振込」のみが対象である
+（参考: [Getting Paid](https://freemius.com/help/documentation/selling-with-freemius/your-earnings/)）。
+
+そのため、出品者（店子）への報酬支払いは以下の構成になる：
+
+```
+[購入者] ──決済──→ [Freemius (MoR)] ──月次payout──→ [自社口座]
+                                                      │
+                                          ┌───────────┴───────────┐
+                                          │ 自社で按分計算・送金   │
+                                          ▼                       ▼
+                                   [出品者Aの口座]          [出品者Bの口座]
+                                   （銀行振込等・別手段）   （銀行振込等・別手段）
+```
+
+### 現状の按分計算（再利用可能）
+
+按分比率の計算ロジック自体は既に `BillingService` に実装済みであり、
+Freemius 移行後も**計算部分はそのまま使える**：
+
+- `BillingService#calculate_charges`（`app/services/billing_service.rb:44`）
+  - `base_cost_cents`（トークン原価 or ペルソナ価格）
+  - `platform_commission_cents`（プラットフォーム取り分）
+  - `seller_commission_cents`（出品者取り分 ＝ `listing.seller_commission_rate` から算出）
+- 出品者取り分率: `listing.seller_commission_rate`（`app/models/listing.rb:429` でバリデーション済み）
+
+### 不足しているもの（実装が必要）
+
+| # | 項目 | 内容 |
+|---|------|------|
+| 1 | 出品者への支払い実績テーブル | `CreditTransaction` はウォレット（購入者側）の取引のみ。出品者への支払い（payout）を記録するテーブル/transaction_type がない。新規 `seller_payouts` テーブルまたは `CreditTransaction` の拡張が必要 |
+| 2 | 送金手段 | Freemius は出品者への送金を行わない。銀行振込（手動 or API）・Stripe Connect・PayPal Payouts 等の別手段が必要。現状 `Stripe::Transfer` / `Stripe::Payout` のラッパー（`stripe_api_wrapper.rb:185-208`）はあるが、呼び出しは Sharetribe 旧取引フロー（`payments.rb:80`）からのみで、AI 課金フローからは未接続 |
+| 3 | 支払いサイクル | 月次締め・最低支払額・繰越などの運用ルールの決定。Freemius の月次 payout（毎月1日計算・3〜6営業日で着金）に合わせるのが自然 |
+| 4 | 出品者への明細 | 出品者が自分の売上・報酬を確認する画面がない。管理画面 or マイページへの売上ダッシュボード追加が必要 |
+
+### 推奨方針
+
+1. **Phase 1（Freemius 移行時）**: 購入者課金のみ Freemius に移行。出品者報酬は `BillingService` で計算・記録だけ行い、支払いは手動（銀行振込）で運用開始
+2. **Phase 2**: `seller_payouts` テーブル＋管理画面の支払い一覧・承認フローを実装
+3. **Phase 3**: 送金 API（Stripe Connect / 銀行振込 API）の自動化を検討
+
+---
+
+## 10. 参考: 既存コードへのポインタ
 
 - ウォレットチャージ API: `app/controllers/api/v1/wallet_topup_controller.rb`
 - ルーティング: `config/routes.rb:729`（`wallet_topup#create/confirm/balance`）
