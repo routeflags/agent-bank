@@ -38,6 +38,13 @@ RSpec.describe "FreemiusWebhooks", type: :request do
       }
     end
 
+    before do
+      # Server-side verification fetches the payment from Freemius.
+      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_1").and_return(
+        { "id" => "fs_pay_1", "status" => "completed", "amount_cents" => 3000 }
+      )
+    end
+
     it "credits the wallet" do
       expect { signed_post(payload) }
         .to change { wallet.reload.balance_cents }.from(0).to(3000)
@@ -56,6 +63,21 @@ RSpec.describe "FreemiusWebhooks", type: :request do
       tx = wallet.credit_transactions.where(transaction_type: "topup").last
       expect(tx.metadata).to include("fs_pay_1")
     end
+
+    it "skips credit when the payment is not completed remotely" do
+      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_1").and_return(
+        { "id" => "fs_pay_1", "status" => "pending", "amount_cents" => 3000 }
+      )
+      expect { signed_post(payload) }
+        .not_to(change { wallet.reload.balance_cents })
+      expect(response).to have_http_status(200)
+    end
+
+    it "does not confuse fs_pay_1 with fs_pay_10 (exact match)" do
+      wallet.topup!(100, freemius_payment_id: "fs_pay_10")
+      expect { signed_post(payload) }
+        .to change { wallet.reload.balance_cents }.from(100).to(3100)
+    end
   end
 
   describe "POST /webhooks/freemius payment.refunded" do
@@ -63,7 +85,7 @@ RSpec.describe "FreemiusWebhooks", type: :request do
       wallet.topup!(3000, freemius_payment_id: "fs_pay_9")
     end
 
-    it "records a reversing refund entry" do
+    it "records a reversing refund entry and decrements the balance" do
       payload = {
         event: "payment.refunded",
         objects: { payment: { id: "fs_pay_9" } }
@@ -73,6 +95,7 @@ RSpec.describe "FreemiusWebhooks", type: :request do
           wallet.credit_transactions.where(transaction_type: "refund").count
         }.by(1)
       expect(response).to have_http_status(200)
+      expect(wallet.reload.balance_cents).to eq(0)
     end
 
     it "does not double-reverse on duplicate delivery" do
@@ -107,6 +130,17 @@ RSpec.describe "FreemiusWebhooks", type: :request do
     end
 
     it "handles subscription.cancelled via the state machine" do
+      payload = {
+        event: "subscription.cancelled",
+        objects: { subscription: { id: "fs_sub_1" } }
+      }
+      signed_post(payload)
+      expect(response).to have_http_status(200)
+      expect(subscription.reload.current_state).to eq("canceled")
+    end
+
+    it "handles subscription.cancelled from past_due" do
+      subscription.transition_to!(:past_due)
       payload = {
         event: "subscription.cancelled",
         objects: { subscription: { id: "fs_sub_1" } }

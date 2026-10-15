@@ -134,14 +134,11 @@ module API
             return render json: { error: "ウォレットが見つかりません" }, status: :not_found
           end
 
-          # 冪等性チェック: 同一 PaymentIntent で既にチャージ済みか確認
-          # metadata は {"stripe_payment_id":"..."} 形式で保存されるため、
-          # 完全一致ではなく LIKE で検索する（JSON書式の差異に頑健）。
-          already_credited = wallet.credit_transactions.where(
-            transaction_type: "topup"
-          ).where("metadata LIKE ?", "%#{intent.id}%").exists?
+          # Idempotent credit with row lock (see Wallet#topup!): concurrent
+          # duplicate confirmations credit only once. Returns nil if already done.
+          credited = wallet.topup!(intent.amount, stripe_payment_id: intent.id)
 
-          if already_credited
+          if credited.nil?
             return render json: {
               status: "ok",
               balance_cents: wallet.reload.balance_cents,
@@ -149,8 +146,6 @@ module API
               message: "既に処理済みです"
             }
           end
-
-          wallet.topup!(intent.amount, stripe_payment_id: intent.id)
 
           render json: {
             status: "ok",
@@ -202,6 +197,10 @@ module API
           user_id: current_user.id,
           wallet_id: wallet.id
         )
+
+        unless session["checkout_url"].present?
+          raise FreemiusClient::ApiError, "Freemius checkout response missing checkout_url"
+        end
 
         render json: {
           checkout_url: session["checkout_url"],
@@ -268,14 +267,10 @@ module API
           return render json: { error: "ウォレットが見つかりません" }, status: :not_found
         end
 
-        # 冪等性チェック: 同一擬似 PI で既にチャージ済みか
-        # metadata は {"stripe_payment_id":"..."} 形式で保存されるため、
-        # 完全一致ではなく LIKE で検索する（JSON書式の差異に頑健）。
-        already_credited = wallet.credit_transactions.where(
-          transaction_type: "topup"
-        ).where("metadata LIKE ?", "%#{intent_id}%").exists?
+        # Idempotent credit with row lock (see Wallet#topup!).
+        credited = wallet.topup!(payload["amt"], stripe_payment_id: intent_id)
 
-        if already_credited
+        if credited.nil?
           return render json: {
             status: "ok",
             balance_cents: wallet.reload.balance_cents,
@@ -283,8 +278,6 @@ module API
             message: "既に処理済みです"
           }
         end
-
-        wallet.topup!(payload["amt"], stripe_payment_id: intent_id)
 
         render json: {
           status: "ok",

@@ -261,6 +261,8 @@ class WalletTopupModal extends React.Component {
         });
       })
       .then(function (response) {
+        // Freemius redirect path returns null above; skip confirm in that case.
+        if (!response) return null;
         if (!response.ok) {
           return response.json().catch(function () { return {}; }).then(function (body) {
             throw new Error(body.error || 'Payment confirmation failed');
@@ -269,6 +271,8 @@ class WalletTopupModal extends React.Component {
         return response.json();
       })
       .then(function (data) {
+        // Null means the Freemius redirect already happened; nothing more to do.
+        if (!data) return;
         self.setState({ isProcessing: false, success: true });
         if (self.props.onSuccess) self.props.onSuccess(data.balance_cents);
         setTimeout(function () { self.props.onClose(); }, 1200);

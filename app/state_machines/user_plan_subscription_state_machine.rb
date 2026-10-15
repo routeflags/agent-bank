@@ -9,6 +9,6 @@ class UserPlanSubscriptionStateMachine
   state :past_due
 
   transition from: :active,   to: [:paused, :canceled, :past_due]
-  transition from: :paused,   to: [:active]
-  transition from: :past_due, to: [:active]
+  transition from: :paused,   to: [:active, :canceled]
+  transition from: :past_due, to: [:active, :canceled]
 end

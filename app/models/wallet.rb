@@ -30,12 +30,22 @@ class Wallet < ApplicationRecord
 
   # Add funds to this wallet via Stripe or Freemius.
   #
+  # Idempotent per provider payment ID: repeated calls with the same
+  # stripe_payment_id / freemius_payment_id credit only once. The check
+  # and the credit run inside a row lock so concurrent duplicate
+  # deliveries cannot double-credit.
+  #
   # @param amount_cents [Integer] amount to credit (positive)
   # @param stripe_payment_id [String, nil] Stripe PaymentIntent ID for audit trail
   # @param freemius_payment_id [String, nil] Freemius payment ID for audit trail
-  # @return [CreditTransaction] the created transaction record
+  # @return [CreditTransaction, nil] the created record, or nil if already credited
   def topup!(amount_cents, stripe_payment_id: nil, freemius_payment_id: nil)
     transaction do
+      lock!
+      if already_credited?(stripe_payment_id: stripe_payment_id, freemius_payment_id: freemius_payment_id)
+        return nil
+      end
+
       increment!(:balance_cents, amount_cents)
       credit_transactions.create!(
         transaction_type: "topup",
@@ -47,6 +57,91 @@ class Wallet < ApplicationRecord
       )
     end
   end
+
+  # Reverse a previous top-up (e.g. Freemius payment.refunded).
+  # Decrements the balance and records a refund entry atomically.
+  # Idempotent per provider payment ID.
+  #
+  # @param freemius_payment_id [String, nil] Freemius payment ID to reverse
+  # @param stripe_payment_id [String, nil] Stripe PaymentIntent ID to reverse
+  # @return [CreditTransaction, nil] the refund record, or nil if already reversed / nothing to reverse
+  def refund!(freemius_payment_id: nil, stripe_payment_id: nil)
+    transaction do
+      lock!
+      original = find_credited_transaction(
+        stripe_payment_id: stripe_payment_id, freemius_payment_id: freemius_payment_id
+      )
+      return nil unless original
+      return nil if refund_recorded?(
+        stripe_payment_id: stripe_payment_id, freemius_payment_id: freemius_payment_id
+      )
+
+      decrement!(:balance_cents, original.amount_cents.abs)
+      credit_transactions.create!(
+        transaction_type: "refund",
+        amount_cents: -original.amount_cents.abs,
+        metadata: {
+          stripe_payment_id: stripe_payment_id,
+          freemius_payment_id: freemius_payment_id
+        }.compact.to_json
+      )
+    end
+  end
+
+  # Whether a top-up with the given provider payment ID was already recorded.
+  def already_credited?(stripe_payment_id: nil, freemius_payment_id: nil)
+    find_credited_transaction(
+      stripe_payment_id: stripe_payment_id, freemius_payment_id: freemius_payment_id
+    ).present?
+  end
+
+  # Whether a refund for the given provider payment ID was already recorded.
+  def refund_recorded?(stripe_payment_id: nil, freemius_payment_id: nil)
+    scope = credit_transactions.where(transaction_type: "refund")
+    scope = scope_for_provider(scope,
+                               stripe_payment_id: stripe_payment_id,
+                               freemius_payment_id: freemius_payment_id)
+    scope.exists?
+  end
+
+  private
+
+  # Exact-match lookup of a top-up by provider payment ID.
+  # Parses the JSON metadata instead of LIKE-substring matching, so
+  # "fs_pay_1" never matches "fs_pay_10".
+  def find_credited_transaction(stripe_payment_id: nil, freemius_payment_id: nil)
+    candidates = credit_transactions.where(transaction_type: "topup").to_a
+    candidates.find do |tx|
+      meta = parse_metadata(tx.metadata)
+      (stripe_payment_id.present? && meta["stripe_payment_id"] == stripe_payment_id) ||
+        (freemius_payment_id.present? && meta["freemius_payment_id"] == freemius_payment_id)
+    end
+  end
+
+  def scope_for_provider(scope, stripe_payment_id: nil, freemius_payment_id: nil)
+    ids = [stripe_payment_id, freemius_payment_id].compact
+    return scope.none if ids.empty?
+
+    conditions = ids.map { |id| "metadata LIKE ?" }.join(" OR ")
+    values = ids.map { |id| "%\"#{sanitize_like(id)}\"%" }
+    scope.where(conditions, *values)
+  end
+
+  def sanitize_like(str)
+    str.to_s.gsub(/[\\%_]/) { |m| "\\#{m}" }
+  end
+
+  def parse_metadata(raw)
+    return {} if raw.blank?
+
+    JSON.parse(raw)
+  rescue JSON::ParserError
+    {}
+  end
+
+  public
+
+  # -- Public wallet operations continue below --
 
   # Deduct funds for AI usage. Raises InsufficientBalanceError if balance is too low.
   # Uses row-level lock to prevent race conditions between concurrent deductions.
