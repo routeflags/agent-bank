@@ -2319,6 +2319,7 @@ ja:
       wallet_success: "✅ 追加が完了しました！"
       wallet_processing: "処理中..."
       wallet_submit: "追加する"
+      wallet_redirecting: "決済ページへ移動しています…"
       wallet_add_credits: "クレジットを追加する"
       wallet_buy: "購入する"
       wallet_add_preparing: "追加する（準備中）"

@@ -1798,11 +1798,13 @@ CREATE TABLE `user_plan_subscriptions` (
   `period_usage_tokens` int(11) DEFAULT 0,
   `cancel_at_period_end` tinyint(1) DEFAULT 0,
   `stripe_subscription_id` varchar(255) DEFAULT NULL,
+  `freemius_subscription_id` varchar(255) DEFAULT NULL,
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `index_user_plan_subscriptions_on_status` (`status`),
   KEY `index_user_plan_subscriptions_on_stripe_subscription_id` (`stripe_subscription_id`),
+  KEY `index_user_plan_subscriptions_on_freemius_subscription_id` (`freemius_subscription_id`),
   KEY `index_user_plan_subscriptions_on_person_id_and_status` (`person_id`,`status`),
   KEY `index_user_plan_subscriptions_on_listing_id_and_person_id` (`listing_id`,`person_id`),
   CONSTRAINT `fk_rails_d8c9463137` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`)
@@ -1836,6 +1838,7 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261015064307'),
 ('20261012093707'),
 ('20261012083939'),
 ('20261007120000'),

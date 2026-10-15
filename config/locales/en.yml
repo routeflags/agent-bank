@@ -2891,6 +2891,7 @@ en:
       wallet_success: "✅ Credits added!"
       wallet_processing: "Processing..."
       wallet_submit: "Add"
+      wallet_redirecting: "Redirecting to checkout…"
       wallet_add_credits: "Add credits"
       wallet_buy: "Buy"
       wallet_add_preparing: "Add (coming soon)"

@@ -17,6 +17,7 @@ module ChatPanelHelper
       wallet_success: chat[:wallet_success],
       wallet_processing: chat[:wallet_processing],
       wallet_submit: chat[:wallet_submit],
+      wallet_redirecting: chat[:wallet_redirecting],
       wallet_add_credits: chat[:wallet_add_credits],
       wallet_buy: chat[:wallet_buy],
       wallet_add_preparing: chat[:wallet_add_preparing],

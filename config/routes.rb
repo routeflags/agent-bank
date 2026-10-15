@@ -38,6 +38,7 @@ Rails.application.routes.draw do
 
   # Some non-RESTful mappings
   post '/webhooks/paypal_ipn' => 'paypal_ipn#ipn_hook', as: :paypal_ipn_hook
+  post '/webhooks/freemius' => 'freemius_webhooks#receive', as: :freemius_webhook
   post '/webhooks/plans' => 'plans#create'
   get '/webhooks/trials' => 'plans#get_trials'
 

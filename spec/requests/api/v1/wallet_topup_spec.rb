@@ -176,6 +176,37 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
         expect(json["error"]).to include("決済の作成に失敗")
       end
     end
+
+    context "Freemius が設定されている場合" do
+      before { sign_in_as(person) }
+
+      it "returns 200 with checkout_url and provider freemius" do
+        allow(FreemiusClient).to receive(:configured?).and_return(true)
+        allow(FreemiusClient).to receive(:create_checkout).and_return(
+          { "checkout_url" => "https://checkout.freemius.test/c/abc", "payment_id" => "pay_1" }
+        )
+
+        post "/api/v1/wallet_topup", params: { amount_cents: 3000 }
+
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+        expect(json["checkout_url"]).to eq("https://checkout.freemius.test/c/abc")
+        expect(json["provider"]).to eq("freemius")
+        expect(json["amount_cents"]).to eq(3000)
+      end
+
+      it "returns 422 when Freemius checkout creation fails" do
+        allow(FreemiusClient).to receive(:configured?).and_return(true)
+        allow(FreemiusClient).to receive(:create_checkout)
+          .and_raise(FreemiusClient::ApiError.new("invalid amount"))
+
+        post "/api/v1/wallet_topup", params: { amount_cents: 3000 }
+
+        expect(response).to have_http_status(422)
+        json = JSON.parse(response.body)
+        expect(json["error"]).to include("決済の作成に失敗")
+      end
+    end
   end
 
   # ===================================================================

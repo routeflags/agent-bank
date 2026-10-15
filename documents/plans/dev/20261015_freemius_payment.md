@@ -139,23 +139,23 @@ Freemius の Subscriptions API でプラン・更新・解約を管理する。
 
 ### Phase 2: バックエンド実装
 
-- [ ] **2-1.** `FreemiusClient` サービスクラスを新規作成（`app/services/freemius_client.rb`）
+- [x] **2-1.** `FreemiusClient` サービスクラスを新規作成（`app/services/freemius_client.rb`）
   - Bearer トークン認証の Faraday/Net::HTTP ラッパー
   - Checkout セッション作成・Payments 照会・Subscriptions 照会
   - 既存の `Ai::StreamingClient` のような薄いラッパーでよい
-- [ ] **2-2.** `FreemiusWebhooksController` を新規作成（`app/controllers/freemius_webhooks_controller.rb`）
+- [x] **2-2.** `FreemiusWebhooksController` を新規作成（`app/controllers/freemius_webhooks_controller.rb`）
   - ルート: `POST /webhooks/freemius`（`config/routes.rb` に追加、PayPal IPN と同列）
   - `x-signature` ヘッダーで署名検証（不正リクエストは 401）
   - イベント種別でディスパッチ（`payment.completed` / `subscription.*` / `payment.refunded`）
   - 冪等性: Freemius の `payment_id` / `subscription_id` で重複処理を防止
-- [ ] **2-3.** `WalletTopupController#create` を改修
+- [x] **2-3.** `WalletTopupController#create` を改修
   - Stripe PaymentIntent 作成 → Freemius Checkout セッション作成に置き換え
   - レスポンスに `checkout_url` を含める（フロントはここへ遷移）
   - dev モード（擬似 PaymentIntent）は開発用に残す
-- [ ] **2-4.** `Wallet#topup!` の監査証跡を拡張
+- [x] **2-4.** `Wallet#topup!` の監査証跡を拡張
   - `stripe_payment_id:` 引数に加え `freemius_payment_id:` を受け付ける
   - `CreditTransaction.metadata` に `{ freemius_payment_id: ... }` を記録
-- [ ] **2-5.** `UserPlanSubscription` と Freemius Subscription の同期
+- [x] **2-5.** `UserPlanSubscription` と Freemius Subscription の同期
   - `freemius_subscription_id` カラム追加のマイグレーション
   - `subscription.created/renewed/cancelled/expired` で状態遷移
 - [ ] **2-6.** `AutoRechargeCheckJob` の決済実行を Freemius 経由に変更
@@ -164,24 +164,24 @@ Freemius の Subscriptions API でプラン・更新・解約を管理する。
 
 ### Phase 3: フロントエンド実装
 
-- [ ] **3-1.** `WalletTopupModal`（`ChatPanelApp.js:191-280`）の決済実行を差し替え
+- [x] **3-1.** `WalletTopupModal`（`ChatPanelApp.js:191-280`）の決済実行を差し替え
   - `POST /api/v1/wallet_topup` → 返却された `checkout_url` へリダイレクト（または埋め込み Checkout）
   - `confirm` ポーリングは削除し、Webhook 完了後の残高ポーリング（`balance` API）に変更
 - [ ] **3-2.** 決済完了後の UX
   - Freemius Checkout からの戻り先（success/cancel URL）を定義
   - 成功時: 残高を再取得して表示更新＋完了メッセージ
   - キャンセル時: 中断メッセージ
-- [ ] **3-3.** ロケール追加（`config/locales/ja.yml` / `en.yml` の `lamprey.chat` 配下）
+- [x] **3-3.** ロケール追加（`config/locales/ja.yml` / `en.yml` の `lamprey.chat` 配下）
   - リダイレクト案内・完了・キャンセル・エラー時の文言
 
 ### Phase 4: 検証
 
-- [ ] **4-1.** 単体テスト（RSpec）
+- [x] **4-1.** 単体テスト（RSpec）
   - `FreemiusClient` のリクエスト組み立て（WebMock でスタブ）
   - Webhook 署名検証（正・不正）
   - 冪等性（二重 Webhook で二重チャージされないこと）
   - `subscription.*` イベントでの状態遷移
-- [ ] **4-2.** 結合テスト（Request spec）
+- [x] **4-2.** 結合テスト（Request spec）
   - `POST /webhooks/freemius` の正常系・異常系
   - `POST /api/v1/wallet_topup` が `checkout_url` を返すこと
 - [ ] **4-3.** E2E（開発環境・Freemius サンドボックス）

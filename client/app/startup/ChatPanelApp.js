@@ -117,6 +117,7 @@ var DEFAULT_I18N = {
   wallet_success: '✅ 追加が完了しました！',
   wallet_processing: '処理中...',
   wallet_submit: '追加する',
+  wallet_redirecting: '決済ページへ移動しています…',
   wallet_add_credits: 'クレジットを追加する',
   wallet_buy: '購入する',
   wallet_add_preparing: '追加する（準備中）',
@@ -230,7 +231,7 @@ class WalletTopupModal extends React.Component {
 
     self.setState({ isProcessing: true, error: null });
 
-    // Step 1: Create a PaymentIntent
+    // Step 1: Create a checkout session (Freemius preferred, Stripe fallback)
     fetch('/api/v1/wallet_topup', {
       method: 'POST',
       headers: jsonHeaders(),
@@ -239,14 +240,20 @@ class WalletTopupModal extends React.Component {
       .then(function (response) {
         if (!response.ok) {
           return response.json().catch(function () { return {}; }).then(function (body) {
-            throw new Error(body.error || 'PaymentIntent creation failed');
+            throw new Error(body.error || 'Checkout creation failed');
           });
         }
         return response.json();
       })
       .then(function (data) {
-        // Step 2: Confirm the payment (simplified — in production this
-        // would use Stripe.js to collect card details and confirm)
+        // Freemius (Merchant of Record): redirect to the hosted checkout.
+        // Completion arrives via webhook; poll the balance on return.
+        if (data.provider === 'freemius' && data.checkout_url) {
+          self.setState({ isProcessing: false, redirecting: true });
+          window.location.href = data.checkout_url;
+          return null;
+        }
+        // Stripe fallback / dev mode: confirm the payment directly.
         return fetch('/api/v1/wallet_topup/confirm', {
           method: 'POST',
           headers: jsonHeaders(),
@@ -336,6 +343,7 @@ class WalletTopupModal extends React.Component {
         // Status messages
         state.error && React.createElement('div', { className: 'wallet-topup-modal__error' }, state.error),
         state.success && React.createElement('div', { className: 'wallet-topup-modal__success' }, t('wallet_success')),
+        state.redirecting && React.createElement('div', { className: 'wallet-topup-modal__success' }, t('wallet_redirecting')),
 
         // Submit
         React.createElement('button', {

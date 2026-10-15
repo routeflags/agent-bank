@@ -57,8 +57,11 @@ module API
 
       # POST /api/v1/wallet_topup
       #
-      # Creates a Stripe PaymentIntent for the requested amount.
-      # Returns a client_secret that the frontend uses to complete the payment.
+      # Creates a checkout session with the configured payment provider.
+      # Freemius (Merchant of Record) is preferred when configured;
+      # otherwise falls back to Stripe PaymentIntent for backward compatibility.
+      # Returns a checkout_url (Freemius) or client_secret (Stripe) that the
+      # frontend uses to complete the payment.
       def create
         amount_cents = params[:amount_cents].to_i
 
@@ -70,7 +73,7 @@ module API
 
         wallet = find_or_create_wallet!
 
-        # 開発/テスト環境で Stripe キー未設定の場合、実カード決済の代わりに
+        # 開発/テスト環境で決済キー未設定の場合、実カード決済の代わりに
         # デバッグ用の擬似 PaymentIntent を返す（ローカル開発でチャージ動作を検証するため）。
         if dev_mode_topup?
           return render json: {
@@ -81,15 +84,24 @@ module API
           }
         end
 
+        # Freemius (Merchant of Record) takes precedence when configured.
+        if FreemiusClient.configured?
+          return create_freemius_checkout(amount_cents, wallet)
+        end
+
         intent = create_payment_intent(amount_cents, wallet)
 
         render json: {
           client_secret: intent.client_secret,
           payment_intent_id: intent.id,
-          amount_cents: amount_cents
+          amount_cents: amount_cents,
+          provider: "stripe"
         }
       rescue Stripe::InvalidRequestError => e
         Rails.logger.error("[WalletTopup] Stripe error creating PaymentIntent: #{e.message}")
+        render json: { error: "決済の作成に失敗しました: #{e.message}" }, status: :unprocessable_entity
+      rescue FreemiusClient::ApiError => e
+        Rails.logger.error("[WalletTopup] Freemius error creating checkout: #{e.message}")
         render json: { error: "決済の作成に失敗しました: #{e.message}" }, status: :unprocessable_entity
       end
 
@@ -178,6 +190,25 @@ module API
       # @return [Wallet]
       def find_or_create_wallet!
         current_user.find_or_create_wallet!(community: current_user.community)
+      end
+
+      # Creates a Freemius checkout session for the wallet top-up.
+      # The buyer completes payment on Freemius; completion arrives via
+      # webhook (FreemiusWebhooksController#payment_completed).
+      def create_freemius_checkout(amount_cents, wallet)
+        session = FreemiusClient.create_checkout(
+          amount_cents: amount_cents,
+          currency: (wallet.currency || BillingConfig.currency).upcase,
+          user_id: current_user.id,
+          wallet_id: wallet.id
+        )
+
+        render json: {
+          checkout_url: session["checkout_url"],
+          payment_id: session["payment_id"],
+          amount_cents: amount_cents,
+          provider: "freemius"
+        }
       end
 
       # ── デバッグ用擬似決済（Stripe キー未設定時のローカル動作） ──

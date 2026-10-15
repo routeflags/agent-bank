@@ -28,18 +28,22 @@ class Wallet < ApplicationRecord
   validates :balance_cents, numericality: { greater_than_or_equal_to: 0 }
   validates :currency, presence: true
 
-  # Add funds to this wallet via Stripe.
+  # Add funds to this wallet via Stripe or Freemius.
   #
   # @param amount_cents [Integer] amount to credit (positive)
   # @param stripe_payment_id [String, nil] Stripe PaymentIntent ID for audit trail
+  # @param freemius_payment_id [String, nil] Freemius payment ID for audit trail
   # @return [CreditTransaction] the created transaction record
-  def topup!(amount_cents, stripe_payment_id: nil)
+  def topup!(amount_cents, stripe_payment_id: nil, freemius_payment_id: nil)
     transaction do
       increment!(:balance_cents, amount_cents)
       credit_transactions.create!(
         transaction_type: "topup",
         amount_cents: amount_cents,
-        metadata: { stripe_payment_id: stripe_payment_id }.to_json
+        metadata: {
+          stripe_payment_id: stripe_payment_id,
+          freemius_payment_id: freemius_payment_id
+        }.compact.to_json
       )
     end
   end
