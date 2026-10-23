@@ -175,4 +175,45 @@ RSpec.describe UserPlanSubscriptionService, type: :model do
       end
     end
   end
+
+  # 取引を伴わない付与経路（開発環境専用の購入再現）。
+  # create_on_purchase と同じロジックを使うことを固定する。
+  describe ".create_for" do
+    subject(:result) do
+      described_class.create_for(
+        person: person,
+        listing: listing,
+        payment_reference: "dev_purchase_test"
+      )
+    end
+
+    it "取引が無くても active な購入権利を作成する" do
+      expect { result }.to change(UserPlanSubscription, :count).by(1)
+      expect(result.subscription.status).to eq("active")
+      expect(result.subscription.billing_model).to eq("token_based")
+      expect(result.duplicate?).to be false
+    end
+
+    it "初回トークンを付与し、payment_reference を監査証跡に残す" do
+      result
+
+      expect(person.reload.wallet.balance_cents).to be > 0
+      credit_transaction = CreditTransaction.last
+      expect(credit_transaction.transaction_type).to eq("topup")
+      expect(credit_transaction.metadata).to include("dev_purchase_test")
+    end
+
+    it "既に active な購入権利があれば二重付与しない" do
+      described_class.create_for(person: person, listing: listing, payment_reference: "first")
+      balance = person.reload.wallet.balance_cents
+      duplicate = nil
+
+      expect {
+        duplicate = described_class.create_for(person: person, listing: listing, payment_reference: "second")
+      }.not_to change(UserPlanSubscription, :count)
+
+      expect(duplicate.duplicate?).to be true
+      expect(person.reload.wallet.balance_cents).to eq(balance)
+    end
+  end
 end

@@ -23,6 +23,8 @@ module ChatPanelHelper
       wallet_add_preparing: chat[:wallet_add_preparing],
       wallet_add_preparing_body: chat[:wallet_add_preparing_body],
       purchase_preparing_body: chat[:purchase_preparing_body],
+      dev_purchase_success: chat[:dev_purchase_success],
+      dev_purchase_failed: chat[:dev_purchase_failed],
       new_chat_title: chat[:new_chat_title],
       insufficient_tokens: chat[:insufficient_tokens],
       purchase_required: chat[:purchase_required],
@@ -70,5 +72,14 @@ module ChatPanelHelper
       a11y_input: chat["a11y_input"],
       a11y_send: chat["a11y_send"]
     }
+  end
+
+  # 開発/テスト専用の購入付与（DevPersonaPurchase）が有効か。
+  # ChatPanel の購入ボタンは、有効なときだけ実際の購入 API を呼ぶ。
+  # 無効な環境（本番など）では従来どおり「準備中」を表示する。
+  #
+  # @return [Boolean]
+  def dev_purchase_enabled?
+    DevPersonaPurchase.enabled?
   end
 end

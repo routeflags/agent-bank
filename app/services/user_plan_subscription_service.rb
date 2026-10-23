@@ -12,6 +12,10 @@
 #   result.wallet        # => Wallet (with initial tokens)
 #   result.duplicate?    # => true if subscription already existed
 #
+#   # 取引を伴わない付与（開発環境専用の購入再現など）
+#   result = UserPlanSubscriptionService.create_for(
+#     person: person, listing: listing, payment_reference: "dev_...")
+#
 class UserPlanSubscriptionService
   Result = Struct.new(:subscription, :wallet, :duplicate?, keyword_init: true)
 
@@ -21,13 +25,29 @@ class UserPlanSubscriptionService
   # @return [Result] the result containing subscription, wallet, and duplicate flag
   # @raise [ActiveRecord::RecordInvalid] if subscription or wallet creation fails
   def self.create_on_purchase(transaction)
-    new(transaction).call
+    create_for(
+      person: transaction.buyer,
+      listing: transaction.listing,
+      payment_reference: "initial_purchase_#{transaction.id}"
+    )
   end
 
-  def initialize(transaction)
-    @transaction = transaction
-    @listing = transaction.listing
-    @person = transaction.buyer
+  # Purchase entry point for callers that have no Transaction record
+  # (dev/test purchase helpers). Shares the same creation logic as
+  # create_on_purchase so the two paths cannot drift apart.
+  #
+  # @param person [Person] the buyer
+  # @param listing [Listing] the purchased persona
+  # @param payment_reference [String] audit reference stored in the CreditTransaction
+  # @return [Result]
+  def self.create_for(person:, listing:, payment_reference:)
+    new(person: person, listing: listing, payment_reference: payment_reference).call
+  end
+
+  def initialize(person:, listing:, payment_reference:)
+    @person = person
+    @listing = listing
+    @payment_reference = payment_reference
   end
 
   def call
@@ -103,7 +123,7 @@ class UserPlanSubscriptionService
     per_token_cents = BillingConfig.per_token_price_cents(:subscription)
     initial_amount_cents = included_tokens * per_token_cents
 
-    wallet.topup!(initial_amount_cents, stripe_payment_id: "initial_purchase_#{@transaction.id}")
+    wallet.topup!(initial_amount_cents, stripe_payment_id: @payment_reference)
     wallet
   end
 

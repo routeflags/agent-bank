@@ -733,6 +733,12 @@ Rails.application.routes.draw do
           get :balance
         end
       end
+
+      # 開発/テスト専用の購入付与（production では 404）
+      # 詳細: documents/guides/dev_persona_purchase_flow.md
+      namespace :dev do
+        resources :persona_purchases, only: [:create]
+      end
     end
     mount ActionCable.server => '/cable'
   end

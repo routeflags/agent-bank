@@ -45,6 +45,28 @@ describe "Free transaction and preauthorized flows", type: :request do
     expect(response).to have_http_status(:redirect)
   end
 
+  # free 遷移は「決済なしで成立した取引」なので、購入権利を付与してはいけない。
+  # （以前は有料ペルソナへのコンタクトで購入権利と初回トークンが付与されていた）
+  it "does not grant a purchase subscription on contact (paid persona)" do
+    sign_in(@buyer)
+    expect {
+      post "http://#{@domain}/ja/listings/#{@listing.id}/create_contact",
+           params: { listing_conversation: { content: "購入前の問い合わせ" } }
+    }.not_to change(UserPlanSubscription, :count)
+  end
+
+  it "does not grant a purchase subscription on contact (free persona)" do
+    free_listing = FactoryBot.create(:listing,
+                                     community_id: @community.id,
+                                     author: @author,
+                                     price: Money.new(0, "USD"))
+    sign_in(@buyer)
+    expect {
+      post "http://#{@domain}/ja/listings/#{free_listing.id}/create_contact",
+           params: { listing_conversation: { content: "無料ペルソナへの問い合わせ" } }
+    }.not_to change(UserPlanSubscription, :count)
+  end
+
   it "blocks authors from contacting their own listing" do
     sign_in(@author)
     get "http://#{@domain}/ja/listings/#{@listing.id}/contact"

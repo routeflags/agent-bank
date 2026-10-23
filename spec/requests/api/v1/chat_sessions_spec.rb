@@ -131,6 +131,41 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
       end
     end
 
+    context "無料ペルソナ（価格 0）は購入なしでセッションを作成できる" do
+      let(:free_listing) do
+        FactoryBot.create(:listing,
+                          community_id: community.id,
+                          author: other_person,
+                          price: Money.new(0, "USD"),
+                          default_run_mode: "run_online")
+      end
+
+      before do
+        sign_in_as(person)
+        post "/api/v1/chat_sessions", params: { listing_id: free_listing.id }
+      end
+
+      it "returns 201" do
+        expect(response).to have_http_status(201)
+      end
+
+      it "purchase_required を返さない" do
+        json = JSON.parse(response.body)
+        expect(json["error_type"]).to be_nil
+        expect(json["chat_session"]["listing_id"]).to eq(free_listing.id)
+      end
+
+      it "サブスクリプション無しでもセッションを作成する" do
+        expect(UserPlanSubscription.count).to eq(0)
+        expect(ChatSession.count).to eq(1)
+      end
+
+      it "billing_model は token_based（subscription 無しの従量課金）" do
+        json = JSON.parse(response.body)
+        expect(json["chat_session"]["billing_model"]).to eq("token_based")
+      end
+    end
+
     context "既にセッションがある場合は既存セッションを返す" do
       let!(:existing_session) do
         FactoryBot.create(:user_plan_subscription, person: person, listing: listing, status: "active")

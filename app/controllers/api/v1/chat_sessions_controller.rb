@@ -147,12 +147,17 @@ class API::V1::ChatSessionsController < ApplicationController
     end
   end
 
-  # Checks whether the person has an active subscription for the listing.
+  # Checks whether the person may start a chat for the listing.
+  #
+  # 無料ペルソナ（価格 0 / 無料実行モード）は購入不要で利用できる。
+  # 有料ペルソナは active な購入（UserPlanSubscription）が必要。
   #
   # @param person [Person]
   # @param listing [Listing]
   # @return [Boolean]
   def purchased?(person, listing)
+    return true if listing.free_to_use?
+
     UserPlanSubscription.exists?(
       person: person,
       listing: listing,

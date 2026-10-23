@@ -1044,18 +1044,42 @@ class ChatPanelApp extends React.Component {
   }
 
   handlePurchase() {
-    // ペルソナ購入ページへ遷移（現在は準備中メッセージを表示）
-    this.setState(function (prev) {
-      return {
-        messages: prev.messages.concat([{
-          id: 'sys-purchase-' + Date.now(),
-          role: 'system',
-          content: t('purchase_preparing_body'),
-          isStreaming: false,
-          created_at: new Date().toISOString(),
-        }]),
-      };
-    });
+    var self = this;
+
+    // 開発/テスト環境で購入付与が有効な場合のみ、実際の購入 API を呼ぶ。
+    // 本番では従来どおり「準備中」を表示する（購入導線は未実装）。
+    if (!this.props.dev_purchase_enabled) {
+      this.addMessage('sys-purchase-' + Date.now(), 'system', t('purchase_preparing_body'), false);
+      return;
+    }
+
+    fetch('/api/v1/dev/persona_purchases', {
+      method: 'POST',
+      headers: jsonHeaders(),
+      body: JSON.stringify({ listing_id: this.props.listing_id }),
+    })
+      .then(function (response) {
+        return response.json().catch(function () { return {}; }).then(function (body) {
+          if (!response.ok) {
+            throw new Error(body.error || t('dev_purchase_failed'));
+          }
+          return body;
+        });
+      })
+      .then(function () {
+        // 購入権利が付与されたので、そのままチャットを開始する
+        return self.createSession();
+      })
+      .then(function (result) {
+        if (result && result.id) {
+          self.addMessage('sys-purchase-' + Date.now(), 'system', t('dev_purchase_success'), false);
+        } else {
+          self.addMessage('sys-purchase-' + Date.now(), 'system', t('session_create_failed'), false);
+        }
+      })
+      .catch(function () {
+        self.addMessage('sys-purchase-' + Date.now(), 'system', t('dev_purchase_failed'), false);
+      });
   }
 
   // ─── Lifecycle ────────────────────────────────────────

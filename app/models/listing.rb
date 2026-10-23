@@ -455,6 +455,21 @@ class Listing < ApplicationRecord
     available_run_modes.include?(mode.to_s)
   end
 
+  # 購入（UserPlanSubscription）なしで利用できるペルソナか。
+  #
+  # 次のいずれかなら購入不要とみなす:
+  #   * 価格が未設定または 0（無料ペルソナ）
+  #   * 無料実行モード（default_run_mode == "free"）
+  #
+  # チャット開始時の権利判定（API::V1::ChatSessionsController#purchased?）
+  # から参照される。トークン原価は購入価格とは別で、無料ペルソナでも
+  # ウォレットから従量課金される（BillingService の既存仕様）。
+  #
+  # @return [Boolean]
+  def free_to_use?
+    price_cents.to_i.zero? || default_run_mode == "free"
+  end
+
   # Returns a hash summarizing all persona-related fields.
   # Useful for API responses and persona card rendering.
   #
