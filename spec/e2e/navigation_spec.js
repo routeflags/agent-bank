@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
-const BASE = 'http://agent-bank.lvh.me:3000/ja';
+// E2E_BASE_URL で一時ポート等に差し替え可能（例: http://agent-bank.lvh.me:3100/ja）
+const BASE = process.env.E2E_BASE_URL || 'http://agent-bank.lvh.me:3000/ja';
 const CHROME = '/Users/bookair18/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing';
 
 let browser, page;
@@ -83,45 +84,83 @@ async function assertUrlContains(page, expected, msg) {
   // ── ヒーローセクション ──
   console.log('\n--- ヒーローセクション ---');
 
-  await run('TC-06: 検索 → 検索結果', async () => {
+  await run('TC-06: 検索 → 一覧画面（/browse?q=SEO）', async () => {
     await page.goto(BASE);
     const input = page.locator('.raku-hero__search-input, input[placeholder*="スキル"]');
     await input.fill('SEO');
     const btn = page.locator('.raku-hero__search-btn, button:has(svg)').first();
     await btn.click();
     await page.waitForTimeout(2000);
-    await assertUrlContains(page, 'q=SEO', '検索結果に遷移しない');
+    await assertUrlContains(page, '/browse', `ヒーロー検索が /browse に遷移しない — got: ${page.url()}`);
+    await assertUrlContains(page, 'q=SEO', '検索クエリがURLにない');
   });
 
-  await run('TC-07: ヒーロータグ → 検索結果', async () => {
+  await run('TC-07: ヒーロータグ → 一覧画面（/browse?q=...）', async () => {
     await page.goto(BASE);
     await page.click('a.raku-hero__tag:has-text("データ分析")');
     await page.waitForTimeout(2000);
-    await assertUrlContains(page, 'q=', '検索結果に遷移しない');
+    await assertUrlContains(page, '/browse', `ヒーロータグが /browse に遷移しない — got: ${page.url()}`);
+    await assertUrlContains(page, 'q=', '検索クエリがURLにない');
   });
 
   // ── カテゴリ ──
   console.log('\n--- カテゴリ ---');
 
-  await run('TC-08: カテゴリ「生成AI」→ カテゴリ絞り込み', async () => {
+  await run('TC-08: カテゴリ「生成AI」→ 一覧画面（/browse?category=...）', async () => {
     await page.goto(BASE);
     await page.click('a[href*="category=generation-ai"]');
     await page.waitForTimeout(2000);
-    await assertUrlContains(page, 'category=generation-ai', 'カテゴリページに遷移しない');
+    await assertUrlContains(page, '/browse', `カテゴリが /browse に遷移しない — got: ${page.url()}`);
+    await assertUrlContains(page, 'category=generation-ai', 'カテゴリパラメータがない');
   });
 
-  await run('TC-09: カテゴリ「データ分析」→ カテゴリ絞り込み', async () => {
+  await run('TC-09: カテゴリ「データ分析」→ 一覧画面（/browse?category=...）', async () => {
     await page.goto(BASE);
     await page.click('a[href*="category=data-analysis"]');
     await page.waitForTimeout(2000);
-    await assertUrlContains(page, 'category=data-analysis', 'カテゴリページに遷移しない');
+    await assertUrlContains(page, '/browse', `カテゴリが /browse に遷移しない — got: ${page.url()}`);
+    await assertUrlContains(page, 'category=data-analysis', 'カテゴリパラメータがない');
   });
 
-  await run('TC-10: カテゴリ「開発・プログラミング」→ カテゴリ絞り込み', async () => {
+  await run('TC-10: カテゴリ「開発・プログラミング」→ 一覧画面（/browse?category=...）', async () => {
     await page.goto(BASE);
     await page.click('a[href*="category=development"]');
     await page.waitForTimeout(2000);
-    await assertUrlContains(page, 'category=development', 'カテゴリページに遷移しない');
+    await assertUrlContains(page, '/browse', `カテゴリが /browse に遷移しない — got: ${page.url()}`);
+    await assertUrlContains(page, 'category=development', 'カテゴリパラメータがない');
+  });
+
+  // ── ヒーロー全幅（Issue #3）──
+  console.log('\n--- ヒーロー全幅 ---');
+
+  await run('TC-27: ヒーローがビューポート全幅（横スクロールなし）', async () => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(BASE);
+    await page.waitForTimeout(2000);
+    const hero = page.locator('.raku-hero');
+    if ((await hero.count()) === 0) throw new Error('.raku-hero がない');
+    const box = await hero.boundingBox();
+    const vw = await page.evaluate(() => document.documentElement.clientWidth);
+    if (!box) throw new Error('boundingBox が取得できない');
+    if (box.width < vw - 1 || box.x > 1) {
+      throw new Error(`ヒーローが全幅ではない: width=${box.width}, x=${box.x}, viewport=${vw}`);
+    }
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    if (scrollWidth > vw + 1) throw new Error(`横スクロールが発生している: scrollWidth=${scrollWidth}, viewport=${vw}`);
+  });
+
+  await run('TC-28: モバイル幅（375px）でヒーローが全幅・横スクロールなし', async () => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto(BASE);
+    await page.waitForTimeout(2000);
+    const box = await page.locator('.raku-hero').boundingBox();
+    const vw = await page.evaluate(() => document.documentElement.clientWidth);
+    if (!box || box.width < vw - 1 || box.x > 1) {
+      throw new Error(`モバイルでヒーローが全幅ではない: ${JSON.stringify(box)} viewport=${vw}`);
+    }
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    if (scrollWidth > vw + 1) throw new Error(`モバイルで横スクロールが発生している: scrollWidth=${scrollWidth}`);
+    await page.setViewportSize({ width: 1440, height: 900 });
   });
 
   // ── タブ切替 ──
@@ -250,7 +289,7 @@ async function assertUrlContains(page, expected, msg) {
       }
     });
 
-    await run('TC-24: ヘッダー検索 → 検索結果へ遷移', async () => {
+    await run('TC-24: ヘッダー検索 → 一覧画面（/browse?q=SEO）', async () => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(BASE);
       await page.waitForTimeout(1500);
@@ -260,6 +299,7 @@ async function assertUrlContains(page, expected, msg) {
       await page.click('.header-search__button');
       await page.waitForTimeout(2500);
       const url = decodeURIComponent(page.url());
+      if (!url.includes('/browse')) throw new Error(`ヘッダー検索が /browse に遷移しない: ${page.url()}`);
       if (!url.includes('q=SEO')) throw new Error(`検索クエリがURLにない: ${page.url()}`);
     });
   } else {

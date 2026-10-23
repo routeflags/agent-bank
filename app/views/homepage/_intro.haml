@@ -1,34 +1,6 @@
--# 楽市楽間 — Hero Section
--# ═══════════════════════════════════════════════════════════
-.raku-hero
-  .raku-hero__badge
-    🚀
-    = t('lamprey.homepage.hero_tagline')
-  %h1.raku-hero__title
-    = t('lamprey.homepage.hero_title')
-  %p.raku-hero__subtitle
-    = t('lamprey.homepage.hero_subtitle')
-
-  -# Search bar
-  -# NOTE: rendered inside the layout's #homepage-filters form on the homepage,
-  -# so this must be a plain div (a nested <form> is invalid HTML). The "q"
-  -# input participates in the outer GET form submission.
-  .raku-hero__search
-    .raku-hero__search-type
-      = t('lamprey.homepage.search_type_all')
-      %svg{viewBox: "0 0 20 20", fill: "currentColor"}
-        %path{d: "M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"}
-    %input.raku-hero__search-input{type: "text", name: "q", placeholder: t('lamprey.homepage.search_placeholder')}
-    %button.raku-hero__search-btn{type: "submit", aria: { label: t('lamprey.homepage.search_button') }}
-      %svg{viewBox: "0 0 20 20", fill: "currentColor"}
-        %path{d: "M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"}
-
-  -# Popular search tags
-  .raku-hero__tags
-    = link_to "SEO", search_path(q: "SEO"), class: "raku-hero__tag"
-    - t("lamprey.homepage.hero_tags").each do |tag|
-      = link_to tag, search_path(q: tag), class: "raku-hero__tag"
-
+-# 楽市楽間 — 統計・カテゴリ（トップ用）
+-# ヒーロー（.raku-hero）は _hero.haml に分離し、application.haml が
+-# .wrapper の外（全幅）に render している。
 -# ═══════════════════════════════════════════════════════════
 -# Marketplace metrics（DESIGN.md §12 — 実データ集計はコントローラ）
 -# ═══════════════════════════════════════════════════════════
@@ -60,37 +32,37 @@
 .raku-categories
   %h2.raku-categories__title= t('lamprey.homepage.categories_title')
   .raku-categories__grid
-    = link_to search_path(category: "generation-ai"), class: "raku-categories__item" do
+    = link_to browse_path(category: "generation-ai"), class: "raku-categories__item" do
       %span.raku-categories__icon 🎨
       %span.raku-categories__name= t('lamprey.homepage.category_generation_ai')
-    = link_to search_path(category: "data-analysis"), class: "raku-categories__item" do
+    = link_to browse_path(category: "data-analysis"), class: "raku-categories__item" do
       %span.raku-categories__icon 📊
       %span.raku-categories__name= t('lamprey.homepage.category_data_analysis')
-    = link_to search_path(category: "development"), class: "raku-categories__item" do
+    = link_to browse_path(category: "development"), class: "raku-categories__item" do
       %span.raku-categories__icon 💻
       %span.raku-categories__name= t('lamprey.homepage.category_development')
-    = link_to search_path(category: "marketing"), class: "raku-categories__item" do
+    = link_to browse_path(category: "marketing"), class: "raku-categories__item" do
       %span.raku-categories__icon 📣
       %span.raku-categories__name= t('lamprey.homepage.category_marketing')
-    = link_to search_path(category: "automation"), class: "raku-categories__item" do
+    = link_to browse_path(category: "automation"), class: "raku-categories__item" do
       %span.raku-categories__icon ⚙️
       %span.raku-categories__name= t('lamprey.homepage.category_automation')
-    = link_to search_path(category: "design"), class: "raku-categories__item" do
+    = link_to browse_path(category: "design"), class: "raku-categories__item" do
       %span.raku-categories__icon 🖼️
       %span.raku-categories__name= t('lamprey.homepage.category_design')
-    = link_to search_path(category: "research"), class: "raku-categories__item" do
+    = link_to browse_path(category: "research"), class: "raku-categories__item" do
       %span.raku-categories__icon 🔬
       %span.raku-categories__name= t('lamprey.homepage.category_research')
-    = link_to search_path(category: "education"), class: "raku-categories__item" do
+    = link_to browse_path(category: "education"), class: "raku-categories__item" do
       %span.raku-categories__icon 📖
       %span.raku-categories__name= t('lamprey.homepage.category_education')
-    = link_to search_path(category: "writing"), class: "raku-categories__item" do
+    = link_to browse_path(category: "writing"), class: "raku-categories__item" do
       %span.raku-categories__icon ✍️
       %span.raku-categories__name= t('lamprey.homepage.category_writing')
-    = link_to search_path(category: "media"), class: "raku-categories__item" do
+    = link_to browse_path(category: "media"), class: "raku-categories__item" do
       %span.raku-categories__icon 🎵
       %span.raku-categories__name= t('lamprey.homepage.category_media')
-    = link_to search_path(category: "other"), class: "raku-categories__item" do
+    = link_to browse_path(category: "other"), class: "raku-categories__item" do
       %span.raku-categories__icon 📁
       %span.raku-categories__name= t('lamprey.homepage.category_other')
 

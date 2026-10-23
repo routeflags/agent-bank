@@ -27,9 +27,9 @@
           %span.raku-nav__icon 📚
           = t("lamprey.header.nav_docs")
 
-    -# Desktop/tablet compact search (DESIGN.md §7/§11)
+    -# Desktop/tablet compact search (DESIGN.md §7/§11) — 送信先は一覧画面（/browse）
     .header-search.visible-tablet
-      = form_tag landing_page_path, method: :get, class: "header-search__form" do
+      = form_tag browse_path, method: :get, class: "header-search__form" do
         = text_field_tag :q, params[:q], class: "header-search__input", placeholder: t("homepage.index.what_do_you_need"), aria: { label: t("lamprey.header.search_label") }
         = button_tag type: :submit, class: "header-search__button", aria: { label: t("lamprey.header.search_submit") } do
           🔍
