@@ -13,6 +13,7 @@
 |------|------|
 | チャット開始条件 | `UserPlanSubscription`（`status: active`）または無料ペルソナ（`Listing#free_to_use?`） |
 | 購入権利の付与（本番） | 取引ステートマシンの `confirmed` 遷移（実決済の完了） |
+| 購入権利の付与（管理者） | 手動付与 Rake（`lamprey:purchases:grant`。**production でも可**。運用手順は [manual_purchase_grant.md](./manual_purchase_grant.md)） |
 | 購入権利の付与（開発/テスト） | `DevPersonaPurchase`（API / Rake。**production では常に無効**） |
 | 決済プロバイダ | Freemius（Merchant of Record）。開発環境ではキー未設定のため実決済不可 |
 
