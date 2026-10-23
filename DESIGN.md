@@ -109,10 +109,62 @@ Redはさらに限定する。
 フォーム送信ボタン（`input[type="submit"].button`、`button.button`）は
 **Gold + ダーク文字**を標準とする（Issue #22）。
 
-- 保存・送信・ログインなど破壊的でない操作 → Gold
+- 保存・送信・ログインなど破壊的でない操作 → Gold
 - 破壊的操作（アカウント削除など） → Red（`--accent-red`）
 - Sharetribe 由来の青（`#4a90e2` / `#2f6fc4`）は使わない
 - コントラストは `scripts/theme_contrast_check.js` で実測し、本文 4.5:1 以上を保つ
+
+### Light theme（ライトテーマ配色・Issue #27）
+
+現状は `app/views/layouts/application.haml:8` の `%body.dark-theme` でダーク固定。
+ライトテーマは「`body.dark-theme` が付かない場合」に発効する。適用基点は
+`body:not(.dark-theme)` とし、`:root` での上書きは使わない（`:root` はダーク側の
+`var()` 参照も変わるため）。ライト用の定義は
+`app/assets/stylesheets/themes/_light_variables.scss` の 1 箇所にまとめる。
+
+トークン（`_dark_variables.scss` と同名。ライトで異なる値だけ再定義）:
+
+``` css
+body:not(.dark-theme) {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f7f7;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f2f2f2;
+  --bg-input: #ffffff;
+  --bg-sidebar: #f5f5f5;
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #555555;
+  --text-muted: #666666;
+  --text-link: #1f6f60;
+
+  --border-color: #d0d0d0;
+  --border-light: #e4e4e4;
+}
+```
+
+使いどころ:
+
+-   ページ地・カード地・入力欄地 → `--bg-primary` / `--bg-card` /
+    `--bg-input`（白地）。面の区切りに `--bg-secondary`
+-   本文 → `--text-primary`（白地 17.4:1）。補助文 `--text-secondary`
+    （7.46:1）、メタ情報 `--text-muted`（5.74:1）
+-   リンク → `--text-link`（暗 teal。白地 6.00:1 / 通知 `#e8e8e8` 上 4.90:1）。
+    通知内リンクは下線付き（色だけに依存しない識別。ダークと同一）
+-   送信ボタン → Gold（`--accent-gold` + 濃色文字 = 7.89:1、hover 6.47:1）。
+    破壊的操作のみ Red（`--accent-red` + 白 = 5.84:1、hover 7.40:1）。
+    Sharetribe 由来の青は dark / light とも使わない
+-   Accent / Badge / Radius / Shadow / Transition はテーマ非依存で
+    `:root`（`_dark_variables.scss`）を dark / light で共有
+
+コントラスト基準: 本文・リンク・ボタン・hover とも 4.5:1 以上（WCAG 2.1 AA）。
+無効ボタン（`.disabled-button`）のみ WCAG 1.4.3 の適用除外として記録のみ。
+実測コマンド（dark / light 両方が pass/fail 判定され、失敗で非ゼロ終了）:
+
+``` bash
+bundle exec rails runner scripts/compile_application_css.rb /tmp/application.css
+node scripts/theme_contrast_check.js --css /tmp/application.css
+```
 
 ------------------------------------------------------------------------
 

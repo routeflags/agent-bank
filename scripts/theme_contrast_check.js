@@ -8,10 +8,13 @@
  *   「見た目で良さそう」ではなく、再現可能な数値で判定するためのレポートツール。
  *
  * 判定:
- *   - body.dark-theme のケースのみ合否判定（閾値 4.5:1）。失敗時は exit 1
- *   - ライト相当（body class なし）は記録のみ。変更前後の差分比較に使う
- *     （ライトテーマは現状到達しないが、非変更の証跡として保存）
- *   - 無効ボタン（.disabled-button）は WCAG 1.4.3 の適用除外のため記録のみ
+ *   - dark（body.dark-theme）/ light（body class なし）とも合否判定（閾値 4.5:1）。
+ *     dark・light いずれかの fail、または axe-core の color-contrast 違反で exit 1
+ *     （light の合否判定は Issue #27 で切り替え。ライトテーマ有効化に備える）
+ *   - 無効ボタン（.disabled-button）のみ記録のみ（min: null）。
+ *     理由: WCAG 1.4.3 は inactive な UI コントロールをコントラスト要件の
+ *     適用除外としており、さらに無効状態を有効状態と同じ 4.5:1 にすると
+ *     「押せる／押せない」の見分けが色でできなくなるため、意図的に閾値を設けない
  *
  * 前提:
  *   bundle exec rails runner scripts/compile_application_css.rb /tmp/application.css
@@ -139,7 +142,7 @@ function buildFixture(bodyClass) {
 }
 
 // ── 計測ケース ──────────────────────────────────────────
-// min: 4.5 → 合否判定。null → 記録のみ（無効ボタン）
+// min: 4.5 → dark / light 両方の合否判定。null → 記録のみ（無効ボタンのみ。理由はヘッダー参照）
 const CASES = [
   { id: 'flash-notice-text', label: '通知 notice 本文', selector: '.flash-notice .flash-text', min: 4.5 },
   { id: 'flash-warning-text', label: '警告 warning 本文（#8）', selector: '.flash-warning .flash-text', min: 4.5 },
@@ -265,7 +268,10 @@ async function measureHover(page, theme, cases, cssContent) {
     ...(await measurePage(page, 'dark', CASES, cssContent)),
     ...(await measureHover(page, 'dark', HOVER_CASES, cssContent)),
   ];
-  const light = [await measurePage(page, 'light', CASES, cssContent)];
+  const light = [
+    ...(await measurePage(page, 'light', CASES, cssContent)),
+    ...(await measureHover(page, 'light', HOVER_CASES, cssContent)),
+  ];
 
   // axe-core（color-contrast のみ）を dark フィクスチャで実行
   let axeViolations = [];
@@ -291,8 +297,8 @@ async function measureHover(page, theme, cases, cssContent) {
   lines.push(`# テーマ配色コントラスト実測 (css=${CSS_PATH})`);
   lines.push(`## dark theme (body.dark-theme) — 合否判定: 4.5:1`);
   dark.forEach((r) => lines.push(fmt(r)));
-  lines.push(`## light baseline (body class なし) — 記録のみ`);
-  light[0].forEach((r) => lines.push(fmt(r)));
+  lines.push(`## light theme (body class なし) — 合否判定: 4.5:1`);
+  light.forEach((r) => lines.push(fmt(r)));
   lines.push(`## axe-core color-contrast (dark fixture)`);
   lines.push(axeViolations.length === 0 ? '✅ violations: 0' : `❌ violations: ${axeViolations.length}`);
   axeViolations.forEach((v) => lines.push(`  - ${v.id} @ ${v.target}`));
@@ -304,13 +310,18 @@ async function measureHover(page, theme, cases, cssContent) {
   const recordOnly = dark.filter((r) => r.pass === null).length;
   console.log(`\ndark: pass ${passCount} / fail ${failures.length} / record-only ${recordOnly}`);
 
+  const lightFailures = light.filter((r) => r.pass === false);
+  const lightPass = light.filter((r) => r.pass === true).length;
+  const lightRecordOnly = light.filter((r) => r.pass === null).length;
+  console.log(`light: pass ${lightPass} / fail ${lightFailures.length} / record-only ${lightRecordOnly}`);
+
   if (JSON_PATH) {
     fs.writeFileSync(
       JSON_PATH,
-      JSON.stringify({ css: CSS_PATH, dark, light: light[0], axeViolations }, null, 2) + '\n'
+      JSON.stringify({ css: CSS_PATH, dark, light, axeViolations }, null, 2) + '\n'
     );
     console.log(`json -> ${JSON_PATH}`);
   }
 
-  if (failures.length || axeViolations.length) process.exit(1);
+  if (failures.length || lightFailures.length || axeViolations.length) process.exit(1);
 })();

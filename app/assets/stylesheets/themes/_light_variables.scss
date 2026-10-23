@@ -1,0 +1,135 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽問 — Light Theme Variables（Issue #27）
+// ═══════════════════════════════════════════════════════════
+//
+// 現状: app/views/layouts/application.haml:8 が %body.dark-theme 固定のため、
+// ライトテーマは実質到達不能。ダーク向け上書き（#8 / #10 / #15 / #22）は
+// body.dark-theme スコープに積み上げており、ライトを有効化すると
+// Sharetribe 既定色（青ボタン #4a90e2 + 白 = 3.29:1 など）が露出する。
+//
+// 本ファイルは「body.dark-theme が付かない場合」に効くライトテーマの配色を
+// 1 箇所にまとめる。:root で上書きするとダーク側の var() 参照も変わってしまう
+// ため、適用基点は body:not(.dark-theme) とする。body.dark-theme ページには
+// 本ファイルは一切影響しない（ダークの見た目・実測値は不変）。
+//
+// コントラスト基準: 本文・リンク・ボタンとも 4.5:1 以上（WCAG 2.1 AA）。
+// 検証:
+//   bundle exec rails runner scripts/compile_application_css.rb /tmp/application.css
+//   node scripts/theme_contrast_check.js --css /tmp/application.css
+// （dark / light 両方が pass/fail 判定。無効ボタンのみ記録のみ =
+//   WCAG 1.4.3 の適用除外。理由は scripts/theme_contrast_check.js 内に明記）
+
+// ── トークン ─────────────────────────────────────────────
+// _dark_variables.scss と同名・同構造。ライトで異なる値だけを再定義する。
+
+body:not(.dark-theme) {
+  // ── Background ──────────────────────────────────────────
+  --bg-primary: #ffffff;    // 地色。--text-primary と 17.4:1
+  --bg-secondary: #f7f7f7;  // 面の区切り。--text-secondary と 6.96:1
+  --bg-card: #ffffff;       // カード地。--text-primary と 17.4:1
+  --bg-card-hover: #f2f2f2; // カード地 hover。--text-primary と 15.6:1
+  --bg-input: #ffffff;      // 入力欄地。--text-primary と 17.4:1
+  --bg-sidebar: #f5f5f5;    // サイドバー地。--text-primary と 16.7:1
+
+  // ── Text ────────────────────────────────────────────────
+  // ダーク値（#ffffff 系）は白地で不合格のためライト用に反転する
+  --text-primary: #1a1a1a;   // 本文。白地 17.4:1
+  --text-secondary: #555555; // 補助文。白地 7.46:1
+  --text-muted: #666666;     // メタ情報。白地 5.74:1
+  --text-link: #1f6f60;      // 暗 teal リンク。白地 6.00:1 / 通知 #e8e8e8 上 4.90:1
+
+  // ── Border ──────────────────────────────────────────────
+  --border-color: #d0d0d0;
+  --border-light: #e4e4e4;
+
+  // ── Accent / Badge / Radius / Shadow / Transition ───────
+  // ブランド色・形状はテーマ非依存のため :root（_dark_variables.scss）を
+  // 継承する。--accent-gold + 濃色文字 = 7.89:1、--accent-red + 白 = 5.84:1
+  // で、ライト地でも AA を満たす（実測は theme_contrast_check.js 参照）。
+}
+
+// ── フラッシュ / ajax 通知内リンク ────────────────────────
+// 通知背景はテーマ非依存（_flash.scss: #e8e8e8 / #b2d9ab / #c81f1f）。
+// Sharetribe 既定のリンク #4a90e2 は #e8e8e8 上 2.69:1・#b2d9ab 上 2.10:1、
+// .flash-error-link の #ccc は #c81f1f 上 3.56:1 で不合格。
+// ダーク側（components/_raku_utils.scss）と同じ解像度の色 + 下線を
+// ライト側にも適用する（色だけに依存しない識別もダークと同一）。
+
+body:not(.dark-theme) .flash-notice a,
+body:not(.dark-theme) .ajax-notice a,
+body:not(.dark-theme) .flash-warning a,
+body:not(.dark-theme) .ajax-warning a {
+  color: var(--text-link); // #e8e8e8 上 4.90:1（ダークの #1f6f60 と同値）
+  text-decoration: underline;
+}
+
+body:not(.dark-theme) .flash-notice a:hover,
+body:not(.dark-theme) .ajax-notice a:hover,
+body:not(.dark-theme) .flash-warning a:hover,
+body:not(.dark-theme) .ajax-warning a:hover {
+  color: #17554a; // ダークと同一の hover 濃色。#e8e8e8 上 7.04:1
+}
+
+// success は明色背景 #b2d9ab のため本文色 + 下線（--text-primary で 11.1:1。
+// 暗 teal #1f6f60 では 3.8:1 に落ちるため不可 — ダーク #333333 と同じ判断）
+body:not(.dark-theme) .flash-success a,
+body:not(.dark-theme) .ajax-success a {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+// error は赤背景 #c81f1f のため白 + 下線（.flash-error-link の #ccc は
+// 3.56:1、白なら 5.72:1。:hover の #b3b3b3 より詳細度が高く後勝ちで抑える）
+body:not(.dark-theme) .flash-error a,
+body:not(.dark-theme) .ajax-error a {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+// ── 送信ボタン各種 ────────────────────────────────────────
+// Sharetribe 既定 #4a90e2 + 白 = 3.29:1（hover の darken($link, 5%) も不合格）。
+// DESIGN.md §4「Form submit buttons」/ §10 に従い、ダークと同じ
+// Gold + ダーク文字へ（--accent-gold 上 #1a1a1a = 7.89:1、hover 6.47:1）。
+// セレクタはダーク側（components/_raku_utils.scss）と対応させる。
+// .send_button / button.button は _raku_utils.scss の定義がスコープ外
+// （ダーク・ライト共通）のため追加定義は不要。
+
+body:not(.dark-theme) #email_submit,
+body:not(.dark-theme) #password_submit,
+body:not(.dark-theme) .send_button_notifications,
+body:not(.dark-theme) input[type="submit"].button {
+  background-color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #1a1a1a; // Gold 上の濃色文字（--text-primary と同値）
+}
+
+body:not(.dark-theme) #email_submit:hover,
+body:not(.dark-theme) #email_submit:active,
+body:not(.dark-theme) #password_submit:hover,
+body:not(.dark-theme) #password_submit:active,
+body:not(.dark-theme) .send_button_notifications:hover,
+body:not(.dark-theme) .send_button_notifications:active,
+body:not(.dark-theme) input[type="submit"].button:hover,
+body:not(.dark-theme) input[type="submit"].button:active {
+  background-color: var(--accent-gold-hover);
+  border-color: var(--accent-gold-hover);
+  color: #1a1a1a; // 6.47:1
+}
+
+// ── 破壊的操作（アカウント削除） ─────────────────────────
+// DESIGN.md §10 Destructive = Red。--accent-red + 白 = 5.84:1（hover 7.40:1）。
+// 無効時（.disabled-button）はダーク同様 :not() で除外し、記録のみのまま
+// （WCAG 1.4.3 の適用除外。理由は theme_contrast_check.js 内に明記）。
+
+body:not(.dark-theme) #delete_account_button:not(.disabled-button) {
+  background-color: var(--accent-red);
+  border-color: var(--accent-red);
+  color: #ffffff;
+}
+
+body:not(.dark-theme) #delete_account_button:not(.disabled-button):hover,
+body:not(.dark-theme) #delete_account_button:not(.disabled-button):active {
+  background-color: var(--accent-red-hover);
+  border-color: var(--accent-red-hover);
+  color: #ffffff;
+}
