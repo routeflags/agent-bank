@@ -1644,6 +1644,10 @@ en:
         share_for_free: Sharing for free
         accept_for_free: Accepting for free
         trade: Swapping
+      skill_markdown:
+        label: Skills
+        info: You can use Markdown. Skills are not shown on the public listing page;
+          only you can view and edit them.
       tag_list:
         comma_separate: "(comma separate)"
         tags: Tags

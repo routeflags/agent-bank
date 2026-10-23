@@ -1,0 +1,4 @@
+= form.label :skill_markdown, t('listings.form.skill_markdown.label'), :class => "input"
+- info_text = t("listings.form.skill_markdown.info")
+= render partial: "layouts/info_text", locals: { text: info_text }
+= form.text_area(:skill_markdown, :maxlength => "5000", :class => "listing_description_textarea")

@@ -57,6 +57,22 @@ describe ListingFormViewUtils do
         supported_run_modes: ["download"]
       )
     end
+
+    it "スキル説明 (skill_markdown) を保存パラメータに含める" do
+      params = ActionController::Parameters.new(
+        listing: {
+          title: "AIペルソナ",
+          description: "説明",
+          unit: "",
+          skill_markdown: "- Python\n- 英語会話"
+        }
+      )
+
+      result = described_class.build_listing_params(shape, "uuid", params, community)
+
+      expect(result.success).to eq(true)
+      expect(result.data).to include(skill_markdown: "- Python\n- 英語会話")
+    end
   end
 
   describe "#filter" do

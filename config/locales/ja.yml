@@ -1345,6 +1345,9 @@ ja:
         share_for_free: 無料でシェアします
         accept_for_free: 無料で受け入れます
         trade: 交換する
+      skill_markdown:
+        label: スキル
+        info: Markdown で記述できます。スキルは公開ページには表示されず、出品者本人のみが閲覧・編集できます。
       tag_list:
         comma_separate: "、"
         tags: タグ

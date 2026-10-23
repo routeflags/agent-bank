@@ -1072,6 +1072,7 @@ CREATE TABLE `listings` (
   `total_sold` int(11) DEFAULT 0,
   `avg_rating` float DEFAULT 0,
   `seller_commission_rate` int(11) DEFAULT NULL COMMENT '出品者コミッション率 (%) — 出品ペルソナ価格に追加',
+  `skill_markdown` text DEFAULT NULL COMMENT '出品者のスキル説明 (Markdown) — 所有者のみ閲覧可・フロント非表示',
   PRIMARY KEY (`id`),
   UNIQUE KEY `index_listings_on_uuid` (`uuid`),
   KEY `index_listings_on_new_category_id` (`category_id`) USING BTREE,
@@ -1838,6 +1839,7 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261016000000'),
 ('20261015064307'),
 ('20261012093707'),
 ('20261012083939'),
