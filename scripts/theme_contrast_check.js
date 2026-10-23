@@ -115,7 +115,13 @@ function buildFixture(bodyClass) {
       </div>
     </div>
 
-    <!-- notification settings / profile settings -->
+    <!-- 汎用のフォーム送信ボタン（devise 系など。Issue #22） -->
+    <div class="login-form">
+      <form method="post" action="#">
+        <input class="button" type="submit" value="ログイン">
+      </form>
+    </div>
+
     <div id="person_settings_form" class="left-navi-section settings-section notification-settings">
       <form>
         <button class="send_button_notifications" name="button" type="submit">保存する</button>
@@ -146,6 +152,7 @@ const CASES = [
   { id: 'flash-success-link', label: '成功 success リンク（#8 点検）', selector: '.flash-success .flash-text a', min: 4.5 },
   { id: 'flash-error-link', label: 'エラー error リンク（#8 点検）', selector: '.flash-error .flash-text a.flash-error-link', min: 4.5 },
   { id: 'email-submit', label: '設定 メール保存 #email_submit（#15）', selector: '#email_submit', min: 4.5 },
+  { id: 'generic-submit', label: 'フォーム送信 input[type=submit].button（#22）', selector: 'input[type="submit"].button', min: 4.5 },
   { id: 'password-submit', label: '設定 パスワード保存 #password_submit（#15）', selector: '#password_submit', min: 4.5 },
   { id: 'notifications-submit', label: '設定 通知保存 .send_button_notifications（#15）', selector: '.send_button_notifications', min: 4.5 },
   { id: 'profile-submit', label: '設定 プロフィール保存 .send_button（#15 回帰）', selector: '.settings-section .send_button', min: 4.5 },
@@ -155,6 +162,7 @@ const CASES = [
 
 const HOVER_CASES = [
   { id: 'email-submit-hover', label: '設定 メール保存 hover（#15）', selector: '#email_submit', min: 4.5 },
+  { id: 'generic-submit-hover', label: 'フォーム送信 hover（#22）', selector: 'input[type="submit"].button', min: 4.5 },
   { id: 'password-submit-hover', label: '設定 パスワード保存 hover（#15）', selector: '#password_submit', min: 4.5 },
   { id: 'notifications-submit-hover', label: '設定 通知保存 hover（#15）', selector: '.send_button_notifications', min: 4.5 },
   { id: 'delete-account-hover', label: 'アカウント削除 hover（#15）', selector: '#delete_account_button:not(.disabled-button)', min: 4.5 },

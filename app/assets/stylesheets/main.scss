@@ -2288,15 +2288,10 @@ body.dark-theme {
     background-color: #242424;
   }
 
-  // Submit buttons using mid-blue #4a90e2 with white text (3.29:1).
-  // Darken so white text clears 4.5:1.
-  #email_submit,
-  input[type="submit"].button {
-    background-color: #2f6fc4;
-    &:hover {
-      background-color: #2a63ae;
-    }
-  }
+  // フォーム送信ボタンは Gold（--accent-gold）+ ダーク文字に統一（Issue #22）。
+  // ここで青を上書きしない（上書きすると components/_raku_utils.scss の
+  // ダークテーマ用 Gold ルールより優先されてしまう）。
+  // コントラストは scripts/theme_contrast_check.js で実測する。
 
   // Password change link inside body text (teal on white = 2.5:1).
   // Underline so it's distinguishable without relying on color alone.

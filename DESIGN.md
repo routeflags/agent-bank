@@ -104,6 +104,16 @@ Redはさらに限定する。
 
 通常CTAにRedを使わない。
 
+### Form submit buttons
+
+フォーム送信ボタン（`input[type="submit"].button`、`button.button`）は
+**Gold + ダーク文字**を標準とする（Issue #22）。
+
+- 保存・送信・ログインなど破壊的でない操作 → Gold
+- 破壊的操作（アカウント削除など） → Red（`--accent-red`）
+- Sharetribe 由来の青（`#4a90e2` / `#2f6fc4`）は使わない
+- コントラストは `scripts/theme_contrast_check.js` で実測し、本文 4.5:1 以上を保つ
+
 ------------------------------------------------------------------------
 
 ## 5. Typography

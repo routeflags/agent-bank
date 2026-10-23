@@ -204,6 +204,23 @@ body.dark-theme .send_button_notifications:active {
   color: #1a1a1a;
 }
 
+// すべてのフォーム送信ボタン（input[type="submit"].button）を Gold に統一
+// （Issue #22）。main.scss の青 (#2f6fc4) 上書きは撤去済み。ID 指定のない
+// ボタン（devise 系のログイン・登録・パスワード再設定など）も同じ見た目に
+// する。破壊的操作（アカウント削除）は上書きで Red を維持する。
+body.dark-theme input[type="submit"].button {
+  background-color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #1a1a1a;
+}
+
+body.dark-theme input[type="submit"].button:hover,
+body.dark-theme input[type="submit"].button:active {
+  background-color: var(--accent-gold-hover);
+  border-color: var(--accent-gold-hover);
+  color: #1a1a1a;
+}
+
 // アカウント削除ボタン（破壊的操作）。DESIGN.md §10 Destructive = Red。
 // --accent-red + 白文字 = 5.8:1（hover は --accent-red-hover で 7.4:1）。
 // 無効時（.disabled-button）はグレーを維持するため :not() で除外する
