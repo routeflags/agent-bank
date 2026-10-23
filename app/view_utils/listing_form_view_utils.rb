@@ -67,7 +67,7 @@ module ListingFormViewUtils
     unit_string.present? ? HashUtils.symbolize_keys(JSON.parse(unit_string)) : {}
   end
 
-  def build_listing_params(shape, listing_uuid, params, current_community)
+  def build_listing_params(shape, listing_uuid, params, current_community, default_run_mode: "run_online")
     with_currency = params.to_unsafe_hash[:listing].merge({currency: current_community.currency})
     valid_until_enabled = !current_community.hide_expiration_date
     listing_params = filter(with_currency, shape, valid_until_enabled)
@@ -95,9 +95,7 @@ module ListingFormViewUtils
         availability: shape[:availability]
     ).merge(unit_to_listing_opts(m_unit)).except(:unit)
 
-    # Capafy: AI run mode. The listing form sends default_run_mode explicitly;
-    # callers that omit it keep the historical 'download' default.
-    run_mode = listing_params[:default_run_mode].presence || "download"
+    run_mode = listing_params[:default_run_mode].presence || default_run_mode
     listing_params = listing_params.merge(
       default_run_mode: run_mode,
       supported_run_modes: [run_mode]

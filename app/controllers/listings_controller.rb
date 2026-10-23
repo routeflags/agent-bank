@@ -124,10 +124,6 @@ class ListingsController < ApplicationController
     if new_listing_author != @current_user
       logger.info "ADMIN ACTION: admin='#{@current_user.id}' create listing params=#{params.inspect}"
     end
-    if show_location? && params[:listing][:origin_loc_attributes][:address].blank?
-      params[:listing].delete("origin_loc_attributes")
-    end
-
     shape = get_shape(Maybe(params)[:listing][:listing_shape_id].to_i.or_else(nil))
     listing_uuid = UUIDUtils.create
 
@@ -196,7 +192,13 @@ class ListingsController < ApplicationController
 
     shape = get_shape(params[:listing][:listing_shape_id])
 
-    result = ListingFormViewUtils.build_listing_params(shape, @listing.uuid_object, params, @current_community)
+    result = ListingFormViewUtils.build_listing_params(
+      shape,
+      @listing.uuid_object,
+      params,
+      @current_community,
+      default_run_mode: @listing.default_run_mode.presence || "run_online"
+    )
 
     unless result.success
       flash[:error] = t("listings.error.something_went_wrong", error_code: result.data.join(', '))
@@ -217,7 +219,7 @@ class ListingsController < ApplicationController
       end
       if show_location? && @listing.location
         location_params = ListingFormViewUtils.permit_location_params(params)
-        @listing.location.update(location_params)
+        @listing.location.update(location_params) if location_params.present?
       end
       @listing.reorder_listing_images(params, @current_user.id)
       flash[:notice] = update_flash(old_availability: old_availability, new_availability: shape[:availability])
