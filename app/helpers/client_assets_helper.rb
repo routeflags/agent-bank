@@ -6,10 +6,14 @@
 # renders (view bodies render before the layout, and layout-level provides
 # must be placed above `= render 'layouts/head'`).
 #
-# - No apps provided  -> legacy full bundles (webpack_bundles.js /
-#   app-bundle.css): zero regression for unconverted pages.
+# - No apps provided  -> legacy full bundle (webpack_bundles.js) +
+#   sections-bundle.css: zero regression for unconverted pages.
 # - Apps provided     -> vendor + common + per-app bundles emitted by the
 #   split webpack entries (see client/webpack.client.base.config.js).
+#
+# CSS: all client CSS is extracted into sections-bundle.css by the webpack
+# `sections` cacheGroup, so the split build does not emit app-bundle.css.
+# Never reference app-bundle.css here (Issue #21).
 module ClientAssetsHelper
   # Apps whose entry graph imports moment/react-dates/axios/react-form —
   # these pages also load the vendor_dates chunk.
@@ -26,10 +30,8 @@ module ClientAssetsHelper
   end
 
   def react_bundle_css_tags
-    return stylesheet_link_tag('app-bundle', 'sections-bundle') if react_apps.empty?
-
-    # All component CSS (including chat panel styles) is extracted into
-    # sections-bundle.css by the webpack sections cacheGroup.
+    # All component CSS is extracted into sections-bundle.css by the webpack
+    # sections cacheGroup — regardless of whether a React app is provided.
     stylesheet_link_tag('sections-bundle')
   end
 

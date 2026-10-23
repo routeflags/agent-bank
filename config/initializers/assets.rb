@@ -30,7 +30,6 @@ Rails.application.config.assets.precompile += %w(
   vendor-bundle.js
   vendor_dates-bundle.js
   app-bundle.js
-  app-bundle.css
   common-bundle.js
   sections-bundle.js
   sections-bundle.css

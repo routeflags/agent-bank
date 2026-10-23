@@ -131,7 +131,7 @@
     </script>
 
     <% asset_host = local_assigns.key?(:asset_host) ? asset_host : nil %>
-    <%= stylesheet_link_tag asset_path('app-bundle', type: :stylesheet, host: asset_host) %>
+    <%= stylesheet_link_tag asset_path('sections-bundle', type: :stylesheet, host: asset_host) %>
     <%= javascript_include_tag asset_path('vendor-bundle', type: :javascript, host: asset_host) %>
     <%= javascript_include_tag asset_path('app-bundle', type: :javascript, host: asset_host) %>
 

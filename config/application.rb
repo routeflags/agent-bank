@@ -78,7 +78,6 @@ module Kassi
       'mercury.js',
       'jquery-1.7.js',
       'i18n/*.js',
-      'app-bundle.css',
       'app-bundle.js',
       'vendor-bundle.js',
     ]
