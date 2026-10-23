@@ -166,22 +166,57 @@ async function assertUrlContains(page, expected, msg) {
   // ── タブ切替 ──
   console.log('\n--- タブ切替 ---');
 
-  await run('TC-11: 「新着」タブ切替', async () => {
+  // 並び替えの検証用にカードの created_at / avg_rating を取り出す
+  const featuredCards = async () =>
+    page.$$eval('#raku-featured-scroll .raku-featured__card', els =>
+      els.map(e => ({
+        created: Number(e.dataset.createdAt) || 0,
+        rating: Number(e.dataset.avgRating) || 0
+      })));
+
+  const isDescending = (values) => values.every((v, i) => i === 0 || values[i - 1] >= v);
+
+  await run('TC-11: 「新着」タブで新着順に並び替わる（リロード後も維持）', async () => {
     await page.goto(BASE);
-    const tabs = page.locator('.raku-featured__tab');
-    await tabs.nth(1).click();
-    await page.waitForTimeout(1000);
-    const active = await page.locator('.raku-featured__tab.is-active').count();
-    if (active === 0) throw new Error('is-active タブがない');
+    await page.waitForTimeout(1500);
+    const before = await featuredCards();
+    if (before.length < 2) throw new Error('注目のスキルのカードが 2 枚未満で検証できない');
+
+    await page.locator('.raku-featured__tab').nth(1).click();
+    await page.waitForTimeout(700);
+    const after = await featuredCards();
+    if (!isDescending(after.map(c => c.created))) {
+      throw new Error(`新着タブで新着順になっていない: ${JSON.stringify(after)}`);
+    }
+
+    await page.reload();
+    await page.waitForTimeout(1500);
+    const reloaded = await featuredCards();
+    if (!isDescending(reloaded.map(c => c.created))) {
+      throw new Error('リロード後に新着順が失われている');
+    }
+    const activeSort = await page.locator('.raku-featured__tab.is-active').getAttribute('data-sort');
+    if (activeSort !== 'newest') throw new Error(`リロード後のタブ状態が復元されていない: ${activeSort}`);
   });
 
-  await run('TC-12: 「高評価」タブ切替', async () => {
+  await run('TC-12: 「高評価」タブで評価順に並び替わり、「人気」で元に戻る', async () => {
     await page.goto(BASE);
-    const tabs = page.locator('.raku-featured__tab');
-    await tabs.nth(2).click();
-    await page.waitForTimeout(1000);
-    const active = await page.locator('.raku-featured__tab.is-active').count();
-    if (active === 0) throw new Error('is-active タブがない');
+    await page.waitForTimeout(1500);
+    const popular = await featuredCards();
+
+    await page.locator('.raku-featured__tab').nth(2).click();
+    await page.waitForTimeout(700);
+    const rated = await featuredCards();
+    if (!isDescending(rated.map(c => c.rating))) {
+      throw new Error(`高評価タブで評価順になっていない: ${JSON.stringify(rated)}`);
+    }
+
+    await page.locator('.raku-featured__tab').nth(0).click();
+    await page.waitForTimeout(700);
+    const restored = await featuredCards();
+    if (JSON.stringify(restored.map(c => c.created)) !== JSON.stringify(popular.map(c => c.created))) {
+      throw new Error('「人気」タブで元の並びに戻らない');
+    }
   });
 
   // ── ペルソナ詳細 ──

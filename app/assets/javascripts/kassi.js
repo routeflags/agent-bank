@@ -587,20 +587,72 @@ function initialize_homepage() {
     }
   );
 
-  // Featured card tab switching — updates URL sort param and active state
+  // Featured card tab switching — sorts the cards in the DOM, keeps the
+  // URL sort param in sync, and honours ?sort=... on load (Issue #6).
+  //
+  // "人気" (the default) means the server-rendered order. Remember it once
+  // per card so it can be restored after sorting by another key.
+  var rakuRememberFeaturedOrder = function($scroll) {
+    $scroll.children('.raku-featured__card').each(function(index) {
+      if ($(this).attr('data-raku-original-index') === undefined) {
+        $(this).attr('data-raku-original-index', index);
+      }
+    });
+  };
+
+  var rakuSortFeaturedCards = function(sort) {
+    var $scroll = $('#raku-featured-scroll');
+    if (!$scroll.length) return;
+
+    rakuRememberFeaturedOrder($scroll);
+
+    var cards = $scroll.children('.raku-featured__card').toArray().map(function(el, index) {
+      return {
+        el: el,
+        index: parseInt($(el).attr('data-raku-original-index'), 10) || 0,
+        createdAt: parseInt($(el).data('created-at'), 10) || 0,
+        avgRating: parseFloat($(el).data('avg-rating')) || 0
+      };
+    });
+
+    if (sort === 'newest') {
+      cards.sort(function(a, b) { return (b.createdAt - a.createdAt) || (a.index - b.index); });
+    } else if (sort === 'rating') {
+      cards.sort(function(a, b) { return (b.avgRating - a.avgRating) || (a.index - b.index); });
+    } else {
+      cards.sort(function(a, b) { return a.index - b.index; });
+    }
+
+    $.each(cards, function(_, card) { $scroll.append(card.el); });
+  };
+
+  var rakuActivateFeaturedTab = function(sort) {
+    $('.raku-featured__tab').removeClass('is-active');
+    $('.raku-featured__tab').filter(function() {
+      return $(this).data('sort') === sort;
+    }).addClass('is-active');
+  };
+
   $('.raku-featured__tab').on('click', function() {
     var sort = $(this).data('sort');
     if (!sort) return;
 
-    // Update active tab state
-    $('.raku-featured__tab').removeClass('is-active');
-    $(this).addClass('is-active');
+    rakuActivateFeaturedTab(sort);
+    rakuSortFeaturedCards(sort);
 
     // Update URL with sort param without page reload
     var url = new URL(window.location);
     url.searchParams.set('sort', sort);
     window.history.replaceState({}, '', url);
   });
+
+  // Reload keeps the selected tab and order.
+  (function() {
+    var initialSort = new URL(window.location).searchParams.get('sort');
+    if (!initialSort || !$('.raku-featured__tab[data-sort="' + initialSort + '"]').length) return;
+    rakuActivateFeaturedTab(initialSort);
+    rakuSortFeaturedCards(initialSort);
+  })();
 }
 
 function initialize_invitation_form(locale, email_error_message, invitation_limit) {

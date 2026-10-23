@@ -11,7 +11,10 @@
     %button.raku-featured__arrow.raku-featured__arrow--prev{type: "button", "aria-label": t('lamprey.homepage.slide_prev'), onclick: "RakuFeatured.slide(-1)"} ‹
     .raku-featured__scroll#raku-featured-scroll
       - @listings.each do |listing|
-        = link_to listing_path(listing.url), class: "raku-featured__card" do
+        -# タブ並び替え（Issue #6）用のデータ属性。人気 = 初期の並び順。
+        -# 評価は検索結果に含まれないため controller が補った値を弾く。
+        - rating = (@featured_ratings || {}).fetch(listing.id, 0).to_f
+        = link_to listing_path(listing.url), class: "raku-featured__card", data: {created_at: (listing.created_at.respond_to?(:to_i) ? listing.created_at.to_i : 0), avg_rating: rating} do
           .raku-card
             - if listing.listing_images.first
               %img.raku-card__image{src: listing.listing_images.first[:small_3x2] || listing.listing_images.first[:thumb], alt: listing.title}
@@ -27,7 +30,10 @@
               %p.raku-card__description= StringUtils.first_words(listing.description, 60)
             .raku-card__footer
               .raku-card__rating
-                %span.raku-muted-label= t('lamprey.listings.rating_none')
+                - if rating > 0
+                  %span.raku-card__rating-value= "★ #{rating.round(1)}"
+                - else
+                  %span.raku-muted-label= t('lamprey.listings.rating_none')
               .raku-card__price
                 - if listing.price
                   = MoneyViewUtils.to_humanized(listing.price)

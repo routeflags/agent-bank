@@ -144,6 +144,9 @@ class HomepageController < ApplicationController
         @listings = listings
         # Exclude test listings from public view
         @listings = exclude_test_listings(@listings)
+        # 「注目のスキル」の高評価タブ用。検索結果（Sphinx）は avg_rating を
+        # 持たないため、カードの評価は DB から1クエリで補う（Issue #6）。
+        @featured_ratings = featured_ratings_for(@listings)
         render locals: locals.merge(
                  seo_pagination_links: seo_pagination_links(params, @listings.current_page, @listings.total_pages))
       }.on_error { |e|
@@ -429,6 +432,17 @@ class HomepageController < ApplicationController
       query_count += 1
       Rails.logger.debug("[Query##{query_count}] #{payload[:name]} #{payload[:sql]}")
     end
+  end
+
+  # 「注目のスキル」カードの評価値（listing_id => avg_rating）。
+  #
+  # 検索結果（Sphinx 経由のオブジェクト/struct）には評価値が含まれないため、
+  # 高評価タブの並び替え用に DB からまとめて取得する（Issue #6）。
+  def featured_ratings_for(listings)
+    ids = Array(listings).map(&:id).compact
+    return {} if ids.empty?
+
+    Listing.where(id: ids).pluck(:id, :avg_rating).to_h
   end
 
   # Exclude test listings whose titles start with 'Test' or whose description
