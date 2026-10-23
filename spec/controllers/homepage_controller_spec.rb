@@ -147,5 +147,37 @@ describe HomepageController, type: :controller do
       listings = assigns(:listings)
       expect(listings.count).to eq 0
     end
+
+    # Issue #26: SEO 用の prev/next も一覧ページ/トップの切り替えルール
+    # （raku_listing_index_path）経由で組み立てること。
+    describe 'seo pagination links の遷移先' do
+      it '/browse 表示時は /browse 基準の prev/next を返す' do
+        get :index
+        controller.instance_variable_set(:@listing_page, true)
+
+        links = controller.send(:seo_pagination_links, { 'q' => 'books' }, 2, 3)
+
+        # ロケール接頭辞（default_url_options 由来）の有無は環境依存なので問わない。
+        # 大切なのはトップ（/）へ落ちず /browse 基準で組み立てること。
+        expect(links[:prev]).to match(%r{\A/(?:[a-z-]+/)?browse\?})
+        expect(links[:prev]).to include('q=books')
+        expect(links[:prev]).to include('page=1')
+        expect(links[:next]).to match(%r{\A/(?:[a-z-]+/)?browse\?})
+        expect(links[:next]).to include('page=3')
+        expect(links[:next]).not_to include('locale=')
+      end
+
+      it 'トップ表示時は従来どおりトップ基準の prev/next を返す' do
+        get :index
+
+        links = controller.send(:seo_pagination_links, { 'q' => 'books' }, 1, 2)
+
+        expect(links[:prev]).to be_nil
+        expect(links[:next]).to start_with('/?')
+        expect(links[:next]).to include('q=books')
+        expect(links[:next]).to include('page=2')
+        expect(links[:next]).not_to include('/browse')
+      end
+    end
   end
 end

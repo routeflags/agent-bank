@@ -505,11 +505,17 @@ module ApplicationHelper
       locale_param: params[:locale])
   end
 
-  # Base path for listing-browse controls (view type, transaction type).
+  # Base path for listing-browse controls (view type, transaction type) and
+  # pagination (will_paginate, pageless, SEO prev/next).
   # Stays on the dedicated listing page (/browse) when already there;
   # otherwise falls back to the homepage search path.
+  # 一覧ページ/トップの切り替えはこのルールだけに宿す（Issue #26）。
+  # パス生成に不要な controller/action/utf8 と locale をここでまとめて除去する。
+  # locale は default_url_options が現在のロケールをパス段として付け直すため、
+  # 渡すとクエリに locale= が二重に出るだけ。既存のビューコーラーも同じ除去をしている。
   def raku_listing_index_path(options = {})
-    @listing_page ? browse_path(options) : search_path(options)
+    opts = options.except(:controller, :action, :locale, :utf8)
+    @listing_page ? browse_path(opts) : search_path(opts)
   end
 
   # Marks the active item in the raku sub-navigation based on the current page.

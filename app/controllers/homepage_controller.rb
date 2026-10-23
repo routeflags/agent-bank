@@ -135,7 +135,9 @@ class HomepageController < ApplicationController
         main_search: main_search,
         location_search_in_use: location_in_use,
         current_page: current_page,
-        current_search_path_without_page: search_path(params.except(:page)),
+        # 無限スクロール（pageless）の送信先も raku_listing_index_path の
+        # ルール経由にし、/browse 上のページ送りがトップへ戻らないようにする（Issue #26）
+        current_search_path_without_page: raku_listing_index_path(params.except(:page)),
         viewport: viewport,
         search_params: CustomFieldSearchParams.remove_irrelevant_search_params(params, relevant_search_fields)
       }
@@ -361,15 +363,17 @@ class HomepageController < ApplicationController
     end
   end
 
+  # SEO 用の prev/next も raku_listing_index_path のルール経由で組み立てる
+  # （/browse 上で search_path を使うとトップへ戻ってしまうため、Issue #26）。
   def seo_pagination_links(params, current_page, total_pages)
     prev_page =
       if current_page > 1
-        search_path(params.merge(page: current_page - 1))
+        raku_listing_index_path(params.merge(page: current_page - 1))
       end
 
     next_page =
       if current_page < total_pages
-        search_path(params.merge(page: current_page + 1))
+        raku_listing_index_path(params.merge(page: current_page + 1))
       end
 
     {
