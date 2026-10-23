@@ -2904,6 +2904,8 @@ en:
       wallet_add_preparing: "Add (coming soon)"
       wallet_add_preparing_body: "Wallet top-up is coming soon. Please wait for the official release."
       purchase_preparing_body: "The purchase page for this persona is coming soon. Please wait for the official release."
+      purchase_not_configured: "Purchases are not available yet (payments are not configured). Please try again later."
+      purchase_checkout_failed: "Failed to create the checkout page. Please try again later."
       dev_purchase_success: "✅ Purchase complete. You can start chatting now."
       dev_purchase_failed: "The purchase could not be completed. Please try again later."
       new_chat_title: "New chat"

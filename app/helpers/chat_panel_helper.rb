@@ -23,6 +23,8 @@ module ChatPanelHelper
       wallet_add_preparing: chat[:wallet_add_preparing],
       wallet_add_preparing_body: chat[:wallet_add_preparing_body],
       purchase_preparing_body: chat[:purchase_preparing_body],
+      purchase_not_configured: chat[:purchase_not_configured],
+      purchase_checkout_failed: chat[:purchase_checkout_failed],
       dev_purchase_success: chat[:dev_purchase_success],
       dev_purchase_failed: chat[:dev_purchase_failed],
       new_chat_title: chat[:new_chat_title],

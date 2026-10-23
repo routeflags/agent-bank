@@ -123,6 +123,8 @@ var DEFAULT_I18N = {
   wallet_add_preparing: '追加する（準備中）',
   wallet_add_preparing_body: 'ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。',
   purchase_preparing_body: 'このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。',
+  purchase_not_configured: '購入機能は現在準備中です（決済が未設定）。しばらくしてから再度お試しください。',
+  purchase_checkout_failed: '購入ページの作成に失敗しました。時間をおいて再度お試しください。',
   new_chat_title: '新しいチャット',
   insufficient_tokens: 'トークンが不足しています。',
   purchase_required: 'このペルソナを利用するには購入が必要です。',
@@ -1046,39 +1048,75 @@ class ChatPanelApp extends React.Component {
   handlePurchase() {
     var self = this;
 
-    // 開発/テスト環境で購入付与が有効な場合のみ、実際の購入 API を呼ぶ。
-    // 本番では従来どおり「準備中」を表示する（購入導線は未実装）。
-    if (!this.props.dev_purchase_enabled) {
-      this.addMessage('sys-purchase-' + Date.now(), 'system', t('purchase_preparing_body'), false);
+    // 開発/テスト環境で購入付与が有効な場合のみ、実課金なしの dev API を呼ぶ。
+    if (this.props.dev_purchase_enabled) {
+      fetch('/api/v1/dev/persona_purchases', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ listing_id: this.props.listing_id }),
+      })
+        .then(function (response) {
+          return response.json().catch(function () { return {}; }).then(function (body) {
+            if (!response.ok) {
+              throw new Error(body.error || t('dev_purchase_failed'));
+            }
+            return body;
+          });
+        })
+        .then(function () {
+          // 購入権利が付与されたので、そのままチャットを開始する
+          return self.createSession();
+        })
+        .then(function (result) {
+          if (result && result.id) {
+            self.addMessage('sys-purchase-' + Date.now(), 'system', t('dev_purchase_success'), false);
+          } else {
+            self.addMessage('sys-purchase-' + Date.now(), 'system', t('session_create_failed'), false);
+          }
+        })
+        .catch(function () {
+          self.addMessage('sys-purchase-' + Date.now(), 'system', t('dev_purchase_failed'), false);
+        });
       return;
     }
 
-    fetch('/api/v1/dev/persona_purchases', {
+    // 本番購入導線: Freemius Checkout の作成 API を呼び、checkout_url へ遷移する。
+    // 金額・購入者はサーバー側で決まる。決済完了後、Webhook 経由で購入権利が付与される。
+    fetch('/api/v1/persona_purchases', {
       method: 'POST',
       headers: jsonHeaders(),
       body: JSON.stringify({ listing_id: this.props.listing_id }),
     })
       .then(function (response) {
         return response.json().catch(function () { return {}; }).then(function (body) {
+          if (response.status === 503 && body.error_type === 'purchase_not_configured') {
+            // 決済が未設定（FREEMIUS_API_KEY 未投入など）
+            self.addMessage('sys-purchase-' + Date.now(), 'system', t('purchase_not_configured'), false);
+            return null;
+          }
           if (!response.ok) {
-            throw new Error(body.error || t('dev_purchase_failed'));
+            throw new Error(body.error || t('purchase_checkout_failed'));
           }
           return body;
         });
       })
-      .then(function () {
-        // 購入権利が付与されたので、そのままチャットを開始する
-        return self.createSession();
-      })
-      .then(function (result) {
-        if (result && result.id) {
-          self.addMessage('sys-purchase-' + Date.now(), 'system', t('dev_purchase_success'), false);
-        } else {
-          self.addMessage('sys-purchase-' + Date.now(), 'system', t('session_create_failed'), false);
+      .then(function (body) {
+        if (!body) return;
+        if (body.status === 'already_purchased') {
+          // 既に購入済みなら Checkout を挟まずチャットを開始する
+          return self.createSession().then(function (result) {
+            if (!(result && result.id)) {
+              self.addMessage('sys-purchase-' + Date.now(), 'system', t('session_create_failed'), false);
+            }
+          });
+        }
+        if (body.checkout_url) {
+          self.addMessage('sys-purchase-' + Date.now(), 'system', t('wallet_redirecting'), false);
+          window.location.assign(body.checkout_url);
         }
       })
       .catch(function () {
-        self.addMessage('sys-purchase-' + Date.now(), 'system', t('dev_purchase_failed'), false);
+        self.addMessage('sys-purchase-' + Date.now(), 'system', t('purchase_checkout_failed'), false);
       });
   }
 

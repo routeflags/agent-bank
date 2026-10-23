@@ -2328,6 +2328,8 @@ ja:
       wallet_add_preparing: "追加する（準備中）"
       wallet_add_preparing_body: "ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。"
       purchase_preparing_body: "このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。"
+      purchase_not_configured: "購入機能は現在準備中です（決済が未設定）。しばらくしてから再度お試しください。"
+      purchase_checkout_failed: "購入ページの作成に失敗しました。時間をおいて再度お試しください。"
       dev_purchase_success: "✅ 購入が完了しました。チャットを開始できます。"
       dev_purchase_failed: "購入処理に失敗しました。時間をおいて再度お試しください。"
       new_chat_title: "新しいチャット"

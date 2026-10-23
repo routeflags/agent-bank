@@ -80,6 +80,112 @@ RSpec.describe "FreemiusWebhooks", type: :request do
     end
   end
 
+  describe "POST /webhooks/freemius payment.completed (persona_purchase)" do
+    let(:author) { FactoryBot.create(:person, community_id: community.id) }
+    let(:listing) { FactoryBot.create(:listing, community_id: community.id, author: author) }
+    let(:initial_grant_cents) do
+      BillingConfig.included_tokens(:subscription) * BillingConfig.per_token_price_cents(:subscription)
+    end
+    let(:payload) do
+      {
+        event: "payment.completed",
+        objects: {
+          payment: {
+            id: "fs_pay_p1",
+            amount_cents: 3000,
+            metadata: { type: "persona_purchase", user_id: person.id, listing_id: listing.id }
+          }
+        }
+      }
+    end
+
+    before do
+      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_p1").and_return(
+        { "id" => "fs_pay_p1", "status" => "completed", "amount_cents" => 3000 }
+      )
+    end
+
+    it "購入権利（UserPlanSubscription）を作成する" do
+      expect { signed_post(payload) }
+        .to change(UserPlanSubscription, :count).by(1)
+
+      expect(response).to have_http_status(200)
+      sub = UserPlanSubscription.last
+      expect(sub.person_id).to eq(person.id)
+      expect(sub.listing_id).to eq(listing.id)
+      expect(sub.status).to eq("active")
+    end
+
+    it "payment_reference に freemius:<payment_id> を記録し、初期トークンを付与する" do
+      expect { signed_post(payload) }
+        .to change { person.reload.wallet.balance_cents }.from(0).to(initial_grant_cents)
+
+      tx = person.wallet.credit_transactions.where(transaction_type: "topup").last
+      expect(tx.metadata).to include("freemius:fs_pay_p1")
+    end
+
+    it "ウォレットチャージ（wallet topup）として扱わない（決済額はチャージしない）" do
+      signed_post(payload)
+
+      # 付与されるのは初期トークンのみ。決済額 3000 はチャージされない
+      expect(person.reload.wallet.balance_cents).to eq(initial_grant_cents)
+      expect(person.wallet.balance_cents).not_to eq(3000)
+    end
+
+    it "同じ payment の再送で二重に付与しない（冪等）" do
+      signed_post(payload)
+
+      expect { signed_post(payload) }
+        .not_to change(UserPlanSubscription, :count)
+      expect(response).to have_http_status(200)
+      expect(person.reload.wallet.balance_cents).to eq(initial_grant_cents)
+    end
+
+    it "リモートで completed でなければ購入権利を作成しない" do
+      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_p1").and_return(
+        { "id" => "fs_pay_p1", "status" => "pending", "amount_cents" => 3000 }
+      )
+
+      expect { signed_post(payload) }
+        .not_to change(UserPlanSubscription, :count)
+      expect(response).to have_http_status(200)
+    end
+
+    it "listing が見つからない場合は 200 でスキップする（500 にしない）" do
+      payload[:objects][:payment][:metadata][:listing_id] = -1
+
+      expect { signed_post(payload) }
+        .not_to change(UserPlanSubscription, :count)
+      expect(response).to have_http_status(200)
+    end
+
+    it "person が見つからない場合は 200 でスキップする（500 にしない）" do
+      payload[:objects][:payment][:metadata][:user_id] = "missing_person_id"
+
+      expect { signed_post(payload) }
+        .not_to change(UserPlanSubscription, :count)
+      expect(response).to have_http_status(200)
+    end
+
+    it "metadata に listing_id が無い場合は 200 でスキップする" do
+      payload[:objects][:payment][:metadata].delete(:listing_id)
+
+      expect { signed_post(payload) }
+        .not_to change(UserPlanSubscription, :count)
+      expect(response).to have_http_status(200)
+    end
+
+    it "署名が不正なら 401 で、何も付与しない" do
+      expect {
+        post "/webhooks/freemius",
+             params: payload.to_json,
+             headers: { "CONTENT_TYPE" => "application/json", "HTTP_X_SIGNATURE" => "bad" }
+      }.not_to change(UserPlanSubscription, :count)
+
+      expect(response).to have_http_status(401)
+    end
+  end
+
   describe "POST /webhooks/freemius payment.refunded" do
     before do
       wallet.topup!(3000, freemius_payment_id: "fs_pay_9")

@@ -53,6 +53,38 @@ module FreemiusClient
       post("/checkouts", body)
     end
 
+    # Creates a checkout session for a persona purchase (one listing unit).
+    #
+    # Separate from the wallet top-up checkout: metadata carries
+    # type: "persona_purchase" plus listing_id / user_id so the webhook
+    # (FreemiusWebhooksController) can grant the purchase entitlement
+    # (UserPlanSubscriptionService.create_for) after server-side verification.
+    #
+    # @param amount_cents [Integer] listing price in cents (server-side value)
+    # @param currency [String] ISO currency code (e.g. "JPY")
+    # @param user_id [String] local person ID (stored in metadata for webhook matching)
+    # @param listing_id [Integer] local listing ID (stored in metadata)
+    # @param success_url [String, nil] redirect target after successful payment
+    # @param cancel_url [String, nil] redirect target after cancellation
+    # @return [Hash] { "checkout_url" => String, "payment_id" => String }
+    # @raise [ApiError] when credentials are missing or the API errors
+    def create_persona_purchase_checkout(amount_cents:, currency:, user_id:, listing_id:,
+                                         success_url: nil, cancel_url: nil)
+      body = {
+        amount_cents: amount_cents,
+        currency: currency,
+        metadata: {
+          type: "persona_purchase",
+          user_id: user_id,
+          listing_id: listing_id
+        }
+      }
+      body[:success_url] = success_url if success_url
+      body[:cancel_url] = cancel_url if cancel_url
+
+      post("/checkouts", body)
+    end
+
     # Retrieves a payment by its Freemius payment ID.
     #
     # @param payment_id [String]

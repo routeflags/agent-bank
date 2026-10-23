@@ -24,6 +24,11 @@ class FreemiusWebhooksController < ApplicationController
   # Supported inbound event types.
   PAYMENT_COMPLETED = "payment.completed"
   PAYMENT_REFUNDED = "payment.refunded"
+  # Checkout metadata type for persona purchases (listing unit).
+  # Wallet top-up checkouts carry type: "wallet_topup" (or no type for
+  # legacy checkouts); anything other than persona_purchase keeps the
+  # existing wallet credit path.
+  PERSONA_PURCHASE = "persona_purchase"
   SUBSCRIPTION_EVENTS = %w[
     subscription.created
     subscription.renewed
@@ -75,18 +80,36 @@ class FreemiusWebhooksController < ApplicationController
     ActiveSupport::SecurityUtils.secure_compare(expected, signature)
   end
 
-  # Credits the buyer's wallet for a completed payment.
-  # Verifies the payment server-side before crediting: the webhook payload
-  # alone is not trusted for amount or status.
+  # Dispatches a completed payment by its checkout metadata type.
+  #   - type: "persona_purchase" → grants the purchase entitlement
+  #   - anything else (incl. "wallet_topup" / legacy without type) → credits the wallet
   def handle_payment_completed(objects)
     payment = objects[:payment] || objects["payment"] || {}
     payment_id = payment[:id] || payment["id"]
     metadata = payment[:metadata] || payment["metadata"] || {}
+
+    if payment_id.blank?
+      Rails.logger.warn("[FreemiusWebhook] payment.completed missing payment id: #{objects.inspect[0, 200]}")
+      return
+    end
+
+    type = metadata[:type] || metadata["type"]
+    if type.to_s == PERSONA_PURCHASE
+      handle_persona_purchase_completed(payment_id, metadata)
+    else
+      handle_wallet_topup_completed(payment_id, metadata)
+    end
+  end
+
+  # Credits the buyer's wallet for a completed wallet top-up payment.
+  # Verifies the payment server-side before crediting: the webhook payload
+  # alone is not trusted for amount or status.
+  def handle_wallet_topup_completed(payment_id, metadata)
     user_id = metadata[:user_id] || metadata["user_id"]
     wallet_id = metadata[:wallet_id] || metadata["wallet_id"]
 
-    if payment_id.blank? || user_id.blank? || wallet_id.blank?
-      Rails.logger.warn("[FreemiusWebhook] payment.completed missing fields: #{objects.inspect[0, 200]}")
+    if user_id.blank? || wallet_id.blank?
+      Rails.logger.warn("[FreemiusWebhook] payment.completed (wallet_topup) missing fields: #{metadata.inspect[0, 200]}")
       return
     end
 
@@ -113,6 +136,55 @@ class FreemiusWebhooksController < ApplicationController
     end
 
     Rails.logger.info("[FreemiusWebhook] Credited wallet #{wallet_id} #{verified[:amount_cents]}c (payment #{payment_id})")
+  end
+
+  # Grants the purchase entitlement for a completed persona purchase.
+  #
+  # サーバー側検証（verify_payment_completed）のあと、購入権利の単一経路である
+  # UserPlanSubscriptionService.create_for を呼ぶ。冪等性は二段で担保される:
+  #   1. create_for: 同一 person+listing の active 購入権利があれば duplicate として返す
+  #      （同じ payment の再送は購入権利・初期トークンを二重に付与しない）
+  #   2. Wallet#topup!: payment_reference "freemius:<payment_id>" の厳密一致で
+  #      初期トークンの二重チャージ自体を防止
+  #
+  # listing / person が見つからない場合は警告ログを出してスキップする（500 にしない）。
+  # create_for 自体の例外は外側の rescue で 500 になり、Freemius が再送するため
+  # 一時的な DB エラーは再試行される（冪等なので二重付与はしない）。
+  def handle_persona_purchase_completed(payment_id, metadata)
+    listing_id = metadata[:listing_id] || metadata["listing_id"]
+    user_id = metadata[:user_id] || metadata["user_id"]
+
+    if listing_id.blank? || user_id.blank?
+      Rails.logger.warn("[FreemiusWebhook] payment.completed (persona_purchase) missing fields: #{metadata.inspect[0, 200]}")
+      return
+    end
+
+    listing = Listing.find_by(id: listing_id)
+    person = Person.find_by(id: user_id)
+    unless listing && person
+      Rails.logger.warn("[FreemiusWebhook] persona_purchase target not found: listing=#{listing_id} person=#{user_id}, skipping")
+      return
+    end
+
+    # Server-side verification: same as the wallet path — the webhook body
+    # alone is not trusted for status or amount.
+    verified = verify_payment_completed(payment_id)
+    unless verified
+      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} not verified as completed, skipping persona purchase")
+      return
+    end
+
+    result = UserPlanSubscriptionService.create_for(
+      person: person,
+      listing: listing,
+      payment_reference: "freemius:#{payment_id}"
+    )
+
+    if result.duplicate?
+      Rails.logger.info("[FreemiusWebhook] Duplicate persona purchase payment #{payment_id}, skipping")
+    else
+      Rails.logger.info("[FreemiusWebhook] Granted persona purchase: listing=#{listing_id} person=#{user_id} (payment #{payment_id})")
+    end
   end
 
   # Fetches the payment from Freemius and requires completed status.
