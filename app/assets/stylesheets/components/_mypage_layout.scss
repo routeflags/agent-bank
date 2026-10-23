@@ -22,6 +22,36 @@ body.dark-theme {
     color: var(--text-primary);
     margin: 0 0 16px;
   }
+
+  // プロフィールの自己紹介（Issue #17）
+  .raku-about {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .raku-about__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 12px;
+  }
+
+  .raku-about__body {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+
+    p {
+      margin: 0 0 8px;
+    }
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+  }
 }
 
 // ── Mobile ────────────────────────────────────────────

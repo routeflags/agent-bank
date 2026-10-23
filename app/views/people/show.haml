@@ -1,4 +1,7 @@
 - person = @service.person
+-# 「出品管理」タブ（?show_closed=true）かどうか。サイドバーの活性表示、
+-# 見出し、空状態の文言を切り替える（Issue #14）。
+- closed_view = params[:show_closed].present? && current_user?(person)
 
 - content_for :javascript do
   initialize_profile_view("#{person.username}");
@@ -42,10 +45,10 @@
 
     .raku-sidebar__nav
       .raku-sidebar__section-label= t('lamprey.mypage.menu')
-      %a.raku-sidebar__link.is-active{href: person_path(username: person.username)}
+      %a.raku-sidebar__link{class: (closed_view ? nil : "is-active"), href: person_path(username: person.username)}
         %span.raku-sidebar__icon 📊
         = t('lamprey.mypage.dashboard')
-      %a.raku-sidebar__link{href: person_path(username: person.username, show_closed: true)}
+      %a.raku-sidebar__link{class: (closed_view ? "is-active" : nil), href: person_path(username: person.username, show_closed: true)}
         %span.raku-sidebar__icon 📦
         = t('lamprey.mypage.manage_listings')
       .raku-sidebar__divider
@@ -82,15 +85,21 @@
           .raku-summary__value
             %span.raku-link-gold= "★ #{@raku_stats[:avg_rating]}"
 
-    -# ── Quick Actions（未実装ページへのリンクは置かない — §25.10） ──
+    -# ── About（自己紹介がある場合のみ）──────────────
+    - if person.description.present?
+      %section.raku-about
+        %h2.raku-about__title= t('lamprey.mypage.about_title')
+        .raku-about__body= simple_format(person.description)
+
+    -# ── Quick Actions（未実装ページへのリンクは置かない — §25.10）
+    -# 「出品管理」はサイドバーと重複するため置かない（Issue #19）──
     .raku-quick-actions
       %a.raku-quick-actions__btn{href: new_listing_path}
         = "📝 #{t('lamprey.mypage.new_listing')}"
-      %a.raku-quick-actions__btn{href: person_path(username: person.username, show_closed: true)}
-        = "📋 #{t('lamprey.mypage.manage_listings')}"
+
 
     -# ── Skill Table ──────────────────────────────────────
-    %h2.raku-table-title= t('lamprey.mypage.table_title')
+    %h2.raku-table-title= closed_view ? t('lamprey.mypage.table_title_closed') : t('lamprey.mypage.table_title')
     - if @skill_listings.total_entries > 0
       %table.raku-table
         %thead
@@ -137,9 +146,12 @@
     - else
       .raku-table__empty
         .raku-table__empty-icon 📦
-        = t('lamprey.mypage.empty_listings')
-        %br
-        %a.raku-link-gold{href: new_listing_path}= t('lamprey.mypage.empty_listings_cta')
+        - if closed_view
+          = t('lamprey.mypage.empty_closed_listings')
+        - else
+          = t('lamprey.mypage.empty_listings')
+          %br
+          %a.raku-link-gold{href: new_listing_path}= t('lamprey.mypage.empty_listings_cta')
 
     -# ── Reviews ──────────────────────────────────────────
     .raku-reviews

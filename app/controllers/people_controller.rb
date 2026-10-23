@@ -20,8 +20,6 @@ class PeopleController < Devise::RegistrationsController
   skip_before_action :ensure_consent_given,               only: LOOSER_ACCESS_CONTROL
   skip_before_action :ensure_user_belongs_to_community,   only: LOOSER_ACCESS_CONTROL
 
-  helper_method :show_closed?
-
   def show
     @service = Persons::ShowService.new(community: @current_community, params: params, current_user: @current_user)
     redirect_to landing_page_path and return unless @service.person
@@ -277,10 +275,6 @@ class PeopleController < Devise::RegistrationsController
     respond_to do |format|
       format.json { render :json => Invitation.code_usable?(params[:invitation_code], @current_community) }
     end
-  end
-
-  def show_closed?
-    params[:closed] && params[:closed].eql?("true")
   end
 
   private
