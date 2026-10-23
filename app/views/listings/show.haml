@@ -105,9 +105,15 @@
         .raku-features
           - @listing.custom_field_values.each do |cfv|
             - cfv.with_type do |question_type|
-              .raku-features__item
-                %span.raku-features__check ✓
-                = cfv.question&.name || t('lamprey.listings.features_default')
+              - if question_type == :text
+                -# Issue #20: テキストフィールドは値を Markdown として表示する
+                .raku-features__text
+                  %span.raku-features__text-title= cfv.question&.name(I18n.locale)
+                  .raku-features__text-body= markdown(cfv.text_value.to_s)
+              - else
+                .raku-features__item
+                  %span.raku-features__check ✓
+                  = cfv.question&.name || t('lamprey.listings.features_default')
       - else
         %p.raku-tab-panel__empty= t('lamprey.listings.no_features')
 

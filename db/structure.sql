@@ -692,6 +692,7 @@ CREATE TABLE `custom_fields` (
   `entity_type` int(11) DEFAULT 0,
   `public` tinyint(1) DEFAULT 0,
   `assignment` int(11) DEFAULT 0,
+  `long_text` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `index_custom_fields_on_community_id` (`community_id`) USING BTREE,
   KEY `index_custom_fields_on_search_filter` (`search_filter`) USING BTREE
@@ -1839,6 +1840,7 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261024150000'),
 ('20261016000000'),
 ('20261015064307'),
 ('20261012093707'),

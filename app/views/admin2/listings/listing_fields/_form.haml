@@ -4,6 +4,12 @@
   = render 'admin2/listings/listing_fields/field_required', form: form, custom_field: custom_field
   = render 'admin2/listings/listing_fields/search_filter', form: form, custom_field: custom_field
 
+  - custom_field.with(:text) do
+    .form-group
+      %label{for: "custom_field_long_text"}= t('admin2.listing_fields.long_text')
+      = form.check_box :long_text, id: "custom_field_long_text"
+      %small.form-text= t('admin2.listing_fields.long_text_help')
+
   - custom_field.with(:numeric) do
     = render 'admin2/listings/listing_fields/field_min_max', form: form
 

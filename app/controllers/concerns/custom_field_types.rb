@@ -40,7 +40,9 @@ module CustomFieldTypes
   ]
 
   TextFieldSpec = [
-    [:search_filter, :bool, const_value: false]
+    [:search_filter, :bool, const_value: false],
+    # Issue #20: 複数行(Markdown)入力にするか（テキストフィールドのみ）
+    [:long_text, :bool, :optional, default: false, transform_with: CHECKBOX_TO_BOOLEAN]
   ] + CUSTOM_FIELD_SPEC
 
   NumericFieldSpec = [

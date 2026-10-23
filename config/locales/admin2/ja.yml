@@ -412,6 +412,8 @@ ja:
         location: 位置情報
     listing_fields:
       get_started: リスティングフィールドの開始
+      long_text: 長文（複数行）で入力する
+      long_text_help: テキストフィールドを複数行で入力できるようにします。出品詳細ページでは Markdown として表示されます。
       watch_video: ビデオを見る
       take_tour: ツアーを行う
       info_header: リスティングフィールド

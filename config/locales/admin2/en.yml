@@ -508,6 +508,8 @@ en:
         location: Location
     listing_fields:
       get_started: Get started with listing fields
+      long_text: Allow long (multi-line) input
+      long_text_help: Renders the text field as a multi-line input. The value is shown as Markdown on the listing page.
       watch_video: Watch a video
       take_tour: Take a tour
       info_header: Listing fields
