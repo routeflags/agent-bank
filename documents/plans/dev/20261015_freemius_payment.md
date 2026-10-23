@@ -1,7 +1,7 @@
 # 開発指示書: Freemius 決済の導入
 
 作成日: 2026-10-15
-対象: routeflags/agent-bank（AI ペルソナマーケットプレイス「楽市楽間」/ Lamprey）
+対象: routeflags/agent-bank（AI ペルソナマーケットプレイス「楽市楽問」/ Lamprey）
 ブランチ: `feat/agent-bank`
 
 ---
@@ -125,7 +125,7 @@ Freemius の Subscriptions API でプラン・更新・解約を管理する。
 ### Phase 1: 準備（Freemius アカウント・設定）
 
 - [ ] **1-1.** Freemius アカウント作成・製品登録（Developer Dashboard）
-  - 製品名: 楽市楽間 / Lamprey
+  - 製品名: 楽市楽問 / Lamprey
   - 通貨: USD（現行 `config/billing.yml` と一致）
 - [ ] **1-2.** プラン定義（Freemius Dashboard の Plans）
   - `config/billing.yml` の3モデルに対応するプランを作成

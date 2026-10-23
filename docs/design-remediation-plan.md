@@ -1,4 +1,4 @@
-# 楽市楽間 UI 改善 設計書 — DESIGN.md 準拠フェーズ2
+# 楽市楽問 UI 改善 設計書 — DESIGN.md 準拠フェーズ2
 
 - **作成日**: 2026-10-06
 - **根拠**: `DESIGN.md`（UI Design Specification）/ 2026-10-06 実施の画面レビュー結果
