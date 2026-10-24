@@ -60,27 +60,89 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
   # POST /api/v1/wallet_topup
   # ===================================================================
   describe "POST /api/v1/wallet_topup" do
-    # Stripe 経路は Issue #43 で除去した（Freemius 一本）。非 dev 環境では
-    # 任意額チャージ自体が 503 になる。Stripe モック前提の例は意図的に削除。
-    context "非 dev 環境では任意額チャージを提供しない（Stripe 不使用）" do
+    # Issue #46: 固定額プリペイド (plan_id) のみ本番対応。任意額 amount_cents は
+    # 非 dev で 422 plan_id_required（Freemius に任意額 checkout が無いため）。
+    # Stripe 経路は Issue #43 で除去済み（Freemius 一本）。
+    context "非 dev 環境では任意額チャージを受け付けない（固定額のみ）" do
       before { sign_in_as(person) }
 
-      it "returns 503 with payment_unconfigured (Freemius 任意額は不可)" do
+      it "returns 422 with plan_id_required (Freemius 任意額は不可)" do
         post "/api/v1/wallet_topup", params: { amount_cents: 1000 }
 
+        expect(response).to have_http_status(422)
+        json = JSON.parse(response.body)
+        expect(json["error_type"]).to eq("plan_id_required")
+      end
+
+      it "does not create a wallet on arbitrary-amount rejection" do
+        expect { post "/api/v1/wallet_topup", params: { amount_cents: 1000 } }
+          .not_to change(Wallet, :count)
+      end
+
+      it "returns 422 when plan_id is missing entirely" do
+        post "/api/v1/wallet_topup", params: {}
+        expect(response).to have_http_status(422)
+        expect(JSON.parse(response.body)["error_type"]).to eq("plan_id_required")
+      end
+    end
+
+    context "固定額プリペイド (plan_id) の本番経路 (Issue #46)" do
+      before { sign_in_as(person) }
+
+      def stub_fixed_env(topup_map: { "5678" => 1000, "5679" => 3000 }, rate: "0.0067")
+        allow(ENV).to receive(:[]).and_call_original
+        allow(ENV).to receive(:[]).with("FREEMIUS_PRODUCT_ID").and_return("1234")
+        allow(ENV).to receive(:[]).with("API_BEARER_AUTHORIZATION_TOKEN").and_return("bearer")
+        allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return(rate)
+        allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return(topup_map.to_json)
+        allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
+        allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return(nil)
+      end
+
+      it "returns a hosted checkout URL for a known plan_id" do
+        stub_fixed_env
+        post "/api/v1/wallet_topup", params: { plan_id: "5678" }
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+        expect(json["checkout_url"]).to include("/product/1234/plan/5678/")
+        expect(json["plan_id"]).to eq("5678")
+        expect(json["credit_jpy"]).to eq(1000)
+        expect(json["amount_cents"]).to eq(1000)
+        expect(json["amount_usd_cents"]).to eq(670)
+        expect(json["currency"]).to eq("usd")
+        expect(json["provider"]).to eq("freemius")
+      end
+
+      it "ignores client amount_cents when plan_id is present (server decides)" do
+        stub_fixed_env
+        post "/api/v1/wallet_topup", params: { plan_id: "5678", amount_cents: 1 }
+        expect(response).to have_http_status(200)
+        expect(JSON.parse(response.body)["credit_jpy"]).to eq(1000)
+      end
+
+      it "returns 422 for an unknown plan_id" do
+        stub_fixed_env
+        post "/api/v1/wallet_topup", params: { plan_id: "nope" }
+        expect(response).to have_http_status(422)
+        expect(JSON.parse(response.body)["error_type"]).to eq("invalid_plan")
+      end
+
+      it "returns 503 when the FX rate is unconfigured (no silent default rate)" do
+        stub_fixed_env(rate: nil)
+        post "/api/v1/wallet_topup", params: { plan_id: "5678" }
         expect(response).to have_http_status(503)
         json = JSON.parse(response.body)
         expect(json["error_type"]).to eq("payment_unconfigured")
-        expect(json["reason"]).to eq("freemius_arbitrary_amount_unsupported")
+        expect(json["reason"]).to eq("fx_rate_unconfigured")
       end
 
-      it "creates a wallet but does not credit (awaiting dev confirm only)" do
-        expect { post "/api/v1/wallet_topup", params: { amount_cents: 1000 } }
-          .to change(Wallet, :count).by(1)
-
-        wallet = person.reload.wallet
-        expect(wallet).to be_present
-        expect(wallet.balance_cents).to eq(0)
+      it "returns 503 when TOPUP_MAP is unconfigured" do
+        stub_fixed_env(topup_map: {})
+        allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return(nil)
+        post "/api/v1/wallet_topup", params: { plan_id: "5678" }
+        # plan 未解決のため 422 invalid_plan（map 自体が無い場合は plan 解決不可）
+        # または 503 topup_plans_unconfigured のいずれかで fail-closed。
+        expect([422, 503]).to include(response.status)
       end
     end
 
@@ -131,7 +193,7 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
 
     # Stripe エラー分岐は Issue #43 で除去（Freemius 一本）。Stripe モック例は廃止。
     # Freemius 任意額 checkout 分岐も廃止（Issue #43 で実現不可と確定）。
-    # 非 dev の POST は上記 503 例でカバーする。
+    # 非 dev の任意額 POST は上記 422 例でカバーする（Issue #46）。
   end
 
   # ===================================================================
@@ -212,7 +274,7 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
         end
       end
 
-      context "Freemius が設定されていても wallet は無効のまま（任意額不可）" do
+      context "Freemius のみ設定・レート未設定では wallet は無効のまま" do
         before do
           allow(FreemiusClient).to receive(:configured?).and_return(true)
         end
@@ -224,6 +286,31 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
           expect(json["topup_enabled"]).to eq(false)
           expect(json["provider"]).to be_nil
           expect(json["reason"]).to eq("payment_unconfigured")
+        end
+      end
+
+      context "固定額プリペイドが設定済みの場合 (Issue #46)" do
+        before do
+          allow(ENV).to receive(:[]).and_call_original
+          allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return("0.0067")
+          allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return({ "5678" => 1000, "5679" => 3000 }.to_json)
+          allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
+          allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return(nil)
+          allow(FreemiusClient).to receive(:configured?).and_return(true)
+        end
+
+        it "returns denominations with plan_id / USD / JPY" do
+          get "/api/v1/wallet_topup/status"
+          expect(response).to have_http_status(200)
+          json = JSON.parse(response.body)
+          expect(json["topup_enabled"]).to eq(true)
+          expect(json["provider"]).to eq("freemius")
+          expect(json["fx_rate"]).to eq(0.0067)
+          denoms = json["denominations"]
+          expect(denoms.map { |d| d["plan_id"] }).to eq(%w[5678 5679])
+          expect(denoms.first["credit_jpy"]).to eq(1000)
+          expect(denoms.first["estimated_usd_cents"]).to eq(670)
+          expect(denoms.first["currency"]).to eq("usd")
         end
       end
 

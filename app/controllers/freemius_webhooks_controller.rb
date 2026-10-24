@@ -147,16 +147,30 @@ class FreemiusWebhooksController < ApplicationController
   # Credits the buyer's wallet for a completed wallet top-up payment.
   # Verifies the payment server-side before crediting: the webhook payload
   # alone is not trusted for amount.
-  # NOTE: arbitrary-amount top-ups have no Freemius checkout (Issue #43), so
-  # this path is dormant except for fixed prepaid plans / legacy metadata.
+  #
+  # Fixed prepaid (Issue #46): `plan_id -> credit (yen)` is resolved solely
+  # from `FREEMIUS_TOPUP_PLAN_MAP` (FreemiusTopupPlans). The verified gross
+  # (USD cents from Freemius) proves the payment exists; the credited amount
+  # is the map value, never the webhook body amount. Legacy payments without
+  # plan_id fall back to the verified gross (backward compatibility for
+  # existing tests/stubs). Unknown plan_id is skipped (no mis-credit).
   def handle_wallet_topup_completed(payment_id, payment, metadata)
-    user_id = metadata[:user_id] || metadata["user_id"] ||
-              payment[:user_id] || payment["user_id"]
-    wallet_id = metadata[:wallet_id] || metadata["wallet_id"]
+    plan_id = payment[:plan_id] || payment["plan_id"] ||
+              metadata[:plan_id] || metadata["plan_id"]
+    plan_id = plan_id.to_s.strip.presence
 
-    wallet = wallet_id.present? ? Wallet.find_by(id: wallet_id) : wallet_for_user(user_id)
+    topup_credit = plan_id ? FreemiusTopupPlans.credit_for_plan(plan_id) : nil
+    if plan_id && topup_credit.nil?
+      Rails.logger.warn("[FreemiusWebhook] Unknown topup plan_id=#{plan_id.inspect} (payment #{payment_id}), skipping")
+      return
+    end
+
+    wallet = resolve_wallet_for_topup(payment, metadata)
     if wallet.nil?
-      Rails.logger.warn("[FreemiusWebhook] payment wallet target not found: user=#{user_id.inspect} wallet=#{wallet_id.inspect}, skipping")
+      user_id = metadata[:user_id] || metadata["user_id"] ||
+                payment[:user_id] || payment["user_id"]
+      wallet_id = metadata[:wallet_id] || metadata["wallet_id"]
+      Rails.logger.warn("[FreemiusWebhook] payment wallet target not found: user=#{user_id.inspect} wallet=#{wallet_id.inspect} plan=#{plan_id.inspect}, skipping")
       return
     end
 
@@ -168,15 +182,32 @@ class FreemiusWebhooksController < ApplicationController
       return
     end
 
+    credit_cents = topup_credit || verified[:amount_cents]
+    if topup_credit
+      # Drift check only (warn, never block): hosted page shows the true
+      # charge; warn when the verified USD gross diverges from the yen
+      # credit converted at the current rate (operational drift signal).
+      begin
+        converted = FreemiusPricing.configured? ? FreemiusPricing.usd_cents_for_jpy(topup_credit) : nil
+        if converted && !FreemiusPricing.within_tolerance?(verified[:amount_cents], converted)
+          Rails.logger.warn("[FreemiusWebhook] Topup drift: plan=#{plan_id} verified=#{verified[:amount_cents]}c converted=#{converted}c (credit #{topup_credit} yen)")
+        end
+      rescue FreemiusPricing::RateMissingError
+        nil
+      end
+    end
+
     # Idempotent credit with row lock (see Wallet#topup!): concurrent
-    # duplicate deliveries credit only once. Returns nil if already done.
-    credited = wallet.topup!(verified[:amount_cents], freemius_payment_id: payment_id)
+    # duplicate deliveries credit only once. `freemius:<payment_id>` is
+    # matched by exact JSON parse (see Wallet#find_credited_transaction),
+    # so `fs_pay_1` never matches `fs_pay_10`. Returns nil if already done.
+    credited = wallet.topup!(credit_cents, freemius_payment_id: payment_id)
     if credited.nil?
       Rails.logger.info("[FreemiusWebhook] Duplicate payment #{payment_id}, skipping")
       return
     end
 
-    Rails.logger.info("[FreemiusWebhook] Credited wallet #{wallet_id} #{verified[:amount_cents]}c (payment #{payment_id})")
+    Rails.logger.info("[FreemiusWebhook] Credited wallet #{wallet.id} #{credit_cents}c (payment #{payment_id} plan #{plan_id.inspect})")
   end
 
   # Grants the purchase entitlement for a completed persona purchase.
@@ -264,18 +295,58 @@ class FreemiusWebhooksController < ApplicationController
   end
 
   # Resolves the buyer Person from a local id or Freemius user info.
+  # Email matching is exact (downcased): `Person.by_email` uses
+  # `WHERE address = ?` on lowercased addresses, so `a@x` never matches
+  # `a@xy` or `aa@x` (no prefix confusion like fs_pay_1 vs fs_pay_10).
   def resolve_person(user_id, payment)
     person = Person.find_by(id: user_id) if user_id.present?
     return person if person
 
-    objects_user = params.dig(:objects, :user) || params.dig("objects", "user") || {}
-    email = objects_user[:email] || objects_user["email"] ||
-            payment[:user_email] || payment["user_email"]
-    return nil if email.to_s.strip.empty?
+    email = webhook_user_email(payment)
+    return nil if email.nil?
 
-    Person.by_email(email.to_s.strip).first
+    Person.by_email(email).first
   rescue StandardError
     nil
+  end
+
+  # Resolves the wallet for a top-up: explicit wallet_id → local user_id →
+  # exact email match (hosted checkout carries only user_email).
+  def resolve_wallet_for_topup(payment, metadata)
+    wallet_id = metadata[:wallet_id] || metadata["wallet_id"]
+    return Wallet.find_by(id: wallet_id) if wallet_id.present?
+
+    user_id = metadata[:user_id] || metadata["user_id"] ||
+              payment[:user_id] || payment["user_id"]
+    person = Person.find_by(id: user_id) if user_id.present?
+    person ||= begin
+      email = webhook_user_email(payment)
+      email ? Person.by_email(email).first : nil
+    end
+    return nil unless person
+
+    person.wallet || person.find_or_create_wallet!(community: person.community)
+  rescue StandardError
+    nil
+  end
+
+  # Extracts the buyer email from the webhook (exact match only).
+  # Sources: objects.user.email (Freemius event) → payment.user_email
+  # (hosted checkout `user_email` prefill) → payment.user.email.
+  # Returns the downcased stripped address (Email addresses are stored
+  # lowercased), or nil when absent.
+  def webhook_user_email(payment)
+    objects_user = params.dig(:objects, :user) || params.dig("objects", "user") || {}
+    raw = objects_user[:email] || objects_user["email"] ||
+          payment[:user_email] || payment["user_email"]
+    if raw.to_s.strip.empty?
+      user_obj = payment[:user] || payment["user"]
+      if user_obj.respond_to?(:[])
+        raw = user_obj[:email] || user_obj["email"]
+      end
+    end
+    email = raw.to_s.strip.downcase
+    email.presence
   end
 
   # Falls back to the person's wallet when wallet_id metadata is absent
@@ -293,13 +364,14 @@ class FreemiusWebhooksController < ApplicationController
 
   # Records a refund as a reversing entry and decrements the balance.
   # Delegates to Wallet#refund! which is idempotent and atomic.
+  # Lookup is exact (JSON-parsed): LIKE is only a prefilter, so `fs_pay_1`
+  # never matches `fs_pay_10`.
   def handle_payment_refunded(objects)
     payment = objects[:payment] || objects["payment"] || {}
     payment_id = payment[:id] || payment["id"]
     return if payment_id.blank?
 
-    original = CreditTransaction.where(transaction_type: "topup")
-                                .where("metadata LIKE ?", "%\"#{sanitize_like(payment_id)}\"%").first
+    original = find_exact_topup_transaction(payment_id)
     unless original
       Rails.logger.warn("[FreemiusWebhook] Refund for unknown payment #{payment_id}")
       return
@@ -322,6 +394,24 @@ class FreemiusWebhooksController < ApplicationController
 
   def sanitize_like(str)
     str.to_s.gsub(/[\\%_]/) { |m| "\\#{m}" }
+  end
+
+  # Finds the original top-up transaction for a Freemius payment ID by
+  # exact match (JSON-parsed metadata). LIKE is only a prefilter for
+  # performance; the final match requires `freemius_payment_id == payment_id`
+  # (or legacy `stripe_payment_id` shape with the same value), so prefix
+  # confusion (`fs_pay_1` vs `fs_pay_10`) cannot occur.
+  def find_exact_topup_transaction(payment_id)
+    candidates = CreditTransaction.where(transaction_type: "topup")
+                                  .where("metadata LIKE ?", "%\"#{sanitize_like(payment_id)}\"%")
+    candidates.find do |tx|
+      begin
+        meta = JSON.parse(tx.metadata.to_s)
+      rescue JSON::ParserError
+        next false
+      end
+      meta["freemius_payment_id"] == payment_id || meta["stripe_payment_id"] == payment_id
+    end
   end
 
   # Syncs subscription lifecycle events to UserPlanSubscription.

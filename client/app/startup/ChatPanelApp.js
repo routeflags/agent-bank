@@ -126,6 +126,17 @@ var DEFAULT_I18N = {
   purchase_preparing_body: 'このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。',
   purchase_not_configured: '購入機能は現在準備中です（決済が未設定）。しばらくしてから再度お試しください。',
   purchase_checkout_failed: '購入ページの作成に失敗しました。時間をおいて再度お試しください。',
+  purchase_payment_unconfigured: '決済設定が不足しているため、現在購入できません。しばらくしてから再度お試しください。',
+  purchase_usd_charge: 'お支払い: ¥%{jpy}（約 $%{usd} USDで請求されます）',
+  topup_fixed_title: '固定額チャージ',
+  topup_select_plan: '金額を選択',
+  topup_fx_note: '円表示は目安です。レート変動で表示額が変わります。実際の請求はUSD建てで決済画面に表示されます。',
+  topup_usd_estimate: '約 $%{usd}（USD請求）',
+  topup_credit_label: 'チャージ額: ¥%{jpy}',
+  topup_invalid_plan: '指定されたプランは利用できません。金額を選択し直してください。',
+  wallet_insufficient_with_purchase: 'ウォレットの残高が不足しています。チャージするか、そのまま直接購入もできます（残高がなくても購入できます）。',
+  purchase_without_balance: '残高がなくても直接購入できます。チャージは任意の前払いです。',
+  purchase_direct_default: 'まずは直接購入がおすすめです。チャージは任意です。',
   new_chat_title: '新しいチャット',
   insufficient_tokens: 'トークンが不足しています。',
   purchase_required: 'このペルソナを利用するには購入が必要です。',
@@ -183,6 +194,16 @@ function tFormat(key, vars) {
   });
   return s;
 }
+function formatJpy(amount) {
+  var n = parseInt(amount, 10);
+  if (isNaN(n)) n = 0;
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function formatUsd(usdCents) {
+  var n = parseInt(usdCents, 10);
+  if (isNaN(n)) n = 0;
+  return (n / 100).toFixed(2);
+}
 
 // ─── Wallet Top-up Modal ──────────────────────────────────
 
@@ -195,26 +216,33 @@ var TOPUP_AMOUNTS = [
 class WalletTopupModal extends React.Component {
   constructor(props) {
     super(props);
+    var denoms = props.denominations || [];
     this.state = {
       selectedCents: 3000,
       customAmount: '',
+      selectedPlanId: denoms.length > 0 ? denoms[0].plan_id : null,
       isProcessing: false,
       error: null,
       success: false,
     };
     this.handleSelectAmount = this.handleSelectAmount.bind(this);
+    this.handleSelectPlan = this.handleSelectPlan.bind(this);
     this.handleCustomChange = this.handleCustomChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleOverlayClick = this.handleOverlayClick.bind(this);
   }
 
   handleSelectAmount(cents) {
-    this.setState({ selectedCents: cents, customAmount: '', error: null });
+    this.setState({ selectedCents: cents, customAmount: '', selectedPlanId: null, error: null });
+  }
+
+  handleSelectPlan(planId) {
+    this.setState({ selectedPlanId: planId, selectedCents: null, customAmount: '', error: null });
   }
 
   handleCustomChange(e) {
     var raw = e.target.value.replace(/[^0-9]/g, '');
-    this.setState({ customAmount: raw, selectedCents: null, error: null });
+    this.setState({ customAmount: raw, selectedCents: null, selectedPlanId: null, error: null });
   }
 
   getAmountCents() {
@@ -223,8 +251,49 @@ class WalletTopupModal extends React.Component {
     return isNaN(parsed) ? 0 : parsed;
   }
 
+  isFixedMode() {
+    var denoms = this.props.denominations || [];
+    return denoms.length > 0;
+  }
+
   handleSubmit() {
     var self = this;
+    // Fixed prepaid (Issue #46): plan_id -> hosted checkout URL.
+    // Completion arrives via webhook; poll the balance on return.
+    if (this.isFixedMode() && this.state.selectedPlanId) {
+      self.setState({ isProcessing: true, error: null });
+      fetch('/api/v1/wallet_topup', {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify({ plan_id: this.state.selectedPlanId }),
+      })
+        .then(function (response) {
+          return response.json().catch(function () { return {}; }).then(function (body) {
+            if (!response.ok) {
+              var err = new Error(body.error || t('wallet_pay_failed'));
+              err.body = body;
+              throw err;
+            }
+            return body;
+          });
+        })
+        .then(function (data) {
+          if (data.checkout_url) {
+            self.setState({ isProcessing: false, redirecting: true });
+            window.location.href = data.checkout_url;
+            return;
+          }
+          throw new Error(t('wallet_pay_failed'));
+        })
+        .catch(function (err) {
+          var msg = err.message || t('wallet_pay_failed');
+          if (err.body && err.body.error_type === 'invalid_plan') msg = t('topup_invalid_plan');
+          if (err.body && err.body.error_type === 'payment_unconfigured') msg = t('wallet_topup_unavailable_reason');
+          self.setState({ isProcessing: false, error: msg });
+        });
+      return;
+    }
+
     var amountCents = this.getAmountCents();
 
     if (amountCents < 100 || amountCents > 10000) {
@@ -249,8 +318,7 @@ class WalletTopupModal extends React.Component {
         return response.json();
       })
       .then(function (data) {
-        // Hosted checkout redirect (reserved for fixed prepaid plans; wallet
-        // arbitrary-amount checkout is unsupported per Issue #43).
+        // Hosted checkout redirect (fixed prepaid plans, Issue #46).
         // Completion arrives via webhook; poll the balance on return.
         if (data.provider === 'freemius' && data.checkout_url) {
           self.setState({ isProcessing: false, redirecting: true });
@@ -323,30 +391,71 @@ class WalletTopupModal extends React.Component {
           style: { fontSize: '13px', color: '#999', marginBottom: '16px' }
         }, t('wallet_current_balance') + (this.props.balance || 0).toLocaleString()),
 
-        // Amount grid
-        React.createElement('div', { className: 'wallet-topup-modal__amounts' },
-          TOPUP_AMOUNTS.map(function (opt) {
-            return React.createElement('button', {
-              key: opt.cents,
-              className: 'wallet-topup-modal__amountBtn' + (state.selectedCents === opt.cents ? ' is-selected' : ''),
-              onClick: function () { self.handleSelectAmount(opt.cents); },
-              type: 'button',
-            }, opt.label);
-          })
-        ),
+        // Fixed prepaid plans (Issue #46): plan_id list with JPY + USD estimate.
+        // Currency note: JPY display is an estimate; the true charge is USD.
+        (function () {
+          var denoms = self.props.denominations || [];
+          if (denoms.length === 0) return null;
+          return React.createElement('div', null,
+            React.createElement('div', {
+              style: { fontSize: '13px', color: '#ccc', marginBottom: '8px' }
+            }, t('topup_select_plan')),
+            React.createElement('div', { className: 'wallet-topup-modal__amounts' },
+              denoms.map(function (d) {
+                var label = '¥' + formatJpy(d.credit_jpy);
+                var sub = d.estimated_usd_cents != null ? tFormat('topup_usd_estimate', { usd: formatUsd(d.estimated_usd_cents) }) : null;
+                return React.createElement('button', {
+                  key: d.plan_id,
+                  className: 'wallet-topup-modal__amountBtn' + (state.selectedPlanId === d.plan_id ? ' is-selected' : ''),
+                  onClick: function () { self.handleSelectPlan(d.plan_id); },
+                  type: 'button',
+                  title: sub || label,
+                }, label + (sub ? '\n' + sub : ''));
+              })
+            ),
+            React.createElement('div', {
+              style: { fontSize: '11px', color: '#888', marginBottom: '12px' }
+            }, t('topup_fx_note')),
+            React.createElement('div', {
+              style: { fontSize: '11px', color: '#888', marginBottom: '12px' }
+            }, t('purchase_without_balance'))
+          );
+        })(),
 
-        // Custom amount
-        React.createElement('div', { className: 'wallet-topup-modal__customAmount' },
-          React.createElement('span', { className: 'wallet-topup-modal__customLabel' }, t('wallet_custom_label')),
-          React.createElement('input', {
-            className: 'wallet-topup-modal__customInput',
-            type: 'text',
-            inputMode: 'numeric',
-            placeholder: t('wallet_amount_placeholder'),
-            value: state.customAmount,
-            onChange: this.handleCustomChange,
-          })
-        ),
+        // Legacy dev amounts (shown only when no fixed plans are available).
+        // Dev pseudo top-up is kept for local verification (Issue #46).
+        (function () {
+          var denoms = self.props.denominations || [];
+          if (denoms.length > 0 && !self.props.devMode) return null;
+          if (denoms.length > 0 && self.props.devMode) {
+            return React.createElement('div', {
+              style: { fontSize: '11px', color: '#666', margin: '8px 0' }
+            }, '--- dev: ' + t('wallet_custom_label') + ' ---');
+          }
+          return React.createElement('div', null,
+            React.createElement('div', { className: 'wallet-topup-modal__amounts' },
+              TOPUP_AMOUNTS.map(function (opt) {
+                return React.createElement('button', {
+                  key: opt.cents,
+                  className: 'wallet-topup-modal__amountBtn' + (state.selectedCents === opt.cents ? ' is-selected' : ''),
+                  onClick: function () { self.handleSelectAmount(opt.cents); },
+                  type: 'button',
+                }, opt.label);
+              })
+            ),
+            React.createElement('div', { className: 'wallet-topup-modal__customAmount' },
+              React.createElement('span', { className: 'wallet-topup-modal__customLabel' }, t('wallet_custom_label')),
+              React.createElement('input', {
+                className: 'wallet-topup-modal__customInput',
+                type: 'text',
+                inputMode: 'numeric',
+                placeholder: t('wallet_amount_placeholder'),
+                value: state.customAmount,
+                onChange: self.handleCustomChange,
+              })
+            )
+          );
+        })(),
 
         // Status messages
         state.error && React.createElement('div', { className: 'wallet-topup-modal__error' }, state.error),
@@ -357,7 +466,7 @@ class WalletTopupModal extends React.Component {
         React.createElement('button', {
           className: 'wallet-topup-modal__submitBtn',
           onClick: this.handleSubmit,
-          disabled: state.isProcessing || state.success || this.getAmountCents() < 100,
+          disabled: state.isProcessing || state.success || (this.isFixedMode() ? !state.selectedPlanId : this.getAmountCents() < 100),
           type: 'button',
         },
           state.isProcessing
@@ -443,17 +552,16 @@ function MessageBubble(props) {
       }),
       isStreaming && React.createElement('span', { className: 'chatMessage__streaming' })
     ),
-    // Show topup button for insufficient balance errors
-    showTopupButton && onTopupClick && React.createElement('div', { className: 'wallet-topup-prompt' },
-      React.createElement('button', {
+    // Inline导线 (Issue #33 Gold统一, #46 併用整理):
+    // 残高不足時はチャージ導線と購入導線の両方を出す（残高がなくても直接購入できる旨を明示）。
+    // 購入必須時は購入導線のみ。いずれも Gold ボタン (wallet-topup-prompt__btn) で統一。
+    (showTopupButton || showPurchaseButton) && React.createElement('div', { className: 'wallet-topup-prompt' },
+      showTopupButton && onTopupClick && React.createElement('button', {
         className: 'wallet-topup-prompt__btn',
         onClick: onTopupClick,
         type: 'button',
-      }, t('wallet_add_credits'))
-    ),
-    // Show purchase button for purchase_required errors
-    showPurchaseButton && onPurchaseClick && React.createElement('div', { className: 'wallet-topup-prompt' },
-      React.createElement('button', {
+      }, t('wallet_add_credits')),
+      showPurchaseButton && onPurchaseClick && React.createElement('button', {
         className: 'wallet-topup-prompt__btn',
         onClick: onPurchaseClick,
         type: 'button',
@@ -500,6 +608,8 @@ class ChatPanelApp extends React.Component {
       // the status request fails; the server remains the source of truth.
       topupEnabled: true,
       topupDevMode: false,
+      topupDenominations: [],
+      topupFixedAvailable: false,
       // Attachment (composer 📎)
       pendingAttachment: null,
     };
@@ -779,16 +889,18 @@ class ChatPanelApp extends React.Component {
       if (typeof data.current_balance === 'number') {
         this.setState({ walletBalance: data.current_balance });
       }
-      // Show error message with inline topup button
+      // 併用ルール (Issue #46): 既定は直接購入、残高は任意の前払い。
+      // 残高不足時はチャージ導線と購入導線の両方を出す（残高がなくても買える旨を明示）。
       this.setState(function (prev) {
         return {
           messages: prev.messages.concat([{
             id: 'sys-err-' + Date.now(),
             role: 'system',
-            content: data.error || t('insufficient_tokens'),
+            content: t('wallet_insufficient_with_purchase'),
             isStreaming: false,
             created_at: new Date().toISOString(),
             showTopupButton: true,
+            showPurchaseButton: true,
           }]),
         };
       });
@@ -798,7 +910,7 @@ class ChatPanelApp extends React.Component {
           messages: prev.messages.concat([{
             id: 'sys-err-' + Date.now(),
             role: 'system',
-            content: data.error || t('purchase_required'),
+            content: (data.error || t('purchase_required')) + ' ' + t('purchase_without_balance'),
             isStreaming: false,
             created_at: new Date().toISOString(),
             showPurchaseButton: true,
@@ -894,14 +1006,15 @@ class ChatPanelApp extends React.Component {
           // エラータイプに応じて適切なメッセージを表示
           var errorType = result ? result.error_type : null;
           if (errorType === 'purchase_required') {
-            // 購入が必要な場合は購入導線のみ表示（接続エラーメッセージは出さない）
+            // 購入が必要な場合は購入導線のみ表示（接続エラーメッセージは出さない）。
+            // 残高の有無に依存しない旨を明示する (Issue #46)。
             self.setState(function (prev) {
               return {
                 error: null,
                 messages: prev.messages.concat([{
                   id: 'sys-purchase-' + Date.now(),
                   role: 'system',
-                  content: 'このペルソナを利用するには購入が必要です。',
+                  content: t('purchase_required') + ' ' + t('purchase_without_balance'),
                   isStreaming: false,
                   created_at: new Date().toISOString(),
                   showPurchaseButton: true,
@@ -915,10 +1028,11 @@ class ChatPanelApp extends React.Component {
                 messages: prev.messages.concat([{
                   id: 'sys-balance-' + Date.now(),
                   role: 'system',
-                  content: t('wallet_insufficient'),
+                  content: t('wallet_insufficient_with_purchase'),
                   isStreaming: false,
                   created_at: new Date().toISOString(),
                   showTopupButton: true,
+                  showPurchaseButton: true,
                 }]),
               };
             });
@@ -1123,8 +1237,9 @@ class ChatPanelApp extends React.Component {
     this.setState({ showTopupModal: true });
   }
 
-  // Top-up availability (Issue #34): keeps the settings button label in
+  // Top-up availability (Issue #34, #46): keeps the settings button label in
   // sync with the server payment configuration. Called when the panel opens.
+  // Fixed prepaid denominations (plan_id / USD / JPY) are stored for the modal.
   fetchTopupStatus() {
     var self = this;
 
@@ -1138,7 +1253,12 @@ class ChatPanelApp extends React.Component {
       })
       .then(function (data) {
         if (data && typeof data.topup_enabled !== 'undefined') {
-          self.setState({ topupEnabled: !!data.topup_enabled, topupDevMode: !!data.dev_mode });
+          self.setState({
+            topupEnabled: !!data.topup_enabled,
+            topupDevMode: !!data.dev_mode,
+            topupDenominations: data.denominations || [],
+            topupFixedAvailable: !!(data.fixed_prepaid_available || (data.denominations && data.denominations.length > 0)),
+          });
         }
       })
       .catch(function () {
@@ -1198,9 +1318,10 @@ class ChatPanelApp extends React.Component {
     })
       .then(function (response) {
         return response.json().catch(function () { return {}; }).then(function (body) {
-          if (response.status === 503 && body.error_type === 'purchase_not_configured') {
-            // 決済が未設定（FREEMIUS_API_KEY 未投入など）
-            self.addMessage('sys-purchase-' + Date.now(), 'system', t('purchase_not_configured'), false);
+          if (response.status === 503 && (body.error_type === 'purchase_not_configured' || body.error_type === 'payment_unconfigured')) {
+            // 決済が未設定（product/Bearer/plan 缺け、又は JPY→USD 換算レート未設定）
+            var key = body.error_type === 'payment_unconfigured' ? 'purchase_payment_unconfigured' : 'purchase_not_configured';
+            self.addMessage('sys-purchase-' + Date.now(), 'system', t(key), false);
             return null;
           }
           if (!response.ok) {
@@ -1220,8 +1341,15 @@ class ChatPanelApp extends React.Component {
           });
         }
         if (body.checkout_url) {
-          self.addMessage('sys-purchase-' + Date.now(), 'system', t('wallet_redirecting'), false);
-          window.location.assign(body.checkout_url);
+          if (body.amount_usd_cents != null && body.amount_jpy != null) {
+            // USD 請求額（目安）を見せてから遷移する。真の請求額は hosted checkout 画面の表示。
+            self.addMessage('sys-purchase-' + Date.now(), 'system',
+              tFormat('purchase_usd_charge', { jpy: formatJpy(body.amount_jpy), usd: formatUsd(body.amount_usd_cents) }), false);
+            window.setTimeout(function () { window.location.assign(body.checkout_url); }, 1200);
+          } else {
+            self.addMessage('sys-purchase-' + Date.now(), 'system', t('wallet_redirecting'), false);
+            window.location.assign(body.checkout_url);
+          }
         }
       })
       .catch(function () {
@@ -1634,9 +1762,12 @@ class ChatPanelApp extends React.Component {
         )
       ),
 
-      // ── Wallet Top-up Modal ────────────────────────
+      // ── Wallet Top-up Modal (Issue #46 fixed prepaid) ───────
       state.showTopupModal && React.createElement(WalletTopupModal, {
         balance: state.walletBalance,
+        denominations: state.topupDenominations,
+        devMode: state.topupDevMode,
+        fixedAvailable: state.topupFixedAvailable,
         onSuccess: this.handleTopupSuccess,
         onClose: this.handleCloseTopup,
       })

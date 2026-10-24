@@ -1,18 +1,21 @@
 # frozen_string_literal: true
 
-# Wallet top-up API controller (Issue #34, Issue #43 Freemius一本化).
+# Wallet top-up API controller (Issue #34, #43 Freemius一本化, #46 固定額プリペイド).
 #
-# Provides dev-mode pseudo top-up only:
-#   1. POST /api/v1/wallet_topup          → returns a dev_pi_* pseudo intent (dev only)
-#   2. POST /api/v1/wallet_topup/confirm   → credits the wallet (dev intents only)
+# Two paths (no arbitrary-amount Freemius checkout exists):
+#   1. Fixed prepaid (production): POST with `plan_id` → hosted Checkout URL.
+#      Credit amount comes solely from `FREEMIUS_TOPUP_PLAN_MAP`
+#      (see FreemiusTopupPlans). Webhook credits `Wallet#topup!`.
+#   2. Dev pseudo (development only): POST with `amount_cents` → dev_pi_* intent,
+#      then POST /confirm credits the wallet. Kept for local verification.
 #
-# Freemius hosted checkout does not support arbitrary amounts (plan-based only),
-# so wallet top-up via Freemius is intentionally unsupported (see
-# documents/guides/freemius_production_setup.md). Stripe paths were removed
-# per owner policy (Freemius only). Sharetribe core Stripe settings
-# (PaymentSettings etc.) are left untouched.
+# Arbitrary `amount_cents` in non-dev is rejected with 422 (Issue #46).
+# Freemius hosted checkout does not support arbitrary amounts (plan-based only).
+# Stripe paths were removed per owner policy (Freemius only). Sharetribe core
+# Stripe settings (PaymentSettings etc.) are left untouched.
 #
-# Amount validation: 100円〜10,000円 (100–10,000 cents).
+# Dev amount validation: 100円〜10,000円 (100–10,000 cents).
+# Fixed prepaid credit validation: FreemiusTopupPlans (100〜100,000 yen).
 #
 module API
   module V1
@@ -65,11 +68,11 @@ module API
       #
       # Returns whether wallet top-up is currently available and why.
       # The frontend uses this to keep the top-up button label in sync
-      # with the actual payment configuration (Issue #34, Issue #43):
-      #   * development → dev_mode pseudo-payment
-      #   * otherwise → topup_enabled: false with reason payment_unconfigured
-      #     (Freemius hosted checkout is plan-based and cannot charge an
-      #     arbitrary amount; Stripe is not used per owner policy).
+      # with the actual payment configuration (Issue #34, #43, #46):
+      #   * development → dev_mode pseudo-payment (amount_cents, no plan_id)
+      #   * fixed prepaid (any env with Freemius + FX rate + TOPUP_MAP) →
+      #     topup_enabled: true with denominations (plan_id / USD / JPY).
+      #   * otherwise → topup_enabled: false with reason payment_unconfigured.
       # The payload mirrors #create so the button state always matches
       # what a top-up attempt would do.
       def status
@@ -78,40 +81,28 @@ module API
 
       # POST /api/v1/wallet_topup
       #
-      # Creates a dev-mode pseudo intent in development. In any other
-      # environment the arbitrary-amount top-up is unsupported (Freemius is
-      # plan-based, Stripe is not used), so 503 payment_unconfigured is
-      # returned. See documents/guides/freemius_production_setup.md.
+      # Fixed prepaid (Issue #46): accepts `plan_id`, returns a hosted
+      # Checkout URL. Arbitrary `amount_cents` is rejected with 422 in
+      # non-dev (Freemius has no arbitrary-amount checkout; Stripe is not
+      # used per owner policy). Dev pseudo top-up (`amount_cents` →
+      # dev_pi_* intent) is kept for local verification.
+      # See documents/guides/freemius_production_setup.md.
       def create
-        amount_cents = params[:amount_cents].to_i
+        plan_id = params[:plan_id].to_s.strip
+        return create_fixed_prepaid(plan_id) if plan_id.present?
 
-        unless valid_topup_amount?(amount_cents)
-          return render json: {
-            error: "金額は#{MIN_TOPUP_CENTS / 100}円〜#{MAX_TOPUP_CENTS / 100}円の間で指定してください"
-          }, status: :unprocessable_entity
-        end
-
-        wallet = find_or_create_wallet!
-
-        # 開発環境では実カード決済の代わりにデバッグ用の擬似 PaymentIntent を
-        # 返す（ローカル開発でチャージ動作を検証するため。開発用経路は残す）。
+        # No plan_id: legacy dev pseudo path (development only) or 422.
+        # Any `amount_cents` outside dev is an arbitrary-amount request,
+        # which Freemius cannot fulfil → 422 (not 503: it is a client
+        # input problem, not a transient misconfiguration).
         if dev_mode_topup?
-          return render json: {
-            client_secret: dev_secret_for(amount_cents, wallet),
-            payment_intent_id: dev_intent_id_for(amount_cents, wallet),
-            amount_cents: amount_cents,
-            dev_mode: true
-          }
+          return create_dev_pseudo
         end
 
-        # Freemius ホスト型 Checkout は plan 単位で任意金額に対応しないため、
-        # ウォレットの任意額チャージは提供しない。Stripe へはフォールバックしない
-        #（オーナー方針: Freemius 一本）。代替案は文書に記録している。
         render json: {
-          error: "決済が未設定のため、現在チャージできません",
-          error_type: "payment_unconfigured",
-          reason: "freemius_arbitrary_amount_unsupported"
-        }, status: :service_unavailable
+          error: "チャージ金額は固定額プランから選択してください",
+          error_type: "plan_id_required"
+        }, status: :unprocessable_entity
       end
 
       # POST /api/v1/wallet_topup/confirm
@@ -161,15 +152,155 @@ module API
         current_user.find_or_create_wallet!(community: current_user.community)
       end
 
+      # Fixed prepaid checkout for a denomination plan (Issue #46).
+      #
+      # @param plan_id [String] validated denomination plan ID
+      def create_fixed_prepaid(plan_id)
+        credit_jpy = FreemiusTopupPlans.credit_for_plan(plan_id)
+        if credit_jpy.nil?
+          return render json: {
+            error: "指定されたプランは利用できません",
+            error_type: "invalid_plan"
+          }, status: :unprocessable_entity
+        end
+
+        unless FreemiusClient.configured?
+          Rails.logger.warn("[WalletTopup] Freemius unconfigured for fixed prepaid plan=#{plan_id}")
+          return render json: {
+            error: "決済が未設定のため、現在チャージできません",
+            error_type: "payment_unconfigured",
+            reason: "freemius_not_configured"
+          }, status: :service_unavailable
+        end
+
+        unless FreemiusPricing.configured?
+          Rails.logger.warn("[WalletTopup] FX rate unconfigured (#{FreemiusPricing::RATE_ENV_VAR} missing)")
+          return render json: {
+            error: "決済設定が不足しているため、現在チャージできません",
+            error_type: "payment_unconfigured",
+            reason: "fx_rate_unconfigured"
+          }, status: :service_unavailable
+        end
+
+        unless FreemiusTopupPlans.configured?
+          Rails.logger.warn("[WalletTopup] Topup plans unconfigured: #{FreemiusTopupPlans.validation_errors.first}")
+          return render json: {
+            error: "決済設定が不足しているため、現在チャージできません",
+            error_type: "payment_unconfigured",
+            reason: "topup_plans_unconfigured"
+          }, status: :service_unavailable
+        end
+
+        # Hosted checkout is plan-based; the true charge is the Dashboard
+        # plan price (USD). The yen credit comes solely from the map.
+        amounts = FreemiusPricing.amounts_for_jpy(credit_jpy)
+        FreemiusPricing.check_plan_price(plan_id, amounts[:amount_usd_cents])
+        checkout_url = FreemiusClient.build_hosted_checkout_url(
+          plan_id: plan_id,
+          user_email: buyer_email_for_checkout
+        )
+
+        render json: {
+          checkout_url: checkout_url,
+          plan_id: plan_id,
+          amount_cents: credit_jpy,
+          credit_jpy: credit_jpy,
+          amount_usd_cents: amounts[:amount_usd_cents],
+          currency: amounts[:currency],
+          fx_rate: amounts[:fx_rate],
+          provider: "freemius"
+        }
+      rescue FreemiusPricing::RateMissingError => e
+        Rails.logger.error("[WalletTopup] FX rate missing: #{e.message}")
+        render json: {
+          error: "決済設定が不足しているため、現在チャージできません",
+          error_type: "payment_unconfigured",
+          reason: "fx_rate_unconfigured"
+        }, status: :service_unavailable
+      rescue FreemiusClient::ApiError => e
+        Rails.logger.error("[WalletTopup] Freemius error building checkout: #{e.message}")
+        render json: {
+          error: "決済ページの作成に失敗しました",
+          error_type: "checkout_failed"
+        }, status: :bad_gateway
+      end
+
+      # Legacy dev pseudo intent (development only, no plan_id).
+      def create_dev_pseudo
+        amount_cents = params[:amount_cents].to_i
+
+        unless valid_topup_amount?(amount_cents)
+          return render json: {
+            error: "金額は#{MIN_TOPUP_CENTS / 100}円〜#{MAX_TOPUP_CENTS / 100}円の間で指定してください"
+          }, status: :unprocessable_entity
+        end
+
+        wallet = find_or_create_wallet!
+
+        # 開発環境では実カード決済の代わりにデバッグ用の擬似 PaymentIntent を
+        # 返す（ローカル開発でチャージ動作を検証するため。開発用経路は残す）。
+        render json: {
+          client_secret: dev_secret_for(amount_cents, wallet),
+          payment_intent_id: dev_intent_id_for(amount_cents, wallet),
+          amount_cents: amount_cents,
+          dev_mode: true
+        }
+      end
+
       # Builds the top-up availability payload (see #status).
       # Mirrors #create so the button state always matches
       # what a top-up attempt would do.
       def topup_status_payload
+        fixed_available = FreemiusClient.configured? &&
+                          FreemiusPricing.configured? &&
+                          FreemiusTopupPlans.configured?
+        denominations = fixed_available ? FreemiusTopupPlans.available_denominations : []
+        fx_rate = FreemiusPricing.configured? ? FreemiusPricing.rate : nil
+
         if dev_mode_topup?
-          { topup_enabled: true, dev_mode: true, provider: "dev", reason: nil }
+          {
+            topup_enabled: true,
+            dev_mode: true,
+            provider: "dev",
+            reason: nil,
+            fixed_prepaid_available: fixed_available,
+            denominations: denominations,
+            currency: FreemiusPricing::CURRENCY,
+            fx_rate: fx_rate
+          }
+        elsif fixed_available
+          {
+            topup_enabled: true,
+            dev_mode: false,
+            provider: "freemius",
+            reason: nil,
+            denominations: denominations,
+            currency: FreemiusPricing::CURRENCY,
+            fx_rate: fx_rate
+          }
         else
-          { topup_enabled: false, dev_mode: false, provider: nil, reason: "payment_unconfigured" }
+          {
+            topup_enabled: false,
+            dev_mode: false,
+            provider: nil,
+            reason: "payment_unconfigured",
+            denominations: [],
+            currency: FreemiusPricing::CURRENCY,
+            fx_rate: fx_rate
+          }
         end
+      end
+
+      # Hosted checkout の user_email prefill 用。Person は emails テーブル
+      # 経由（confirmed 優先）のため valid_email を使う。取得できなくても
+      # checkout 自体は継続できるので nil を許容する。
+      def buyer_email_for_checkout
+        return nil unless current_user.respond_to?(:valid_email)
+
+        email = current_user.valid_email
+        email.to_s.strip.presence
+      rescue StandardError
+        nil
       end
 
       # ── デバッグ用擬似決済（開発環境のローカル動作。Issue #43 で残す） ──

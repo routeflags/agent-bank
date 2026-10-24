@@ -20,6 +20,27 @@ RSpec.describe FreemiusClient do
     allow(ENV).to receive(:fetch).with("FREEMIUS_API_BASE_URL", anything).and_return("https://api.freemius.test/v1")
   end
 
+  describe ".product_id" do
+    it "prefers PRODUCT_ID（`.env` の新しい命名）over the legacy key" do
+      allow(ENV).to receive(:[]).with("PRODUCT_ID").and_return("5678")
+
+      expect(described_class.product_id).to eq("5678")
+    end
+
+    it "falls back to FREEMIUS_PRODUCT_ID when PRODUCT_ID is absent" do
+      allow(ENV).to receive(:[]).with("PRODUCT_ID").and_return(nil)
+
+      expect(described_class.product_id).to eq("1234")
+    end
+
+    it "is nil when neither key is configured" do
+      allow(ENV).to receive(:[]).with("PRODUCT_ID").and_return(nil)
+      allow(ENV).to receive(:[]).with("FREEMIUS_PRODUCT_ID").and_return(nil)
+
+      expect(described_class.product_id).to be_nil
+    end
+  end
+
   describe ".configured?" do
     it "returns true when product_id and Bearer are present" do
       expect(described_class.configured?).to be true
