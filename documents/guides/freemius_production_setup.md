@@ -8,7 +8,7 @@
 
 | 環境変数 | 用途 | 参照元 | 備考 |
 |---|---|---|---|
-| `FREEMIUS_PRODUCT_ID` | Freemius product_id（数値）。サーバー API のパス `GET /products/{product_id}/...` と hosted checkout URL `.../product/{product_id}/plan/...` に使用 | Dashboard product Settings → API & Keys の product ID | **現 `.env` に未存在**。本番投入時に Dashboard から取得して追加すること。値はコミット・報告に書かない |
+| `PRODUCT_ID` | Freemius product_id（数値）。サーバー API のパス `GET /products/{product_id}/...` と hosted checkout URL `.../product/{product_id}/plan/...` に使用。旧名 `FREEMIUS_PRODUCT_ID` も後方互換で読む | Dashboard product Settings → API & Keys の product ID | 設定済み（`.env`）。値はコミット・報告に書かない |
 | `API_BEARER_AUTHORIZATION_TOKEN` | サーバー API の Bearer トークン（`Authorization: Bearer`）。`get_payment` / `get_subscription` の認証に使用 | Dashboard product Settings → API & Keys → API Bearer Authorization Token | 32 文字。`.env` に設定済み。旧名 `FREEMIUS_API_KEY` も後方互換で読むが、新規は本キーを使うこと |
 | `PRODUCT_SECRET_KEY` | Webhook `x-signature`（HMAC-SHA256(raw_body, secret)）と success redirect `signature`（HMAC-SHA256(clean_url, secret)）の検証鍵 | Dashboard product Settings → API & Keys → Secret Key | 32 文字。`.env` に設定済み。旧名 `FREEMIUS_WEBHOOK_SECRET` も後方互換で読むが、新規は本キーを使うこと。公開・コミット厳禁 |
 | `PRODUCT_PUBLIC_KEY` | フロント公開鍵（Buy Button / checkout.js の公開側）。現行のホスト型リダイレクトのみの運用ではサーバーは使わない。将来の埋め込み Checkout 用に保持 | Dashboard product Settings → API & Keys → Public Key | 32 文字。`.env` に設定済み |

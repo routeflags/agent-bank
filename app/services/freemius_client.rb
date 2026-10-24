@@ -161,10 +161,17 @@ module FreemiusClient
 
     # Numeric Freemius product ID (Dashboard → product Settings → API & Keys).
     #
+    # `.env` の命名を他の Freemius キー（`PRODUCT_PUBLIC_KEY` /
+    # `PRODUCT_SECRET_KEY`）に揃えて `PRODUCT_ID` を正とする。旧名
+    # `FREEMIUS_PRODUCT_ID` は後方互換で読む。
+    #
     # @return [String, nil]
     def product_id
-      pid = ENV["FREEMIUS_PRODUCT_ID"].to_s.strip
-      pid.presence
+      pid = ENV["PRODUCT_ID"].to_s.strip
+      return pid if pid.present?
+
+      legacy = ENV["FREEMIUS_PRODUCT_ID"].to_s.strip
+      legacy.presence
     end
 
     private
