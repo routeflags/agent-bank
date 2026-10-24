@@ -299,20 +299,6 @@ CREATE TABLE `chat_sessions` (
   CONSTRAINT `fk_rails_32376f0e7c` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `checkout_accounts`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `checkout_accounts` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `company_id_or_personal_id` varchar(255) DEFAULT NULL,
-  `merchant_id` varchar(255) NOT NULL,
-  `merchant_key` varchar(255) NOT NULL,
-  `person_id` varchar(255) NOT NULL,
-  `created_at` datetime NOT NULL,
-  `updated_at` datetime NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `comments`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -551,7 +537,6 @@ CREATE TABLE `contact_requests` (
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   `country` varchar(255) DEFAULT NULL,
-  `plan_type` varchar(255) DEFAULT NULL,
   `marketplace_type` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
@@ -1067,8 +1052,6 @@ CREATE TABLE `listings` (
   `approval_count` int(11) DEFAULT 0,
   `supported_run_modes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`supported_run_modes`)),
   `default_run_mode` varchar(255) DEFAULT 'download',
-  `version_number` varchar(255) DEFAULT NULL,
-  `publisher_name` varchar(255) DEFAULT NULL,
   `total_sold` int(11) DEFAULT 0,
   `avg_rating` float DEFAULT 0,
   `skill_markdown` text DEFAULT NULL COMMENT '出品者のスキル説明 (Markdown) — 所有者のみ閲覧可・フロント非表示',
@@ -1495,7 +1478,6 @@ CREATE TABLE `people` (
   `google_oauth2_id` varchar(255) DEFAULT NULL,
   `linkedin_id` varchar(255) DEFAULT NULL,
   `otp_secret` varchar(255) DEFAULT NULL,
-  `otp_required_for_login` tinyint(1) DEFAULT 0,
   UNIQUE KEY `index_people_on_username_and_community_id` (`username`,`community_id`) USING BTREE,
   UNIQUE KEY `index_people_on_uuid` (`uuid`),
   UNIQUE KEY `index_people_on_email` (`email`) USING BTREE,
@@ -1838,6 +1820,7 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261025000005'),
 ('20261025000004'),
 ('20261025000003'),
 ('20261025000002'),

@@ -458,8 +458,6 @@ class Listing < ApplicationRecord
     {
       supported_run_modes: available_run_modes,
       default_run_mode: default_run_mode,
-      version_number: version_number,
-      publisher_name: publisher_name,
       total_sold: total_sold,
       avg_rating: avg_rating
     }
