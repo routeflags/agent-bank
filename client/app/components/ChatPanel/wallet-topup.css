@@ -318,8 +318,8 @@
 }
 
 .wallet-topup-prompt__btn {
-  background: var(--wallet-success);
-  color: #fff;
+  background: var(--chat-brand-gold);
+  color: #070707;
   border: none;
   border-radius: 8px;
   padding: 6px 14px;
@@ -331,10 +331,10 @@
 }
 
 .wallet-topup-prompt__btn:hover {
-  background: var(--wallet-success-hover);
+  background: var(--chat-brand-gold-light);
 }
 
 .wallet-topup-prompt__btn:focus-visible {
-  outline: 2px solid var(--wallet-success);
+  outline: 2px solid var(--chat-brand-gold);
   outline-offset: 2px;
 }
