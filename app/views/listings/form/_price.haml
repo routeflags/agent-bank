@@ -2,16 +2,18 @@
 .price-container
   - if @listing_presenter.shape[:price_enabled]
     = form.label :price, t(".price")
-    = form.text_field :price, :class => "price-field", :maxlength => "10", :placeholder => "0", :value => (@listing.price ? @listing.price.to_s: 0)
+    -# 円マークは入力欄の前（左側）に表示する（Issue #30）
     = render partial: "listings/form/price_currency", locals: {form: form}
+    = form.text_field :price, :class => "price-field", :maxlength => "10", :placeholder => "0", :value => (@listing.price ? @listing.price.to_s: 0)
 
     - if @listing_presenter.unit_options.empty?
       -# No-op
     - elsif @listing_presenter.unit_options.length == 1
+      -# AI ペルソナはトークン課金のため単位表示を固定する（Issue #30）。
+      -# listing_units の実データは変更しない（非破壊・課金は token-based で unit を消費しない）。
       - unit_option = @listing_presenter.unit_options.first
       .quantity-description
-        = t(".per")
-        = unit_option[:display]
+        = t(".per_million_tokens")
       = hidden_field_tag("listing[unit]", unit_option[:value])
     - else
       .quantity-description

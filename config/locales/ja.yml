@@ -1301,6 +1301,7 @@ ja:
       price:
         price: 価格（半角数字でご入力ください）
         per: につき
+        per_million_tokens: 円 / 100万トークン
         per_day: 1日あたり
         mass: 個、キロ、リットル、坪
         time: 時間、日、ヶ月

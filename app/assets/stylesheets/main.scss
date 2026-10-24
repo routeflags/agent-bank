@@ -1407,7 +1407,7 @@ $noscript-height: lines(4);
 }
 
 .price-currency {
-  margin-left: lines(0.25);
+  margin-right: lines(0.25);
   display: inline;
   @include big-type;
 }
