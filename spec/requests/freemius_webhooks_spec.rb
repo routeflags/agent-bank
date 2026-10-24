@@ -102,6 +102,91 @@ RSpec.describe "FreemiusWebhooks", type: :request do
     end
   end
 
+  describe "POST /webhooks/freemius payment.created (fixed prepaid, Issue #46)" do
+    let(:buyer_email) { person.emails.first.address }
+
+    before do
+      allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return({ "5678" => 1000, "5679" => 3000 }.to_json)
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return(nil)
+      allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return("0.0067")
+    end
+
+    def fixed_payload(payment_id: "fs_topup_1", plan_id: "5678", email: nil, metadata: {})
+      {
+        event: "payment.created",
+        objects: {
+          payment: {
+            id: payment_id,
+            plan_id: plan_id,
+            gross: 5.0,
+            currency: "usd",
+            user_email: email,
+            metadata: metadata
+          },
+          user: email ? { email: email } : {}
+        }
+      }
+    end
+
+    it "credits the map amount (not gross) via plan_id + user_email exact match" do
+      allow(FreemiusClient).to receive(:get_payment).with("fs_topup_1").and_return(
+        { "id" => "fs_topup_1", "gross" => 5.0, "currency" => "usd" }
+      )
+      payload = fixed_payload(email: buyer_email)
+      expect { signed_post(payload) }
+        .to change { wallet.reload.balance_cents }.from(0).to(1000)
+      expect(response).to have_http_status(200)
+      tx = wallet.credit_transactions.where(transaction_type: "topup").last
+      expect(tx.metadata).to include("fs_topup_1")
+    end
+
+    it "matches email case-insensitively but exactly (no prefix confusion)" do
+      allow(FreemiusClient).to receive(:get_payment).with("fs_topup_1").and_return(
+        { "id" => "fs_topup_1", "gross" => 5.0, "currency" => "usd" }
+      )
+      # Uppercase should still match (stored lowercase); prefix must not.
+      expect { signed_post(fixed_payload(email: buyer_email.upcase)) }
+        .to change { wallet.reload.balance_cents }.from(0).to(1000)
+      other = FactoryBot.create(:person, community_id: community.id)
+      other_wallet = FactoryBot.create(:wallet, person: other, community: community, balance_cents: 0)
+      evil = "x" + buyer_email
+      allow(FreemiusClient).to receive(:get_payment).with("fs_topup_2").and_return(
+        { "id" => "fs_topup_2", "gross" => 5.0, "currency" => "usd" }
+      )
+      expect { signed_post(fixed_payload(payment_id: "fs_topup_2", email: evil)) }
+        .not_to(change { wallet.reload.balance_cents })
+      expect(other_wallet.reload.balance_cents).to eq(0)
+    end
+
+    it "skips unknown plan_id without credit (no mis-credit)" do
+      allow(FreemiusClient).to receive(:get_payment).and_return(
+        { "id" => "fs_topup_x", "gross" => 5.0, "currency" => "usd" }
+      )
+      expect { signed_post(fixed_payload(payment_id: "fs_topup_x", plan_id: "9999", email: buyer_email)) }
+        .not_to(change { wallet.reload.balance_cents })
+      expect(response).to have_http_status(200)
+    end
+
+    it "is idempotent on duplicate delivery (freemius:<id> exact)" do
+      allow(FreemiusClient).to receive(:get_payment).with("fs_topup_1").and_return(
+        { "id" => "fs_topup_1", "gross" => 5.0, "currency" => "usd" }
+      )
+      payload = fixed_payload(email: buyer_email)
+      signed_post(payload)
+      expect { signed_post(payload) }.not_to(change { wallet.reload.balance_cents })
+    end
+
+    it "does not confuse fs_topup_1 with fs_topup_10" do
+      wallet.topup!(100, freemius_payment_id: "fs_topup_10")
+      allow(FreemiusClient).to receive(:get_payment).with("fs_topup_1").and_return(
+        { "id" => "fs_topup_1", "gross" => 5.0, "currency" => "usd" }
+      )
+      expect { signed_post(fixed_payload(email: buyer_email)) }
+        .to change { wallet.reload.balance_cents }.from(100).to(1100)
+    end
+  end
+
   describe "POST /webhooks/freemius payment.created (persona_purchase, real event)" do
     let(:author) { FactoryBot.create(:person, community_id: community.id) }
     let(:listing) { FactoryBot.create(:listing, community_id: community.id, author: author) }

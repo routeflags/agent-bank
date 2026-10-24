@@ -102,6 +102,17 @@ RSpec.describe "Api::V1::PersonaPurchases", type: :request do
         end
       end
 
+      it "残高ゼロでも購入できる（残高に依存しない・Issue #46）" do
+        stub_hosted_url
+        FactoryBot.create(:wallet, person: person, community: community, balance_cents: 0)
+        expect(person.reload.wallet.balance_cents).to eq(0)
+
+        expect { post_purchase }.not_to change(UserPlanSubscription, :count)
+
+        expect(response).to have_http_status(200)
+        expect(JSON.parse(response.body)["checkout_url"]).to start_with("https://checkout.freemius.com/product/")
+      end
+
       it "クライアントが渡した価格・ユーザーは無視される（listing_id のみ信じる）" do
         stub_hosted_url
 

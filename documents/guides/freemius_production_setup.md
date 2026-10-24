@@ -17,6 +17,7 @@
 | `FREEMIUS_API_BASE_URL` | サーバー API 基底 URL（既定 `https://api.freemius.com/v1`）。テストのスタブ用 | 既定値で可 | 旧 `FreemiusClient` の `/v1/checkouts` 前提は廃止済み |
 | `FREEMIUS_JPY_USD_RATE` | JPY→USD 換算レート（1 JPY = 何 USD か。例 `0.0067`）。`FreemiusPricing` が読み、`POST /api/v1/persona_purchases` の換算と出品ページの USD 目安表示に使用 | オーナーが投入（値はコミット・報告に書かない） | **未設定・不正値時は本番課金を 503 `payment_unconfigured` で拒否**。既定レートでの黙認課金はしない。dev 擬似決済はレート不要 |
 | `FREEMIUS_PLAN_PRICE_MAP`（任意） | plan 価格の対応表（JSON。例 `{"5678":1999}` = plan 5678 は 1999 USD cents）。換算値との乖離チェックに使用 | 価格帯が複数ある場合に運用で管理 | 未設定時はチェックなし（`:unknown`）。壊れた JSON も `{}` 扱い |
+| `FREEMIUS_TOPUP_PLAN_MAP` | 固定額プリペイドの額面対応表（JSON。例 `{"5678":1000,"5679":3000}` = plan 5678 で 1,000円分、plan 5679 で 3,000円分をチャージ）。`GET status` の額面一覧・`POST` の plan 解決・webhook の付与額の唯一の正 | Dashboard で額面 plan を作り plan_id と付与円額を対応付けて投入（#46） | 未設定・空・壊れた JSON・空オブジェクト・不正値（非正整数・100〜100,000円範囲外）・重複キー・persona plan との重複はすべて「未設定」扱いで本番チャージは 503。値はコミット・報告に書かない |
 | `FREEMIUS_PRICE_TOLERANCE_PCT`（任意） | 乖離チェックの許容差（%、既定 `20`） | 既定で可 | 数値以外は既定値にフォールバック |
 | `FREEMIUS_API_KEY`（旧） | `API_BEARER_AUTHORIZATION_TOKEN` の旧名。後方互換で読むのみ | — | 新規設定は `API_BEARER_AUTHORIZATION_TOKEN` を使うこと |
 | `FREEMIUS_WEBHOOK_SECRET`（旧） | `PRODUCT_SECRET_KEY` の旧名。後方互換で読むのみ | — | 新規設定は `PRODUCT_SECRET_KEY` を使うこと |
@@ -31,11 +32,12 @@
 4. Plans → Customization で success redirect（Redirect Checkout to a custom URL）を必要に応じて設定する。`user_id`・`plan_id`・`payment_id`・`license_id`・`amount`・`signature` が query に付与される。`signature` は `PRODUCT_SECRET_KEY` で検証できる。
 5. 実際のカード決済は行わず、checkout リンク生成（`POST /api/v1/persona_purchases` → `checkout_url`）と Dashboard の Events 一覧、サーバー API 到達性（`GET /products/{id}/payments/{id}.json`）までを確認する。
 
-## 3. 未設定時の挙動（回帰維持）
+## 3. 未設定時の挙動（回帰維持・#46 更新）
 
 - `FREEMIUS_PRODUCT_ID` 又は Bearer 欠け、又は plan 未解決 → `POST /api/v1/persona_purchases` は 503 `purchase_not_configured`（購入権利は作らない）。
 - 換算レート（`FREEMIUS_JPY_USD_RATE`）欠け・不正値 → `POST /api/v1/persona_purchases` は 503 `payment_unconfigured`（`reason: "fx_rate_unconfigured"` 付き、checkout URL は作らない）。既定レートでの無断課金はしない。
-- 非開発環境の `POST /api/v1/wallet_topup` は 503 `payment_unconfigured`（理由 `freemius_arbitrary_amount_unsupported` 付き）。`GET status` は `topup_enabled: false`。開発環境では擬似決済（`dev_pi_*`）が従来どおり動作する（換算レート不要）。
+- `POST /api/v1/wallet_topup`（#46）: `plan_id` ありで Freemius/Bearer・レート・`FREEMIUS_TOPUP_PLAN_MAP` のいずれか欠け → 503 `payment_unconfigured`（`reason: freemius_not_configured / fx_rate_unconfigured / topup_plans_unconfigured`）。`plan_id` 不明 → 422 `invalid_plan`。`plan_id` なし（任意額 `amount_cents` 等）は非開発で 422 `plan_id_required`（任意額は受け付けない）。開発環境では `amount_cents` の擬似決済（`dev_pi_*`）が従来どおり動作する（`plan_id` 不要の経路を残す・換算レート不要）。
+- `GET /api/v1/wallet_topup/status`: 固定額が使える条件（Freemius 設定済み＋レート設定済み＋TOPUP_MAP 有効）を満たすとき `topup_enabled: true, provider: "freemius", denominations: [...]`。開発は `topup_enabled: true, dev_mode: true` を維持し、固定額が使えるときは `denominations` も併せて返す。いずれも不可なら `topup_enabled: false, reason: "payment_unconfigured"`。
 
 ## 4. ウォレット任意額チャージを Freemius で実現しない理由と代替案
 
@@ -55,7 +57,7 @@
 
 - ~~`config/billing.yml` の既定通貨は `USD` のまま（Freemius 通貨に合わせるため）。UI の円表示との不整合（Issue #43 補足）は本 Issue では直していない。JPY 建て課金は Freemius で不可のため、価格表示・請求通貨の方針決定が必要。~~ → **決定済み（オーナー）: 円価格を USD に換算して請求する。換算レートは `FREEMIUS_JPY_USD_RATE`。** 詳細は下記 §7。`config/billing.yml` の既定通貨は `USD` のまま。
 - ~~plan 設計: persona ごとの価格（`listing.price_cents`）をどの plan/pricing に対応させるか。単一 plan（`FREEMIUS_PLAN_ID`）で始めるか、価格帯ごとに plan を作り `FREEMIUS_PLAN_MAP` で管理するかを決定すること。~~ → **維持: `listing.freemius_plan_id` → `FREEMIUS_PLAN_MAP` → `FREEMIUS_PLAN_ID` の優先順位。** Dashboard の plan 価格と換算値の対応方法は下記 §7。
-- 固定額プリペイド（ウォレット）の採否: 上記 4 の代替案 1 を採用するかどうか。
+- 固定額プリペイド（ウォレット）の採否: 上記 4 の代替案 1 を採用するかどうか。 → **採用（オーナー決定・#46）: (a) 固定額プリペイドと (b) ペルソナ直接購入の両方を実装。** 詳細は下記 §8。
 - 本番キー投入手順: `FREEMIUS_PRODUCT_ID` の取得と Secrets 投入、Webhook Listener 登録、success redirect 設定、サンドボックスでの checkout 到達確認。実際のカード決済は本 Issue の検証範囲外。
 
 ## 7. JPY→USD 換算（`FREEMIUS_JPY_USD_RATE`）
@@ -67,6 +69,19 @@
 - API の返却値（`POST /api/v1/persona_purchases` の 200）: 既存 `checkout_url/plan_id/listing_id/amount_cents（JPY・互換維持）/provider` に加え、`amount_jpy`・`amount_usd_cents`・`currency: "usd"`・`fx_rate` を返す。フロントは USD 額（目安）を表示してから checkout へ遷移する。出品ページの価格ボックスにも USD 目安行を出す（レート設定時のみ）。
 - plan との対応方法: Freemius plan の価格は Dashboard 側で固定 USD。換算値は「どの plan を選ぶか」「購入者にいくらと表示するか」の目安に使う。運用の目安式: `plan価格(USD) ÷ rate ≒ 円価格`。例: rate `0.0067` で 3000円の persona には約 $20.10 → Dashboard で $19.99 等の tier plan を作り `FREEMIUS_PLAN_MAP` で対応付ける。
 - 乖離時の扱い: 任意 env `FREEMIUS_PLAN_PRICE_MAP`（`{"<plan_id>": <usd_cents>}`）がある場合のみ、`FREEMIUS_PRICE_TOLERANCE_PCT`（既定 20%）で照合する。超過は警告ログ（`[FreemiusPricing] plan price drift`）に留め、200 を継続して遮断しない。理由: 真の請求額は hosted checkout 画面が購入者に示すため、為替変動・tier 価格での誤遮断を避ける。map 未設定時は運用目視（Dashboard 価格 × レート逆算の対応表）で確認する。
+
+## 8. 固定額プリペイド＋直接購入の併用（Issue #46・オーナー決定）
+
+- 方針: **(a) 固定額プリペイドと (b) ペルソナ直接購入の両方を実装** する。既定の導線は直接購入。残高は「先にチャージして使う」任意の前払い。チャットのトークン消費は残高から引く（現行どおり）。
+- 額面 plan の運用: Dashboard に額面 plan を複数作る（例: USD 5 / 10 / 30 相当）。`FREEMIUS_TOPUP_PLAN_MAP`（JSON `{ "<plan_id>": <付与クレジット(円)> }`）で plan → 付与額を解決する。これを唯一の正とし、起動時（initializer）＋参照時（`FreemiusTopupPlans.validation_errors`）に欠落・重複・不正値を検証する。persona plan（`FREEMIUS_PLAN_MAP` / `FREEMIUS_PLAN_ID`）との plan_id 重複はエラー（webhook は persona 優先のため、重複 plan は wallet に届かない）。
+- API:
+  - `GET /api/v1/wallet_topup/status` は購入可能な額面一覧（`plan_id` / `credit_jpy` / `estimated_usd_cents` / `currency: "usd"` / `fx_rate` / `plan_price_usd_cents`）を返す。換算は `FreemiusPricing` のみを使う（新しい換算ロジックは書かない）。通貨は USD 固定。円表示は換算値であり、レート変動で表示が変わることを UI（`topup_fx_note`）・文書で明示する。
+  - `POST /api/v1/wallet_topup` は `plan_id` を受け取りホスト型 Checkout URL を返す。任意額 `amount_cents` は 422（`plan_id_required`）。開発の擬似決済（`amount_cents` → `dev_pi_*` → `confirm`）は従来どおり（`plan_id` 不要）。
+  - webhook `payment.created`: `plan_id` → 付与クレジット（円）を `FREEMIUS_TOPUP_PLAN_MAP` から解決し `Wallet#topup!` で加算。`freemius:<payment_id>` の厳密一致で冪等（二重配送で二重加算しない・`fs_pay_1` と `fs_pay_10` の混同なし）。plan 不明は加算しない。plan なしの legacy は検証済み gross を加算（既存テスト互換）。
+- ホスト型 Checkout はサーバー側で metadata を付けられないため、webhook の local ユーザー特定は次の順序で行い、取り違えが起きないことを spec で固定する: 明示 `wallet_id` → 明示 `user_id`（local id）→ `user_email` の厳密一致（`Person.by_email` の `WHERE address = ?`・lowercase exact、前方一致なし）。`objects.user.email` / `payment.user_email` / `payment.user.email` を見る。plan_id 逆引き（`listing_id_for_plan`）は persona 判定にのみ使い、wallet 解決には使わない。
+- (b) 直接購入: 既存 `POST /api/v1/persona_purchases` を維持。残高の有無に依存しない（残高ゼロでも checkout URL を返す）。購入済み `already_purchased` 挙動を維持。UI は「残高がなくても直接買える」導線を明示する（ロケール `purchase_without_balance` / `wallet_insufficient_with_purchase` / `purchase_direct_default`、インライン導線は #33 の Gold 統一に沿う）。
+- 残高不足時の表示: `insufficient_balance` はチャージ導線と購入導線の両方（Gold ボタン2つ＋ `wallet_insufficient_with_purchase` 文言）。`purchase_required` は購入導線のみ（文言に `purchase_without_balance` を付記）。設定パネルの残高表示は現行どおり。
+- Stripe は使わない（参照もしない）。
 
 ## 出典
 
