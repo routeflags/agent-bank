@@ -8,8 +8,6 @@ RSpec.describe FreemiusTopupPlans do
   before do
     allow(ENV).to receive(:[]).and_call_original
     allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_call_original
-    allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_call_original
-    allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_call_original
     allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return("0.0067")
   end
 
@@ -45,33 +43,6 @@ RSpec.describe FreemiusTopupPlans do
       stub_topup_map('{"5678":1000,"5678":3000}')
       expect(described_class.validation_errors.any? { |e| e.include?("duplicate") }).to be true
       expect(described_class.configured?).to be false
-    end
-
-    it "rejects overlap with persona plans" do
-      stub_topup_map({ "9999" => 1000 }.to_json)
-      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return({ "42" => "9999" }.to_json)
-      expect(described_class.configured?).to be false
-      expect(described_class.validation_errors.join).to match(/overlaps a persona plan/)
-    end
-
-    it "rejects overlap with the single persona plan" do
-      stub_topup_map({ "5678" => 1000 }.to_json)
-      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return("5678")
-      expect(described_class.configured?).to be false
-    end
-
-    it "rejects overlap with PLAN_ONETIME_ID (Issue #43 completion)" do
-      stub_topup_map({ "74358" => 1000 }.to_json)
-      allow(ENV).to receive(:[]).with("PLAN_ONETIME_ID").and_return("74358")
-      expect(described_class.configured?).to be false
-      expect(described_class.validation_errors.join).to match(/overlaps a persona plan/)
-    end
-
-    it "rejects overlap with PLAN_MONTHLY_ID (Issue #43 completion)" do
-      stub_topup_map({ "74360" => 1000 }.to_json)
-      allow(ENV).to receive(:[]).with("PLAN_MONTHLY_ID").and_return("74360")
-      expect(described_class.configured?).to be false
-      expect(described_class.validation_errors.join).to match(/overlaps a persona plan/)
     end
 
     it "is configured for a valid map" do

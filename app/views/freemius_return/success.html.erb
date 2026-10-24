@@ -21,9 +21,6 @@
       <div class="warn"><%= t("lamprey.freemius_return.invalid_signature") %></div>
     <% end %>
     <div class="actions">
-      <% if @listing %>
-        <a href="/<%= I18n.locale %>/listings/<%= @listing.id %>"><%= t("lamprey.freemius_return.back_to_listing") %></a>
-      <% end %>
       <a href="/<%= I18n.locale %>/"><%= t("lamprey.freemius_return.back_to_top") %></a>
     </div>
   </div>

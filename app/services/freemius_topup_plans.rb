@@ -21,10 +21,7 @@ require "json"
 #
 # Validation (missing / duplicate / invalid) runs on every reference
 # (fail-closed): `configured?` is false when the map is absent or invalid,
-# and `validation_errors` explains why. Overlap with persona plans
-# (`FREEMIUS_PLAN_MAP` values / `FREEMIUS_PLAN_ID`) is an error because
-# the webhook dispatches persona first — an overlapping plan would never
-# credit the wallet and would mislead the buyer.
+# and `validation_errors` explains why.
 #
 # Usage:
 #   FreemiusTopupPlans.configured? # => true when map is present and valid
@@ -110,8 +107,7 @@ module FreemiusTopupPlans
 
     # Human-readable validation problems (empty when valid).
     # Covers: missing / broken JSON / non-object / empty / blank plan_id /
-    # non-positive or out-of-range credit / raw duplicate keys /
-    # overlap with persona plans.
+    # non-positive or out-of-range credit / raw duplicate keys.
     #
     # @return [Array<String>]
     def validation_errors
@@ -159,13 +155,6 @@ module FreemiusTopupPlans
         end
       end
 
-      # Overlap with persona plans would misdispatch (persona wins).
-      persona_ids = persona_plan_ids
-      overlap = parsed.keys.map(&:to_s) & persona_ids
-      overlap.each do |pid|
-        errors << "#{TOPUP_PLAN_MAP_ENV_VAR}[#{pid.inspect}] overlaps a persona plan (webhook would grant entitlement, not wallet credit)"
-      end
-
       errors
     end
 
@@ -208,28 +197,6 @@ module FreemiusTopupPlans
     def duplicate_raw_keys(raw)
       keys = raw.scan(/"([^"\\]*)"\s*:/).flatten
       keys.tally.select { |_k, v| v > 1 }.keys
-    end
-
-    # Persona plan IDs from env (values of FREEMIUS_PLAN_MAP + single-plan IDs).
-    # Includes PLAN_ONETIME_ID / PLAN_MONTHLY_ID / FREEMIUS_PLAN_ID so a top-up
-    # denomination can never silently overlap the persona purchase plan
-    # (webhook dispatches persona first — an overlap would never credit).
-    def persona_plan_ids
-      ids = []
-      %w[PLAN_ONETIME_ID PLAN_MONTHLY_ID FREEMIUS_PLAN_ID].each do |key|
-        value = ENV[key].to_s.strip
-        ids << value unless value.empty?
-      end
-      begin
-        raw = ENV["FREEMIUS_PLAN_MAP"].to_s.strip
-        unless raw.empty?
-          parsed = JSON.parse(raw)
-          ids.concat(parsed.values.map(&:to_s)) if parsed.is_a?(Hash)
-        end
-      rescue JSON::ParserError
-        nil
-      end
-      ids.map(&:to_s).reject(&:empty?).uniq
     end
   end
 end

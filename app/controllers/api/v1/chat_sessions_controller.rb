@@ -5,9 +5,10 @@
 # Provides CRUD operations for chat sessions, scoped to the
 # authenticated user. Sessions link a Person to a Listing (persona).
 #
-# Purchase verification:
-#   The `create` action requires an active UserPlanSubscription for the
-#   requested listing. This ensures only paying users can start chat sessions.
+# Balance gate (Issue #51):
+#   The `create` action requires a wallet balance of at least
+#   `PersonaExecutorJob::MIN_BALANCE_CENTS` (free personas via `free_to_use?`
+#   are exempt). There is no per-listing purchase entitlement.
 #   The billing_model is determined server-side — client-provided values are ignored.
 class API::V1::ChatSessionsController < ApplicationController
   # API controller — CSRF token not needed (authenticated via Devise session/cookie)
@@ -69,7 +70,7 @@ class API::V1::ChatSessionsController < ApplicationController
   # POST /api/v1/chat_sessions
   #
   # Creates a new chat session for the authenticated user and a listing.
-  # Requires an active purchase (UserPlanSubscription) for the listing.
+  # Requires a sufficient wallet balance (see `purchased?`).
   # If a session already exists for this user+listing pair, returns the existing one.
   def create
     listing = Listing.find_by(id: params[:listing_id])

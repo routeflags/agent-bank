@@ -739,11 +739,6 @@ Rails.application.routes.draw do
         end
       end
 
-      # 本番購入導線: Freemius Checkout の作成（Issue #23）
-      # 決済完了は Webhook 経由で購入権利が付与される
-      # （FreemiusWebhooksController#handle_payment_completed の persona_purchase 経路）
-      resources :persona_purchases, only: [:create]
-
       # 開発/テスト専用の購入付与（production では 404）
       # 詳細: documents/guides/dev_persona_purchase_flow.md
       namespace :dev do

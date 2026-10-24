@@ -119,27 +119,17 @@ var DEFAULT_I18N = {
   wallet_submit: '追加する',
   wallet_redirecting: '決済ページへ移動しています…',
   wallet_add_credits: 'クレジットを追加する',
-  wallet_buy: '購入する',
   wallet_add_preparing: '追加する（準備中）',
   wallet_add_preparing_body: 'ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。',
   wallet_topup_unavailable_reason: '決済が未設定のため、現在チャージできません。',
-  purchase_preparing_body: 'このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。',
-  purchase_not_configured: '購入機能は現在準備中です（決済が未設定）。しばらくしてから再度お試しください。',
-  purchase_checkout_failed: '購入ページの作成に失敗しました。時間をおいて再度お試しください。',
-  purchase_payment_unconfigured: '決済設定が不足しているため、現在購入できません。しばらくしてから再度お試しください。',
-  purchase_usd_charge: 'お支払い: ¥%{jpy}（約 $%{usd} USDで請求されます）',
   topup_fixed_title: '固定額チャージ',
   topup_select_plan: '金額を選択',
   topup_fx_note: '円表示は目安です。レート変動で表示額が変わります。実際の請求はUSD建てで決済画面に表示されます。',
   topup_usd_estimate: '約 $%{usd}（USD請求）',
   topup_credit_label: 'チャージ額: ¥%{jpy}',
   topup_invalid_plan: '指定されたプランは利用できません。金額を選択し直してください。',
-  wallet_insufficient_with_purchase: 'ウォレットの残高が不足しています。チャージするか、そのまま直接購入もできます（残高がなくても購入できます）。',
-  purchase_without_balance: '残高がなくても直接購入できます。チャージは任意の前払いです。',
-  purchase_direct_default: 'まずは直接購入がおすすめです。チャージは任意です。',
   new_chat_title: '新しいチャット',
   insufficient_tokens: 'トークンが不足しています。',
-  purchase_required: 'このペルソナを利用するには購入が必要です。',
   error_generic: 'エラーが発生しました。',
   wallet_insufficient: 'ウォレットの残高が不足しています。',
   connect_failed: 'チャットに接続できませんでした。しばらくしてからもう一度お試しください。',
@@ -415,10 +405,7 @@ class WalletTopupModal extends React.Component {
             ),
             React.createElement('div', {
               style: { fontSize: '11px', color: '#888', marginBottom: '12px' }
-            }, t('topup_fx_note')),
-            React.createElement('div', {
-              style: { fontSize: '11px', color: '#888', marginBottom: '12px' }
-            }, t('purchase_without_balance'))
+            }, t('topup_fx_note'))
           );
         })(),
 
@@ -491,8 +478,6 @@ function MessageBubble(props) {
   var createdAt = props.created_at;
   var showTopupButton = props.showTopupButton;
   var onTopupClick = props.onTopupClick;
-  var showPurchaseButton = props.showPurchaseButton;
-  var onPurchaseClick = props.onPurchaseClick;
   var attachment = props.attachment;
   // 特別な成果表示（DESIGN.md §13）は明示フラグが付いた回答にのみ適用する
   var isResult = props.is_result === true;
@@ -552,20 +537,13 @@ function MessageBubble(props) {
       }),
       isStreaming && React.createElement('span', { className: 'chatMessage__streaming' })
     ),
-    // Inline导线 (Issue #33 Gold统一, #46 併用整理):
-    // 残高不足時はチャージ導線と購入導線の両方を出す（残高がなくても直接購入できる旨を明示）。
-    // 購入必須時は購入導線のみ。いずれも Gold ボタン (wallet-topup-prompt__btn) で統一。
-    (showTopupButton || showPurchaseButton) && React.createElement('div', { className: 'wallet-topup-prompt' },
-      showTopupButton && onTopupClick && React.createElement('button', {
+    // Inline导线: 残高不足時はチャージ導線のみを出す（Issue #51。購入導線は持たない）。
+    showTopupButton && onTopupClick && React.createElement('div', { className: 'wallet-topup-prompt' },
+      React.createElement('button', {
         className: 'wallet-topup-prompt__btn',
         onClick: onTopupClick,
         type: 'button',
-      }, t('wallet_add_credits')),
-      showPurchaseButton && onPurchaseClick && React.createElement('button', {
-        className: 'wallet-topup-prompt__btn',
-        onClick: onPurchaseClick,
-        type: 'button',
-      }, t('wallet_buy'))
+      }, t('wallet_add_credits'))
     ),
     role === 'assistant' && totalTokens > 0 && (
       React.createElement('span', { className: 'chatMessage__tokens' }, tFormat('message_tokens', { count: totalTokens }))
@@ -644,7 +622,6 @@ class ChatPanelApp extends React.Component {
     this.handleOpenTopup = this.handleOpenTopup.bind(this);
     this.handleCloseTopup = this.handleCloseTopup.bind(this);
     this.handleTopupSuccess = this.handleTopupSuccess.bind(this);
-    this.handlePurchase = this.handlePurchase.bind(this);
   }
 
   // ─── Session management ───────────────────────────────
@@ -899,20 +876,6 @@ class ChatPanelApp extends React.Component {
             isStreaming: false,
             created_at: new Date().toISOString(),
             showTopupButton: true,
-            showPurchaseButton: false,
-          }]),
-        };
-      });
-    } else if (data.error_type === 'purchase_required') {
-      this.setState(function (prev) {
-        return {
-          messages: prev.messages.concat([{
-            id: 'sys-err-' + Date.now(),
-            role: 'system',
-            content: (data.error || t('purchase_required')) + ' ' + t('purchase_without_balance'),
-            isStreaming: false,
-            created_at: new Date().toISOString(),
-            showPurchaseButton: true,
           }]),
         };
       });
@@ -1002,36 +965,19 @@ class ChatPanelApp extends React.Component {
           // setState の反映待ちによる取り違えを避けるため、作成結果の ID を直接渡す（#32）。
           self.sendMessage(text, attachment, result.id);
         } else {
-          // エラータイプに応じて適切なメッセージを表示
+          // 課金は残高一本（Issue #51）。残高不足時はチャージ導線のみを出す。
           var errorType = result ? result.error_type : null;
-          if (errorType === 'purchase_required') {
-            // 購入が必要な場合は購入導線のみ表示（接続エラーメッセージは出さない）。
-            // 残高の有無に依存しない旨を明示する (Issue #46)。
-            self.setState(function (prev) {
-              return {
-                error: null,
-                messages: prev.messages.concat([{
-                  id: 'sys-purchase-' + Date.now(),
-                  role: 'system',
-                  content: t('purchase_required') + ' ' + t('purchase_without_balance'),
-                  isStreaming: false,
-                  created_at: new Date().toISOString(),
-                  showPurchaseButton: true,
-                }]),
-              };
-            });
-          } else if (errorType === 'insufficient_balance') {
+          if (errorType === 'insufficient_balance') {
             self.setState(function (prev) {
               return {
                 error: null,
                 messages: prev.messages.concat([{
                   id: 'sys-balance-' + Date.now(),
                   role: 'system',
-                  content: t('wallet_insufficient_with_purchase'),
+                  content: t('wallet_insufficient'),
                   isStreaming: false,
                   created_at: new Date().toISOString(),
                   showTopupButton: true,
-                  showPurchaseButton: true,
                 }]),
               };
             });
@@ -1273,89 +1219,6 @@ class ChatPanelApp extends React.Component {
     this.setState({ walletBalance: newBalance });
   }
 
-  handlePurchase() {
-    var self = this;
-
-    // 開発/テスト環境で購入付与が有効な場合のみ、実課金なしの dev API を呼ぶ。
-    if (this.props.dev_purchase_enabled) {
-      fetch('/api/v1/dev/persona_purchases', {
-        method: 'POST',
-        headers: jsonHeaders(),
-        body: JSON.stringify({ listing_id: this.props.listing_id }),
-      })
-        .then(function (response) {
-          return response.json().catch(function () { return {}; }).then(function (body) {
-            if (!response.ok) {
-              throw new Error(body.error || t('dev_purchase_failed'));
-            }
-            return body;
-          });
-        })
-        .then(function () {
-          // 購入権利が付与されたので、そのままチャットを開始する
-          return self.createSession();
-        })
-        .then(function (result) {
-          if (result && result.id) {
-            self.addMessage('sys-purchase-' + Date.now(), 'system', t('dev_purchase_success'), false);
-          } else {
-            self.addMessage('sys-purchase-' + Date.now(), 'system', t('session_create_failed'), false);
-          }
-        })
-        .catch(function () {
-          self.addMessage('sys-purchase-' + Date.now(), 'system', t('dev_purchase_failed'), false);
-        });
-      return;
-    }
-
-    // 本番購入導線: Freemius Checkout の作成 API を呼び、checkout_url へ遷移する。
-    // 金額・購入者はサーバー側で決まる。決済完了後、Webhook 経由で購入権利が付与される。
-    fetch('/api/v1/persona_purchases', {
-      method: 'POST',
-      headers: jsonHeaders(),
-      body: JSON.stringify({ listing_id: this.props.listing_id }),
-    })
-      .then(function (response) {
-        return response.json().catch(function () { return {}; }).then(function (body) {
-          if (response.status === 503 && (body.error_type === 'purchase_not_configured' || body.error_type === 'payment_unconfigured')) {
-            // 決済が未設定（product/Bearer/plan 缺け、又は JPY→USD 換算レート未設定）
-            var key = body.error_type === 'payment_unconfigured' ? 'purchase_payment_unconfigured' : 'purchase_not_configured';
-            self.addMessage('sys-purchase-' + Date.now(), 'system', t(key), false);
-            return null;
-          }
-          if (!response.ok) {
-            throw new Error(body.error || t('purchase_checkout_failed'));
-          }
-          return body;
-        });
-      })
-      .then(function (body) {
-        if (!body) return;
-        if (body.status === 'already_purchased') {
-          // 既に購入済みなら Checkout を挟まずチャットを開始する
-          return self.createSession().then(function (result) {
-            if (!(result && result.id)) {
-              self.addMessage('sys-purchase-' + Date.now(), 'system', t('session_create_failed'), false);
-            }
-          });
-        }
-        if (body.checkout_url) {
-          if (body.amount_usd_cents != null && body.amount_jpy != null) {
-            // USD 請求額（目安）を見せてから遷移する。真の請求額は hosted checkout 画面の表示。
-            self.addMessage('sys-purchase-' + Date.now(), 'system',
-              tFormat('purchase_usd_charge', { jpy: formatJpy(body.amount_jpy), usd: formatUsd(body.amount_usd_cents) }), false);
-            window.setTimeout(function () { window.location.assign(body.checkout_url); }, 1200);
-          } else {
-            self.addMessage('sys-purchase-' + Date.now(), 'system', t('wallet_redirecting'), false);
-            window.location.assign(body.checkout_url);
-          }
-        }
-      })
-      .catch(function () {
-        self.addMessage('sys-purchase-' + Date.now(), 'system', t('purchase_checkout_failed'), false);
-      });
-  }
-
   // ─── Lifecycle ────────────────────────────────────────
 
   componentDidUpdate(prevProps, prevState) {
@@ -1569,8 +1432,6 @@ class ChatPanelApp extends React.Component {
                     created_at: msg.created_at,
                     showTopupButton: msg.showTopupButton,
                     onTopupClick: msg.showTopupButton ? self.handleOpenTopup : null,
-                    showPurchaseButton: msg.showPurchaseButton,
-                    onPurchaseClick: msg.showPurchaseButton ? self.handlePurchase : null,
                     attachment: msg.attachment,
                   });
                 }),

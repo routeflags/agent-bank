@@ -17,9 +17,9 @@ require "uri"
 #     (https://freemius.com/help/documentation/checkout/integration/hosted-checkout/)
 #
 # This endpoint renders the success page directly (no redirect: redirecting
-# would break the signature chain per the Freemius warning). Single-plan mode
-# cannot identify the listing from `plan_id` alone, so the page is generic
-# unless the plan resolves via `FREEMIUS_PLAN_MAP`.
+# would break the signature chain per the Freemius warning). The page is a
+# generic completion notice: wallet top-up is not tied to a listing
+# (Issue #51 — there is no per-persona purchase).
 #
 # Route: GET /freemius/return (see config/routes.rb, next to the webhook).
 class FreemiusReturnController < ApplicationController
@@ -48,8 +48,7 @@ class FreemiusReturnController < ApplicationController
     @plan_id = params[:plan_id].to_s.strip.presence
     @payment_id = params[:payment_id].to_s.strip.presence
     @verification = verify_redirect_signature
-    @listing_id = @plan_id ? FreemiusClient.listing_id_for_plan(@plan_id) : nil
-    @listing = resolve_listing
+    @listing = nil
     unless @verification[:valid]
       Rails.logger.warn("[FreemiusReturn] Invalid redirect signature")
     end
@@ -96,15 +95,5 @@ class FreemiusReturnController < ApplicationController
     nil
   end
 
-  # Resolves the listing for a plan when the denomination/persona map knows it.
-  # Single-plan mode returns nil (generic completion page, no guessing).
-  #
-  # @return [Listing, nil]
-  def resolve_listing
-    return nil if @listing_id.nil?
 
-    Listing.find_by(id: @listing_id)
-  rescue StandardError
-    nil
-  end
 end

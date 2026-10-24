@@ -95,8 +95,6 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
         allow(ENV).to receive(:[]).with("API_BEARER_AUTHORIZATION_TOKEN").and_return("bearer")
         allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return(rate)
         allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return(topup_map.to_json)
-        allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
-        allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return(nil)
       end
 
       it "returns a hosted checkout URL for a known plan_id" do
@@ -296,8 +294,6 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
           allow(ENV).to receive(:[]).and_call_original
           allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return("0.0067")
           allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return({ "5678" => 1000, "5679" => 3000 }.to_json)
-          allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
-          allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return(nil)
           allow(FreemiusClient).to receive(:configured?).and_return(true)
         end
 
