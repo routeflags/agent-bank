@@ -1277,22 +1277,11 @@ class ChatPanelApp extends React.Component {
       }
     }
 
-    // ── Trigger button ────────────────────────────────
+    // ── Closed state ──────────────────────────────────
+    // チャットの入口は「このスキルを利用する」CTA（window.LampreyChat.open）に一本化する。
+    // フローティング 💬 アイコンは誤解・重複のため描画しない（Issue #31）。
     if (!state.isOpen) {
-      return React.createElement('button', {
-        onClick: this.handleOpen,
-        className: 'chatPanel__trigger',
-        'aria-label': t('a11y_open'),
-        type: 'button',
-        style: {
-          position: 'fixed', bottom: '24px', right: '24px',
-          width: '56px', height: '56px', borderRadius: '50%',
-          background: 'var(--chat-brand-gold)', color: '#070707', border: 'none',
-          cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 999, fontSize: '24px',
-        }
-      }, '💬');
+      return null;
     }
 
     // ── Group history items ────────────────────────────
