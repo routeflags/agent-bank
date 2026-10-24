@@ -106,6 +106,13 @@ class Listing < ApplicationRecord
   has_many :blocked_dates, :dependent => :destroy
   accepts_nested_attributes_for :blocked_dates, reject_if: :all_blank, allow_destroy: true
 
+  has_many :listing_ai_models, dependent: :destroy
+  has_many :ai_models, through: :listing_ai_models
+
+  # See AiProvider — MariaDB json columns are typed as :text by Rails.
+  serialize :supported_run_modes, coder: JSON
+  serialize :external_apis, coder: JSON
+
   monetize :price_cents, :allow_nil => true, with_model_currency: :currency
   monetize :shipping_price_cents, allow_nil: true, with_model_currency: :currency
   monetize :shipping_price_additional_cents, allow_nil: true, with_model_currency: :currency
@@ -116,6 +123,25 @@ class Listing < ApplicationRecord
   validates_length_of :title, :in => 2..65, :allow_nil => false
 
   scope :exist, -> { where(deleted: false) }
+
+  # --- AI Persona Search Scopes ---
+
+  # Returns only listings whose default run mode is 'run_online'.
+  scope :run_online, -> { where(default_run_mode: 'run_online') }
+
+  # Returns only listings whose default run mode is 'download'.
+  scope :download_mode, -> { where(default_run_mode: 'download') }
+
+  # Returns only listings whose default run mode is 'free'.
+  scope :free_mode, -> { where(default_run_mode: 'free') }
+
+  # Returns listings that are associated with a specific AI model via listing_ai_models.
+  scope :with_ai_model, ->(ai_model_id) {
+    joins(:listing_ai_models).where(listing_ai_models: { ai_model_id: ai_model_id })
+  }
+
+  # Returns listings that have a non-blank default_run_mode (i.e. are AI personas).
+  scope :persona_only, -> { where.not(default_run_mode: [nil, '']) }
 
   scope :search_title_author_category, ->(pattern) do
     joins(:author)
@@ -393,5 +419,84 @@ class Listing < ApplicationRecord
     end
     ids = listings.pluck(:id)
     ListingImage.where(listing_id: ids).destroy_all
+  end
+
+  # --- Capafy AI Persona Fields ---
+
+  RUN_MODES = %w[run_online download free].freeze
+
+  validates :default_run_mode, inclusion: { in: RUN_MODES, allow_blank: true }
+  validates :seller_commission_rate, numericality: {
+    only_integer: true,
+    greater_than_or_equal_to: 0,
+    less_than_or_equal_to: 100,
+    message: "must be between 0 and 100"
+  }, allow_nil: true
+
+  # Returns the list of supported run modes parsed from the JSON text column.
+  #
+  # @return [Array<String>] supported run mode slugs, e.g. ["download", "run_online"]
+  def available_run_modes
+    return RUN_MODES if supported_run_modes.blank?
+
+    # Handle both Array (Rails serialization) and String (raw JSON) forms
+    return supported_run_modes if supported_run_modes.is_a?(Array)
+
+    JSON.parse(supported_run_modes)
+  rescue JSON::ParserError
+    []
+  end
+
+  # Checks whether a given run mode is supported by this persona.
+  #
+  # @param mode [String] a run mode slug (e.g. "download")
+  # @return [Boolean]
+  def supports_run_mode?(mode)
+    available_run_modes.include?(mode.to_s)
+  end
+
+  # 購入（UserPlanSubscription）なしで利用できるペルソナか。
+  #
+  # 次のいずれかなら購入不要とみなす:
+  #   * 価格が未設定または 0（無料ペルソナ）
+  #   * 無料実行モード（default_run_mode == "free"）
+  #
+  # チャット開始時の権利判定（API::V1::ChatSessionsController#purchased?）
+  # から参照される。トークン原価は購入価格とは別で、無料ペルソナでも
+  # ウォレットから従量課金される（BillingService の既存仕様）。
+  #
+  # @return [Boolean]
+  def free_to_use?
+    price_cents.to_i.zero? || default_run_mode == "free"
+  end
+
+  # Returns a hash summarizing all persona-related fields.
+  # Useful for API responses and persona card rendering.
+  #
+  # @return [Hash]
+  def persona_card
+    {
+      short_description: short_description,
+      supported_run_modes: available_run_modes,
+      default_run_mode: default_run_mode,
+      external_apis: parsed_external_apis,
+      version_number: version_number,
+      publisher_name: publisher_name,
+      total_sold: total_sold,
+      avg_rating: avg_rating
+    }
+  end
+
+  private
+
+  # Safely parses the external_apis JSON column.
+  #
+  # @return [Hash, nil]
+  def parsed_external_apis
+    return nil if external_apis.blank?
+
+    JSON.parse(external_apis)
+  rescue JSON::ParserError
+    nil
   end
 end

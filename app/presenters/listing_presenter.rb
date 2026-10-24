@@ -19,6 +19,19 @@ class ListingPresenter < MemoisticPresenter
     @shape = listing_shape
   end
 
+  # Related open listings in the same category (excluding this listing).
+  # Used by the "関連スキル" tab on the listing detail page.
+  #
+  # @param limit [Integer] maximum number of related listings
+  # @return [Array<Listing>]
+  def related_listings(limit = 4)
+    @related_listings ||= begin
+      scope = Listing.status_open.where(community_id: @current_community.id)
+      scope = scope.where(category_id: listing.category_id) if listing.category_id
+      scope.where.not(id: listing.id).order(updated_at: :desc).limit(limit).to_a
+    end
+  end
+
   def is_author
     @current_user == @listing.author
   end

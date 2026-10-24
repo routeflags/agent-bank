@@ -2,8 +2,8 @@
 #
 # Table name: listing_blocked_dates
 #
-#  id         :bigint           not null, primary key
-#  listing_id :bigint
+#  id         :integer          not null, primary key
+#  listing_id :integer
 #  blocked_at :date
 #  created_at :datetime         not null
 #  updated_at :datetime         not null

@@ -40,6 +40,7 @@
       %th= t("admin.communities.listings.headers.category")
       %th= t("admin.communities.listings.headers.status")
       %th
+        %span.sr-only= t("admin.communities.listings.headers.actions")
 
   %tbody
     - @presenter.listings.each do |listing|

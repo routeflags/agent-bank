@@ -206,6 +206,7 @@ module TestHelpers
   def load_default_test_data_to_db_before_suite
     community1 = FactoryBot.create(:community, :ident => "test", :consent => "test_consent0.1", :settings => {"locales" => ["en", "fi"]}, :real_name_required => true)
     community1.community_customizations.create(name: "Sharetribe", locale: "fi")
+    community1.community_customizations.create(name: "Sharetribe", locale: "en")
     community2 = FactoryBot.create(:community, :ident => "test2", :consent => "KASSI_FI1.0", :settings => {"locales" => ["en"]}, :real_name_required => true, :allowed_emails => "@example.com")
     community3 = FactoryBot.create(:community, :ident => "test3", :consent => "KASSI_FI1.0", :settings => {"locales" => ["en"]}, :real_name_required => true)
 

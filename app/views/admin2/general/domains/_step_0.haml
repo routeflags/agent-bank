@@ -14,7 +14,7 @@
       .input-group
         = form.text_field :ident, class: %i[form-control], minlength: 3, maxlength: 50,
         required: true, exclude_reserved_domains: true, style: 'border-radius: 4px 0 0 4px',
-        valid_ident: true, remote: check_availability_admin_domain_path,
+        valid_ident: true, remote: check_availability_admin2_general_domains_path,
         'data-msg-exclude_reserved_domains': t('errors.messages.domain_name_is_invalid'),
         'data-msg-valid_ident': t('errors.messages.domain_name_is_invalid'),
         'data-msg-remote': t('errors.messages.domain_name_is_invalid')

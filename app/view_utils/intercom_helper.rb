@@ -35,6 +35,7 @@ module IntercomHelper
       domain_regexp = /[^.]*\.([^.]*|..\...|...\...)$/
 
       match = domain_regexp.match(host_with_port)
+      return nil unless match
 
       ".#{match[0].split(":")[0]}"
     end

@@ -1,6 +1,16 @@
 class Persons::ShowService
   attr_reader :community, :params, :current_user
 
+  # ルート競合を防ぐ予約語一覧
+  # これらは /:username ルートでマッチしないよう制御する
+  RESERVED_PATHS = %w[
+    admin admin2 settings login signup logout
+    s search inbox notifications
+    people listings categories
+    api cable assets
+    _design fi en ja
+  ].freeze
+
   def initialize(community:, params:, current_user:)
     @params = params
     @community = community
@@ -10,7 +20,15 @@ class Persons::ShowService
   def person
     return @person if defined?(@person)
 
-    person = Person.find_by!(username: params[:username], community_id: community.id)
+    username = params[:username]
+
+    # 予約語にマッチしたら nil を返す（ルートが/people に到達しない保険）
+    if RESERVED_PATHS.include?(username)
+      @person = nil
+      return @person
+    end
+
+    person = Person.find_by!(username: username, community_id: community.id)
     @person = person.deleted? || person.banned? ? nil : person
   end
 

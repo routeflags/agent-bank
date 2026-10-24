@@ -102,7 +102,7 @@
   <% end %>
 
   <% if video_section %>
-    <script type="text/javascript">
+    <script>
       <%= render 'landing_page/modernizr_videoautoplay' %>
       <%= render 'landing_page/browser_detect' %>
      <% # Detect if JS is enabled. duplicate of what Modernizr is doing, but we plan to get rid of Modernizr at some point. %>
@@ -131,7 +131,7 @@
     </script>
 
     <% asset_host = local_assigns.key?(:asset_host) ? asset_host : nil %>
-    <%= stylesheet_link_tag asset_path('app-bundle', type: :stylesheet, host: asset_host) %>
+    <%= stylesheet_link_tag asset_path('sections-bundle', type: :stylesheet, host: asset_host) %>
     <%= javascript_include_tag asset_path('vendor-bundle', type: :javascript, host: asset_host) %>
     <%= javascript_include_tag asset_path('app-bundle', type: :javascript, host: asset_host) %>
 

@@ -1,0 +1,197 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽問 — Dark Theme Variables
+// ═══════════════════════════════════════════════════════════
+
+:root {
+  // ── Background ──────────────────────────────────────────
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #1e1e1e;
+  --bg-card: #242424;
+  --bg-card-hover: #2a2a2a;
+  --bg-input: #2a2a2a;
+  --bg-sidebar: #1e1e1e;
+
+  // ── Accent ──────────────────────────────────────────────
+  --accent-red: #c41e3a;
+  --accent-red-hover: #a81830;
+  --accent-gold: #d4a853;
+  --accent-gold-hover: #c09840;
+  --accent-teal: #59b3a2;
+
+  // ── Text ────────────────────────────────────────────────
+  --text-primary: #ffffff;
+  --text-secondary: #999999;
+  --text-muted: #909090;
+  --text-link: #59b3a2;
+
+  // ── Border ──────────────────────────────────────────────
+  --border-color: #333333;
+  --border-light: #2a2a2a;
+
+  // ── Badge ───────────────────────────────────────────────
+  --badge-success: #4caf50;
+  --badge-warning: #ff9800;
+  --badge-danger: #ff8a85;
+
+  // ── Shadow ──────────────────────────────────────────────
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  // ── Radius ──────────────────────────────────────────────
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  // ── Transition ──────────────────────────────────────────
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Dark Theme Body Override
+// ═══════════════════════════════════════════════════════════
+body.dark-theme {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+
+  a {
+    color: var(--text-link);
+    &:hover { color: lighten(#59b3a2, 10%); }
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+  }
+
+  // Override Sharetribe default white backgrounds
+  .page-content,
+  .wrapper,
+  .marketplace-lander,
+  .title-container {
+    background-color: transparent;
+  }
+
+  .coverimage {
+    background-color: var(--bg-primary);
+  }
+
+  .marketplace-cover-small-fade {
+    background-color: var(--bg-primary);
+  }
+
+  // ── レガシー残存のライト部品（2026-10-06 デザインレビュー P1-b） ──
+  // カバー写真のフェード帯（_flash 等以外のレガシー #e8e8e8 90% 塗り）
+  .coverimage-fade {
+    background-color: transparent !important;
+  }
+
+  // 設定画面 左ナビの選択チップ（#e8e8e8 のまま残存）。
+  // 選択状態は Gold（DESIGN.md §8: Selected → Gold line / surface）
+  .selected.left-navi-link,
+  .left-navi-link.selected {
+    background-color: rgba(212, 168, 83, 0.14) !important;
+    color: var(--accent-gold) !important;
+    border-left: 3px solid var(--accent-gold);
+  }
+
+  .left-navi-link:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+  }
+
+  // 段落内リンクは下線で色だけに依存しない識別（axe link-in-text-block）
+  .settings-section p a {
+    text-decoration: underline;
+  }
+
+  // 設定画面の Google Maps をダークテーマへ（グレースケール反転）
+  #settings_map_canvas.map {
+    background-color: var(--bg-card) !important;
+    filter: grayscale(1) invert(0.92) hue-rotate(180deg) contrast(0.9);
+  }
+
+  // ホームツールバーのレガシーライト部品（P1-c）。
+  // .toggle.with-borders / 内部 .toggle-header（$highlight の #e8e8e8 塗り）を
+  // ダークサーフェス化。toggled（選択）は Gold（§8）。
+  .toggle.with-borders,
+  .toggle.with-borders .toggle-header {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .toggle.with-borders:hover,
+  .toggle.with-borders:hover .toggle-header {
+    background-color: var(--bg-card-hover) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .toggle.with-borders.toggled,
+  .toggle.with-borders.toggled .toggle-header {
+    background-color: rgba(212, 168, 83, 0.14) !important;
+    color: var(--accent-gold) !important;
+  }
+
+  // コンテンツページのタイトル見出し（レガシー #474747 はカバー写真上
+  // 約1.7:1で不可読。ダークテーマの白文字に上書き。デフォルトの暗い
+  // カバー写真上では 6.9:1。カスタム写真対策で影も付与）
+  .marketplace-lander .marketplace-title-header h1 {
+    color: var(--text-primary);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  }
+
+  // Forms
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  textarea,
+  select {
+    background-color: var(--bg-input);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    &:focus {
+      border-color: var(--accent-teal);
+      box-shadow: 0 0 0 2px rgba(89, 179, 162, 0.3);
+    }
+  }
+
+  // 新規/編集出品フォームのカテゴリ選択リンク
+  // レガシー a.select:hover / a.selected は $highlight（#e8e8e8 の明色）を
+  // 背景に塗るため、ダークテーマで teal リンク文字とのコントラストが
+  // 1.6:1 前後に落ちる。ダークトークンで背景を上書きする。
+  .new-listing-form,
+  .edit-listing-form {
+    a.select:hover {
+      background-color: var(--bg-card);
+    }
+    a.selected {
+      background-color: var(--bg-card);
+      border-color: var(--accent-gold);
+    }
+  }
+
+  // Scrollbar
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+    &:hover { background: #555; }
+  }
+
+  // DESIGN.md §22: Keyboard focus を明示（Gold のアウトライン）
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--accent-gold);
+    outline-offset: 2px;
+  }
+}

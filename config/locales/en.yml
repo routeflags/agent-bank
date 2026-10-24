@@ -176,6 +176,7 @@ en:
       message: Message
       message_to: Message to %{author_name}
       optional_message_to: Optional message to %{author_name}
+      optional_message_label: Message (optional)
       send_message: Send message
       send: Send
       this_message_is_private: This message is private between you and %{person}.
@@ -861,6 +862,8 @@ en:
           updated: Updated
           category: Category
           status: Status
+          actions: Actions
+        edit: Edit
         open: Open
         closed: Closed
         expired: Expired
@@ -1481,6 +1484,10 @@ en:
   listings:
     bubble_listing_not_visible:
       listing_not_visible: You do not have permission to view this listing.
+    shape:
+      selling: Selling
+    action_button:
+      inquire: Inquire
     comment:
       wrote: wrote
       send_private_message: Send private message to %{person}
@@ -1608,6 +1615,11 @@ en:
         location: Location
         origin: Origin
         the_exact_location: The exact location will not be shown to other users.
+      run_mode:
+        label: "AI run mode"
+        run_online: "Run online"
+        download: "Download"
+        free: "Free"
       send_button:
         save_listing: Post listing
         submit_for_review: Submit for review
@@ -1632,6 +1644,10 @@ en:
         share_for_free: Sharing for free
         accept_for_free: Accepting for free
         trade: Swapping
+      skill_markdown:
+        label: Skills
+        info: You can use Markdown. Skills are not shown on the public listing page;
+          only you can view and edit them.
       tag_list:
         comma_separate: "(comma separate)"
         tags: Tags
@@ -2715,3 +2731,226 @@ en:
     QC: Quebec
     SK: Saskatchewan
     YT: Yukon Territory
+
+  # ── Lamprey: Custom UI strings (EN mirror of ja.yml) ──
+  lamprey:
+    footer:
+      tagline: "AI persona marketplace"
+      docs: "Documentation"
+      terms: "Terms of Service"
+      privacy: "Privacy Policy"
+      copyright: "© %{year} %{marketplace_name}. All rights reserved."
+    homepage:
+      hero_tagline: "New skills added every day"
+      hero_title: "Master the power of AI."
+      hero_subtitle: "The marketplace where AI agent skills come together"
+      search_placeholder: "Search skills... (e.g. SEO, data analysis, summarization)"
+      search_type_all: "All types"
+      search_button: "Search"
+      featured_title: "Featured skills"
+      slide_prev: "Previous"
+      slide_next: "Next"
+      tab_popular: "Recommended"
+      tab_newest: "Newest"
+      tab_rating: "Top rated"
+      stats_agents: "Registered agents"
+      stats_users: "Users"
+      stats_transactions: "Transactions"
+      categories_title: "Popular categories"
+      category_generation_ai: "Generative AI"
+      category_data_analysis: "Data analysis"
+      category_development: "Development & programming"
+      category_marketing: "Marketing"
+      category_automation: "Business automation"
+      category_design: "Design"
+      category_research: "Research"
+      category_education: "Education & learning"
+      category_writing: "Writing"
+      category_media: "Audio & video"
+      category_other: "Other"
+      empty_title: "No skills registered yet"
+      empty_subtitle: "Be the first to publish an AI agent skill!"
+      hero_tags: ["Data analysis", "Article writing", "Image generation", "Summarization", "Automation", "Translation", "Programming"]
+      stats_total_views: "Total views"
+      stats_total_sold: "Total sold"
+      stats_avg_rating: "Average rating"
+      card_author_unknown: "Seller"
+    header:
+      search_label: "Search"
+      search_submit: "Search"
+      login: "Log in"
+      signup: "Sign up"
+      nav_marketplace: "Market"
+      nav_browse: "Browse"
+      nav_new_listing: "Sell"
+      nav_rankings: "Rankings"
+      nav_battles: "Battles"
+      nav_docs: "Docs"
+    docs:
+      title: "Docs"
+      lead: "Here's how to use the marketplace."
+      browse_title: "Browse the market"
+      browse_body: "Find the persona you need from the search bar or categories on the home page. Click \"Market\" in the header to return to search at any time."
+      sell_title: "Sell a persona"
+      sell_body: "Post a new persona from \"Sell\" in the header. Choose a category, enter a name, description, price and more, then publish. Published personas appear in the rankings."
+      buy_title: "Buy a persona"
+      buy_body: "Start the purchase process from a persona's detail page. After purchase, you can exchange messages and use the service from your mailbox."
+      first_time_title: "First time here?"
+      first_time_body: "Start by browsing popular personas in the \"New\" and \"Top rated\" tabs on the home page. Open a persona's detail page to check its skills and pricing."
+    rankings:
+      title: "Persona rankings"
+      lead: "Personas ranked by average rating and sales."
+      avg_rating_label: "Average rating:"
+      sold_label: "Sales:"
+      sold_count: "%{count} sold"
+      empty: "There are no personas in the rankings yet."
+    battles:
+      title: "Persona battles"
+      soon_badge: "Coming soon"
+      lead: "The persona battle feature is currently under development. Please wait for the public release."
+      planned_title: "Planned features"
+      feature_1: "Battle matches between two personas"
+      feature_2: "Rankings based on battle results"
+      feature_3: "Cheering and comment features"
+    mypage:
+      verified_seller: "✓ Verified seller"
+      profile_tags: ["Japan", "Development", "Data analysis"]
+      stats_published: "Listings"
+      stats_total_views: "Total views"
+      stats_total_sold: "Total sold"
+      menu: "Menu"
+      dashboard: "Dashboard"
+      manage_listings: "Manage listings"
+      account: "Account"
+      settings: "Settings"
+      summary_published: "Published personas"
+      summary_total_sold: "Total sold"
+      summary_total_views: "Total views"
+      summary_avg_rating: "Average rating"
+      new_listing: "New listing"
+      about_title: "About"
+      table_title: "Active skills"
+      table_title_closed: "Closed listings"
+      th_skill: "Skill"
+      th_views: "Views"
+      th_rating: "Rating"
+      th_price: "Price"
+      th_status: "Status"
+      th_actions: "Actions"
+      status_published: "Active"
+      status_closed: "Closed"
+      action_edit: "Edit"
+      action_view: "View"
+      empty_listings: "You have no listings yet"
+      empty_listings_cta: "Click \"New listing →\" to register a skill"
+      empty_closed_listings: "You have no closed listings"
+      reviews_title: "Reviews"
+      reviews_count: "(%{count})"
+      reviews_empty: "No reviews yet"
+    listings:
+      use_skill: "Use this skill"
+      login_to_use: "Log in to use"
+      contact_seller: "💬 Contact the seller"
+      rating_none: "No rating yet"
+      review_none: "No reviews yet"
+      free: "Free"
+      price_note: "May vary depending on token usage"
+      login_required: "Login required"
+      skill_detail: "Skill details"
+      last_updated: "Last updated"
+      published_date: "Published"
+      home: "Home"
+      skill_list: "Skills"
+      overview: "Overview"
+      features: "Features"
+      how_to_use: "How to use"
+      reviews: "Reviews"
+      related_skills: "Related skills"
+      pricing_model: "Pricing"
+      token_price: "Token price"
+      estimated_cost: "Estimated cost"
+      free_trial: "Free trial"
+      privacy: "Privacy terms"
+      cancellation: "Refund & cancellation policy"
+      features_default: "Features"
+      reviews_count: "(%{count} reviews)"
+      no_features: "No features listed for this skill yet."
+      no_description: "No description for this skill yet."
+      no_reviews: "No reviews yet."
+      no_related: "No related skills found."
+      how_to_step1: "Press \"Use this skill\" to open the chat."
+      how_to_step2: "Type your question and send the message."
+      how_to_step3: "The AI generates a response. Adjust tone and length in the settings panel."
+      how_to_step4: "Save or share answers you like."
+      "yes": "Yes"
+      "no": "No"
+      privacy_value: "Integrates with external APIs"
+      cancellation_value: "Within 7 days of purchase"
+
+    chat:
+      wallet_topup_title: "Add credits"
+      wallet_topup_close: "Close"
+      wallet_current_balance: "Current balance: ¥"
+      wallet_custom_label: "Custom:"
+      wallet_amount_placeholder: "Amount (JPY)"
+      wallet_invalid_amount: "Please enter an amount between ¥100 and ¥10,000."
+      wallet_pay_failed: "Payment failed."
+      wallet_success: "✅ Credits added!"
+      wallet_processing: "Processing..."
+      wallet_submit: "Add"
+      wallet_redirecting: "Redirecting to checkout…"
+      wallet_add_credits: "Add credits"
+      wallet_buy: "Buy"
+      wallet_add_preparing: "Add (coming soon)"
+      wallet_add_preparing_body: "Wallet top-up is coming soon. Please wait for the official release."
+      purchase_preparing_body: "The purchase page for this persona is coming soon. Please wait for the official release."
+      purchase_not_configured: "Purchases are not available yet (payments are not configured). Please try again later."
+      purchase_checkout_failed: "Failed to create the checkout page. Please try again later."
+      dev_purchase_success: "✅ Purchase complete. You can start chatting now."
+      dev_purchase_failed: "The purchase could not be completed. Please try again later."
+      new_chat_title: "New chat"
+      insufficient_tokens: "Not enough tokens."
+      purchase_required: "You need to purchase this persona to use it."
+      error_generic: "An error occurred."
+      wallet_insufficient: "Your wallet balance is insufficient."
+      connect_failed: "Could not connect to the chat. Please try again shortly."
+      session_create_failed: "Failed to create the session."
+      history_title: "History"
+      history_new: "＋ New"
+      history_today: "Today"
+      history_past_week: "Past 7 days"
+      history_earlier: "Earlier"
+      history_empty: "No chat history yet."
+      loading: "Connecting..."
+      empty_state: "Send a message to %{name}."
+      input_placeholder: "Type a message..."
+      disclaimer: "⚠️ AI responses may not always be accurate. Please verify important decisions yourself."
+      balance_label: "Balance"
+      settings_title: "⚙️ Execution settings"
+      settings_model: "Model"
+      settings_token_limit: "Token limit"
+      settings_tokens_unit: "%{count} tokens"
+      settings_output_length: "Output length"
+      output_short: "Short"
+      output_standard: "Standard"
+      output_long: "Long"
+      settings_tone: "Tone"
+      tone_polite: "Polite"
+      tone_casual: "Casual"
+      tone_professional: "Professional"
+      tone_friendly: "Friendly"
+      message_tokens: "%{count} tokens"
+      result_panel_heading: "Latest result"
+      result_panel_jump: "Jump to conversation"
+      result_badge: "RESULT"
+      result_title: "Best Answer"
+      attach_button: "Attach image"
+      attach_remove: "Remove attachment"
+      attach_upload_failed: "Failed to upload the image."
+      attach_invalid_type: "Please choose an image file (JPG/PNG/GIF/WebP)."
+      attach_too_large: "Please keep images under 5MB."
+      a11y_dialog: "AI chat"
+      a11y_open: "Open AI chat"
+      a11y_close: "Close chat"
+      a11y_input: "Chat message input"
+      a11y_send: "Send message"

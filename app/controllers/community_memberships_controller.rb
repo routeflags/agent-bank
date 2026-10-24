@@ -30,7 +30,7 @@ class CommunityMembershipsController < ApplicationController
 
   def give_consent
     form_params = params[:form] || {}
-    values = Form.call(form_params.to_unsafe_hash)
+    values = Form.call(form_params.respond_to?(:to_unsafe_hash) ? form_params.to_unsafe_hash : form_params)
 
     invitation_check = -> {
       if @current_community.join_with_invite_only?
@@ -92,27 +92,27 @@ class CommunityMembershipsController < ApplicationController
 
       when :invitation_code_invalid_or_used
         flash[:error] = t("community_memberships.give_consent.invitation_code_invalid_or_used")
-        logger.info("Invitation code was invalid or used", :membership_email_not_allowed, data)
+        logger.info("Invitation code was invalid or used data=#{data.inspect}")
         render_pending_consent_form(values.except(:invitation_code))
 
       when :email_not_allowed
         flash[:error] = t("community_memberships.give_consent.email_not_allowed")
-        logger.info("Email is not allowed", :membership_email_not_allowed, data)
+        logger.info("Email is not allowed data=#{data.inspect}")
         render_pending_consent_form(values.except(:email))
 
       when :email_not_available
         flash[:error] = t("community_memberships.give_consent.email_not_available")
-        logger.info("Email is not available", :membership_email_not_available, data)
+        logger.info("Email is not available data=#{data.inspect}")
         render_pending_consent_form(values.except(:email))
 
       when :consent_not_given
         flash[:error] = t("community_memberships.give_consent.consent_not_given")
-        logger.info("Terms were not accepted", :membership_consent_not_given, data)
+        logger.info("Terms were not accepted data=#{data.inspect}")
         render_pending_consent_form(values.except(:consent))
 
       when :update_failed
         flash[:error] = t("layouts.notifications.joining_community_failed")
-        logger.info("Membership update failed", :membership_update_failed, data)
+        logger.info("Membership update failed data=#{data.inspect}")
         render_pending_consent_form(values)
 
       else

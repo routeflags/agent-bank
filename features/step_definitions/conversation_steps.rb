@@ -54,7 +54,9 @@ When /^I try to go to inbox of "([^"]*)"$/ do |person|
 end
 
 def visit_transaction_of_listing(listing)
-  transaction = Transaction.find_by_listing_id(listing.id)
+  transaction = Transaction.find_by(listing_id: listing.id)
+  raise "No transaction found for listing #{listing.id}" unless transaction
+
   visit(person_transaction_path(:person_id => @current_user.id, :id => transaction.id, :locale => "en"))
 end
 
@@ -135,4 +137,19 @@ end
 
 Given(/free conversations are (disabled|enabled)/) do |state|
   @current_community.update(allow_free_conversations: state == 'enabled')
+end
+
+# Profile-started conversation without UI (raku profile has no Contact link).
+Given /^"(.+)" sends a profile message to "(.+)" with "(.+)"$/ do |sender_username, receiver_username, content|
+  community = Community.find_by(ident: 'test') || Community.first
+  sender = Person.find_by!(username: sender_username)
+  receiver = Person.find_by!(username: receiver_username)
+  conversation = Conversation.new(
+    community: community,
+    starting_page: Conversation::PROFILE,
+    message_attributes: { content: content, sender_id: sender.id }
+  )
+  conversation.build_starter_participation(sender)
+  conversation.build_participation(receiver)
+  conversation.save!
 end

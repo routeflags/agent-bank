@@ -465,6 +465,54 @@ describe PeopleController, type: :controller do
       expect(doc.at('title')&.text).to eq("Profile for #{user_name}")
       expect(doc.at("meta[name='description']")&.[]('content')).to eq("Want to know more about #{user_name}")
     end
+
+    # raku-mypage スキル表の回帰ガード:
+    # ListingIndexViewUtils::ListingItem 構造体へのメソッド呼び出しで
+    # 500 になった不具合（出品を持つ人物のみ発症）を再発防止。
+    context "with listings (raku-mypage skill table)" do
+      let(:seller) { FactoryBot.create(:person, member_of: community, community_id: community.id) }
+      let!(:open_listing) do
+        FactoryBot.create(:listing, community_id: community.id, author: seller,
+                                    title: "Open persona", times_viewed: 7, total_sold: 3)
+      end
+      let!(:closed_listing) do
+        FactoryBot.create(:listing, community_id: community.id, author: seller,
+                                    title: "Closed persona", open: false)
+      end
+
+      it "renders the skill table for the profile person only" do
+        community_host(community)
+        get :show, params: { username: seller.username }
+
+        expect(response.status).to eq(200)
+        expect(assigns(:skill_listings).map(&:id)).to eq([open_listing.id])
+        expect(assigns(:raku_stats)[:published]).to eq(1)
+        expect(assigns(:raku_stats)[:total_sold]).to eq(3)
+        expect(assigns(:raku_stats)[:total_views]).to eq(7)
+        expect(response.body).to include("Open persona")
+        expect(response.body).not_to include("Closed persona")
+      end
+
+      it "includes closed listings for the owner when show_closed is set" do
+        community_host(community)
+        sign_in_for_spec(seller)
+
+        get :show, params: { username: seller.username, show_closed: "true" }
+
+        expect(assigns(:skill_listings).map(&:id)).to match_array([open_listing.id, closed_listing.id])
+        expect(response.body).to include("Closed persona")
+      end
+
+      it "keeps closed listings hidden from other viewers even with show_closed" do
+        community_host(community)
+        other = FactoryBot.create(:person, member_of: community, community_id: community.id)
+        sign_in_for_spec(other)
+
+        get :show, params: { username: seller.username, show_closed: "true" }
+
+        expect(assigns(:skill_listings).map(&:id)).to eq([open_listing.id])
+      end
+    end
   end
 
   describe "#update" do

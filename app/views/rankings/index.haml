@@ -1,0 +1,27 @@
+- content_for :title, "#{t('lamprey.rankings.title')} - #{@current_community.name(I18n.locale)}"
+
+- content_for :title_header do
+  %h1= t('lamprey.rankings.title')
+
+.raku-page
+  %p.raku-page__lead= t('lamprey.rankings.lead')
+
+  - if @ranked_listings.any?
+    %ol.raku-rank-list
+      - @ranked_listings.each_with_index do |listing, index|
+        - author_name = PersonViewUtils.person_entity_display_name(listing.author, @current_community.name_display_type)
+        %li.raku-rank-item
+          %span.raku-rank-item__position= index + 1
+          .raku-rank-item__body
+            = link_to listing.title, listing_path(listing), class: "raku-rank-item__title"
+            .raku-rank-item__meta
+              = link_to author_name, person_path(username: listing.author.username), class: "raku-rank-item__author"
+              %span.raku-rank-item__rating
+                %span.raku-muted-label= t('lamprey.rankings.avg_rating_label')
+                = "★ #{listing.avg_rating.round(1)}"
+              - if listing.total_sold.to_i > 0
+                %span.raku-rank-item__sold
+                  %span.raku-muted-label= t('lamprey.rankings.sold_label')
+                  = t('lamprey.rankings.sold_count', count: listing.total_sold)
+  - else
+    %p.raku-page__empty= t('lamprey.rankings.empty')

@@ -98,3 +98,14 @@
 - widgets
 - xfn
 - xmpp
+# Lamprey 権域追加（ルート競合防止）
+- admin2
+- inbox
+- notifications
+- categories
+- cable
+- assets
+- _design
+- fi
+- en
+- ja

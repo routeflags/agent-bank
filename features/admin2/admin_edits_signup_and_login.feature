@@ -30,8 +30,8 @@ Feature: Admin edits general privacy page
     Then I should see "Signup information text"
      And I should see "Custom signup info"
     Then I log out
-     And I follow "Log in"
-     And I follow "Create a new account"
+     And I follow log in link
+     And I follow the signup link
     Then I should see "Custom signup info"
      And I should see "Sign up with LinkedIn"
      And I should not see "Sign up with Google"

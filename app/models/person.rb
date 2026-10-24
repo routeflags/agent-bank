@@ -74,6 +74,7 @@ class Person < ApplicationRecord
   include ApplicationHelper
   include DeletePerson
   include ToView
+  include OtpAuthenticatable
 
   self.primary_key = "id"
 
@@ -127,6 +128,32 @@ class Person < ApplicationRecord
   has_many :starter_transactions, :class_name => "Transaction", :foreign_key => "starter_id", :dependent => :destroy, :inverse_of => :starter
   has_many :payer_stripe_payments, :class_name => "StripePayment", :foreign_key => "payer_id", :dependent => :destroy, :inverse_of => :payer
   has_many :receiver_stripe_payments, :class_name => "StripePayment", :foreign_key => "receiver_id", :dependent => :destroy, :inverse_of => :receiver
+
+  # Capafy AI clone — billing system (Phase 2)
+  has_one :wallet, dependent: :destroy
+  has_many :user_plan_subscriptions, dependent: :destroy
+
+  # Finds or creates a wallet scoped to the specified community.
+  # Wallets are unique per person+community pair.
+  #
+  # @param community [Community, Integer] community or community ID
+  # @param currency [String, nil] currency code (defaults to BillingConfig.currency)
+  # @return [Wallet]
+  def find_or_create_wallet!(community:, currency: nil)
+    community_id = community.is_a?(Integer) ? community : community.id
+    Wallet.find_or_create_by!(person: self, community_id: community_id) do |w|
+      w.balance_cents = 0
+      w.currency = currency || BillingConfig.currency
+    end
+  end
+
+  # Returns the wallet for a specific community.
+  #
+  # @param community_id [Integer]
+  # @return [Wallet, nil]
+  def wallet_for_community(community_id)
+    wallets.find_by(community_id: community_id)
+  end
 
   deprecate communities: "Use accepted_community instead.",
             community_memberships: "Use community_membership instead.",
@@ -244,6 +271,12 @@ class Person < ApplicationRecord
   def add_uuid
     self.uuid ||= UUIDUtils.create_raw
   end
+
+  # rails runner 等で Person を直接作成した場合でも
+  # ログイン認証に必要な emails レコードを自動生成する。
+  # Sharetribe の認証フローは emails テーブル経由でユーザーを検索するため、
+  # レコードがないとメールアドレスでのログインが不可能になる。
+  after_create :create_email_record, if: -> { email.present? }
 
   def uuid_object
     if self[:uuid].nil?
@@ -606,7 +639,32 @@ class Person < ApplicationRecord
     custom_field_values.by_question(custom_field).first
   end
 
+  # Capafy AI clone — Stripe helpers (Phase 2)
+  # Returns the Stripe customer ID from the associated StripeAccount.
+  # Returns nil if no StripeAccount exists.
+  def stripe_customer_id
+    stripe_account&.stripe_customer_id
+  end
+
+  # Returns the default payment method for this person.
+  # Placeholder for Phase 4/5 — requires Stripe PaymentMethod storage.
+  def default_payment_method
+    nil
+  end
+
   private
+
+  # rails runner 等で Person を直接作成した場合に備え、
+  # emails テーブルにメールアドレスレコードを自動生成する。
+  # 既に同一アドレスのレコードが存在する場合は何もしない。
+  def create_email_record
+    return if emails.exists?(address: email)
+    emails.create!(
+      address: email,
+      community_id: community_id,
+      confirmed_at: Time.current
+    )
+  end
 
   def digest(password, salt)
     str = [password, salt].flatten.compact.join

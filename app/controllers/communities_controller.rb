@@ -56,7 +56,13 @@ class CommunitiesController < ApplicationController
   end
 
   def ensure_no_communities
-    redirect_to landing_page_path if communities_exist?
+    return unless communities_exist?
+
+    if @current_community
+      redirect_to landing_page_path
+    else
+      redirect_to Community.first.full_url, allow_other_host: true
+    end
   end
 
   def communities_exist?

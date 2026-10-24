@@ -59,6 +59,14 @@ class TransactionProcessStateMachine
   after_transition(to: :confirmed, after_commit: true) do |conversation|
     confirmation = ConfirmConversation.new(conversation, conversation.starter, conversation.community)
     confirmation.confirm!
+
+    # 購入完了時にサブスクリプションと初回トークン付与を実行
+    # 既存サブスクリプションがある場合は冪等にスキップされる
+    begin
+      UserPlanSubscriptionService.create_on_purchase(conversation)
+    rescue => e
+      Rails.logger.error("[TransactionProcessStateMachine] Failed to create subscription for transaction #{conversation.id}: #{e.message}")
+    end
   end
 
   after_transition(from: :paid, to: :canceled, after_commit: true) do |conversation|
@@ -80,6 +88,21 @@ class TransactionProcessStateMachine
 
   after_transition(to: :free, after_commit: true) do |transaction|
     send_new_transaction_email(transaction) if transaction.conversation.payment?
+
+    # ここで UserPlanSubscription を作成してはいけない。
+    #
+    # `free` 遷移は「決済なしで成立した取引」で発生する。
+    #   * コンタクト（FreeTransactionsController#create_contact）
+    #   * 決済手段を持たないマーケットプレイスでの注文（TransactionsController#create）
+    # いずれも金銭の授受を伴わないため購入の証跡にならず、ここで付与すると
+    # 「有料ペルソナにコンタクトしただけで購入権利と初回トークンが得られる」
+    # 実課金なしの購入偽装になってしまう（旧実装の逆ガード）。
+    #
+    # 購入権利は次の 2 経路でのみ付与する:
+    #   * `confirmed` 遷移（実決済の完了）
+    #   * DevPersonaPurchase（開発/テスト専用の購入再現。production では無効）
+    # 無料ペルソナ（価格 0 / 無料実行モード）は Listing#free_to_use? により
+    # subscription 無しでチャット開始できる。
   end
 
   # "guard_transition" is before SQL BEGIN-COMMIT block

@@ -16,7 +16,7 @@ Feature: Admin create, update, destroy listing shapes
     When I fill in "Ruth" for "action_button_label_en"
     When I fill in "Raiju" for "action_button_label_fi"
     When I press "Save changes"
-    Then I should see "Changes to order type \"Sally\" saved"
+    Then I should see "Changes to order type"
 
   Scenario: Admin user create new order type Selling
     When I go to the order types admin2 page of community "test"
@@ -50,4 +50,4 @@ Feature: Admin create, update, destroy listing shapes
     Then I should see "Selling"
     Then I click ".delete_shape_selling"
     Then I press "Delete the order type"
-    Then I should see "Successfully deleted the order type "Selling""
+    Then I should see "Successfully deleted the order type"

@@ -61,7 +61,7 @@ window.ST = window.ST || {};
   // Check if category has a certain subcategory
   function has_subcategory(category_id, subcategory_id, attribute_array) {
     var subcategories = get_subcategories_for(category_id, attribute_array);
-    return _.any(subcategories, function(subcategory) {
+    return _.some(subcategories, function(subcategory) {
       return subcategory['id'] == subcategory_id;
     });
   }
@@ -152,6 +152,14 @@ window.ST = window.ST || {};
     $.get(options.new_form_content_path, selected_attributes, function(data) {
       $('.js-form-fields').html(data);
       $('.js-form-fields').removeClass('hidden');
+    }).fail(function() {
+      // AJAX フォーム読み込み失敗時のフォールバック表示
+      $('.js-form-fields').html(
+        '<div class="listing-form-empty-state">' +
+        '<p>フォームの読み込みに失敗しました。ページを再読み込みしてお試しください。</p>' +
+        '</div>'
+      );
+      $('.js-form-fields').removeClass('hidden');
     });
   }
 
@@ -175,7 +183,7 @@ window.ST = window.ST || {};
     } else {
       listing_shapes = get_listing_shapes_for_category(selected_attributes["category"] ,attribute_array);
     }
-    return _.any(listing_shapes, function(listing_shape) {
+    return _.some(listing_shapes, function(listing_shape) {
       return listing_shape['id'] == listing_shape_id;
     });
   }

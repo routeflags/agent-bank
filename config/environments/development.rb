@@ -14,6 +14,9 @@ Rails.application.configure do
   # since you don't have to restart the webserver when you make code changes.
   config.cache_classes = false
   config.hosts << /(.*\.)?lvh.me/
+  config.hosts << /localhost/
+  config.hosts << /127\.0\.0\.1/
+  config.hosts << /0\.0\.0\.0/
   # To autoload MailPreview, uncomment this line
   # (this is a hack which is fixed properly in Rails 4)
   # config.action_view.cache_template_loading = false
@@ -28,7 +31,8 @@ Rails.application.configure do
   # Lograge config, overrides default instrumentation for logging ActionController and ActionView logging
   config.lograge.enabled = true
   config.lograge.custom_options = ->(event) {
-    params = event.payload[:params].except('controller', 'action')
+    # ActionCable events (e.g. connect.action_cable) have no :params payload.
+    params = (event.payload[:params] || {}).except('controller', 'action')
 
     { params: params,
       host: event.payload[:host],
@@ -52,6 +56,12 @@ Rails.application.configure do
 
   # Do not eager load code on boot.
   config.eager_load = false
+
+  # Run delayed_job inline in development.
+  # ActionCable uses the in-process :async adapter, so broadcasts from a
+  # separate worker process never reach browser WebSocket connections.
+  # Inline execution keeps PersonaExecutorJob broadcasts in the Puma process.
+  Delayed::Worker.delay_jobs = false
 
   # Show full error reports and disable caching
   config.consider_all_requests_local       = true

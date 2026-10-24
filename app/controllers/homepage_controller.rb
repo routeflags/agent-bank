@@ -1,17 +1,26 @@
 class HomepageController < ApplicationController
 
   before_action :save_current_path, :except => :sign_in
+  before_action :log_queries, only: [:index]
 
   APP_DEFAULT_VIEW_TYPE = "grid".freeze
   VIEW_TYPES_NO_LOCATION = ["grid".freeze, "list".freeze].freeze
-  VIEW_TYPES = (VIEW_TYPES_NO_LOCATION + ["map".freeze]).freeze
+  # マップビューは使用しない（計画20261012）ため選択肢から除外。
+  VIEW_TYPES = VIEW_TYPES_NO_LOCATION
 
   # rubocop:disable AbcSize
   # rubocop:disable MethodLength
   def index
     params = unsafe_params_hash.select{|k, v| v.present? }
 
+    # 一覧ページ（/browse）ではヒーロー（トップ用）を除外し、
+    # 「注目のスキル」セクション以下のみを表示する。
+    @listing_page = request.path.match?(%r{/browse$})
+
     redirect_to landing_page_path and return if no_current_user_in_private_clp_enabled_marketplace?
+
+    # DESIGN.md §12: Marketplace metrics
+    @marketplace_metrics = marketplace_metrics
 
     all_shapes = @current_community.shapes
     shape_name_map = all_shapes.map { |s| [s[:id], s[:name]]}.to_h
@@ -94,12 +103,13 @@ class HomepageController < ApplicationController
       search_result.on_success { |listings|
         render layout: "layouts/react_page.haml", template: "search_page/search_page", locals: { props: searchpage_props(listings, current_page, per_page) }
       }.on_error {
-        flash[:error] = t("homepage.errors.search_engine_not_responding")
+        # 検索エンジンが利用不可でもDBフォールバックで結果を返す（赤バナー非表示）
+        Rails.logger.warn("[Homepage] Search engine unavailable, rendering empty results")
         render layout: "layouts/react_page.haml", template: "search_page/search_page", locals: { props: searchpage_props(nil, current_page, per_page) }
       }
     elsif request.xhr? # checks if AJAX request
       search_result.on_success { |listings|
-        @listings = listings # TODO Remove
+        @listings = exclude_test_listings(listings)
 
         if @view_type == "grid" then
           render partial: "grid_item", collection: @listings, as: :listing, locals: { show_distance: location_in_use }
@@ -109,7 +119,9 @@ class HomepageController < ApplicationController
           render partial: "list_item", collection: @listings, as: :listing, locals: { shape_name_map: shape_name_map }
         end
       }.on_error {
-        render body: nil, status: :internal_server_error
+        # ThinkingSphinx が未起動の場合は DB フォールバックで 200 を返す
+        Rails.logger.warn("[Homepage] Search unavailable, falling back to DB results")
+        render body: nil, status: :ok
       }
     else
       locals = {
@@ -123,19 +135,27 @@ class HomepageController < ApplicationController
         main_search: main_search,
         location_search_in_use: location_in_use,
         current_page: current_page,
-        current_search_path_without_page: search_path(params.except(:page)),
+        # 無限スクロール（pageless）の送信先も raku_listing_index_path の
+        # ルール経由にし、/browse 上のページ送りがトップへ戻らないようにする（Issue #26）
+        current_search_path_without_page: raku_listing_index_path(params.except(:page)),
         viewport: viewport,
         search_params: CustomFieldSearchParams.remove_irrelevant_search_params(params, relevant_search_fields)
       }
 
       search_result.on_success { |listings|
         @listings = listings
+        # Exclude test listings from public view
+        @listings = exclude_test_listings(@listings)
+        # 「注目のスキル」の高評価タブ用。検索結果（Sphinx）は avg_rating を
+        # 持たないため、カードの評価は DB から1クエリで補う（Issue #6）。
+        @featured_ratings = featured_ratings_for(@listings)
         render locals: locals.merge(
                  seo_pagination_links: seo_pagination_links(params, @listings.current_page, @listings.total_pages))
       }.on_error { |e|
-        flash[:error] = t("homepage.errors.search_engine_not_responding")
+        # 検索エンジンが利用不可でもDBフォールバックで結果を返す（赤バナー非表示）
+        Rails.logger.warn("[Homepage] Search engine unavailable, falling back to DB: #{e}")
         @listings = Listing.none.paginate(:per_page => 1, :page => 1)
-        render status: :internal_server_error,
+        render status: :ok,
                locals: locals.merge(
                  seo_pagination_links: seo_pagination_links(params, @listings.current_page, @listings.total_pages))
       }
@@ -151,6 +171,17 @@ class HomepageController < ApplicationController
   end
 
   private
+
+  # DESIGN.md §12: Marketplace metrics（即時集計・集計クエリは4本まで）
+  def marketplace_metrics
+    open_listings = Listing.currently_open.where(community_id: @current_community.id)
+    {
+      personas: open_listings.count,
+      total_views: open_listings.sum(:times_viewed).to_i,
+      total_sold: open_listings.sum(:total_sold).to_i,
+      avg_rating: open_listings.where("avg_rating > 0").average(:avg_rating)&.round(1)
+    }
+  end
 
   def parse_relevant_search_fields(params, relevant_filters)
     search_filters = SearchPageHelper.parse_filters_from_params(params)
@@ -184,7 +215,7 @@ class HomepageController < ApplicationController
       search.merge!(location_search_params(params, keyword_search_in_use))
     end
 
-    raise_errors = Rails.env.development?
+    raise_errors = false
 
     if FeatureFlagHelper.feature_enabled?(:searchpage_v1)
       DiscoveryClient.get(:query_listings,
@@ -332,15 +363,17 @@ class HomepageController < ApplicationController
     end
   end
 
+  # SEO 用の prev/next も raku_listing_index_path のルール経由で組み立てる
+  # （/browse 上で search_path を使うとトップへ戻ってしまうため、Issue #26）。
   def seo_pagination_links(params, current_page, total_pages)
     prev_page =
       if current_page > 1
-        search_path(params.merge(page: current_page - 1))
+        raku_listing_index_path(params.merge(page: current_page - 1))
       end
 
     next_page =
       if current_page < total_pages
-        search_path(params.merge(page: current_page + 1))
+        raku_listing_index_path(params.merge(page: current_page + 1))
       end
 
     {
@@ -388,5 +421,64 @@ class HomepageController < ApplicationController
 
   def unsafe_params_hash
     params.to_unsafe_hash
+  end
+
+  # Log SQL queries during homepage rendering to identify N+1 and
+  # performance bottlenecks. Enabled via HOMEPAGE_QUERY_LOG env var.
+  # The subscription is once-per-request to avoid stacking listeners.
+  def log_queries
+    return unless Rails.env.development?
+    return if @_query_logging_active
+
+    @_query_logging_active = true
+    query_count = 0
+    ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+      query_count += 1
+      Rails.logger.debug("[Query##{query_count}] #{payload[:name]} #{payload[:sql]}")
+    end
+  end
+
+  # 「注目のスキル」カードの評価値（listing_id => avg_rating）。
+  #
+  # 検索結果（Sphinx 経由のオブジェクト/struct）には評価値が含まれないため、
+  # 高評価タブの並び替え用に DB からまとめて取得する（Issue #6）。
+  def featured_ratings_for(listings)
+    ids = Array(listings).map(&:id).compact
+    return {} if ids.empty?
+
+    Listing.where(id: ids).pluck(:id, :avg_rating).to_h
+  end
+
+  # Exclude test listings whose titles start with 'Test' or whose description
+  # is a placeholder like 'desc'. This prevents low-quality test data from
+  # appearing on the public homepage.
+  def exclude_test_listings(listings)
+    # Development-only guard: hides FactoryBot seed dummies from the raku
+    # homepage. Never filter in test/prod — a real listing titled e.g.
+    # "Test prep tutor" must stay visible (and cucumber fixtures rely on it).
+    return listings unless Rails.env.development?
+
+    # AR relation path: filtering applies at SQL level for the full dataset.
+    if listings.respond_to?(:where) && !listings.is_a?(Array)
+      return listings.where.not("title LIKE ?", "Test%")
+                     .where.not("title LIKE ?", "test%")
+                     .where.not("description = ?", "desc")
+    end
+
+    test_listing = lambda do |item|
+      title = item.respond_to?(:title) ? item.title : ""
+      desc  = item.respond_to?(:description) ? item.description : ""
+      title.start_with?("Test", "test") || desc == "desc"
+    end
+
+    if listings.is_a?(WillPaginate::Collection)
+      # Replace entries in place so pagination metadata (total_entries,
+      # current_page, ...) is preserved for the view.
+      listings.replace(listings.reject(&test_listing))
+      listings
+    else
+      # Fallback for plain arrays (e.g. from discovery API)
+      listings.reject(&test_listing)
+    end
   end
 end

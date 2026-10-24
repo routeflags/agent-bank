@@ -87,7 +87,7 @@ module Payments
 
   def paypal_index
     paypal_account = paypal_accounts_api.get(community_id: @current_community.id).data
-    { order_permission_action: admin_paypal_preferences_account_create_path,
+    { order_permission_action: account_create_admin2_payment_system_paypal_index_path,
       paypal_account: paypal_account }
   end
 
@@ -175,7 +175,8 @@ module Payments
                                                  :marketplace_currency,
                                                  :mode,
                                                  :commission_from_buyer,
-                                                 :minimum_buyer_transaction_fee
+                                                 :minimum_buyer_transaction_fee,
+                                                 :platform_commission_rate
   ).with_validations do
     validates_numericality_of(
       :commission_from_seller,

@@ -161,7 +161,8 @@ default: &default_settings
   # The default locale (language) of the user interface
   # if locales are listed in the community specific settings in db. The first in that list is used as default for that community.
   # This setting here is the server wide default, and it's used if no community specific setting is found.
-  default_locale: en
+  # Japanese market: default to ja for a consistent Japanese experience from first access.
+  default_locale: ja
 
   # You can use Airbrake to track errors if you want.
   # You need to register an account and get an API key from airbrake.io

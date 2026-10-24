@@ -1,0 +1,23 @@
+- content_for :title, "#{t('lamprey.docs.title')} - #{@current_community.name(I18n.locale)}"
+
+- content_for :title_header do
+  %h1= t('lamprey.docs.title')
+
+.raku-page
+  %p.raku-page__lead= t('lamprey.docs.lead')
+
+  %section.raku-docs-section
+    %h2= t('lamprey.docs.browse_title')
+    %p= t('lamprey.docs.browse_body')
+
+  %section.raku-docs-section
+    %h2= t('lamprey.docs.sell_title')
+    %p= t('lamprey.docs.sell_body')
+
+  %section.raku-docs-section
+    %h2= t('lamprey.docs.buy_title')
+    %p= t('lamprey.docs.buy_body')
+
+  %section.raku-docs-section
+    %h2= t('lamprey.docs.first_time_title')
+    %p= t('lamprey.docs.first_time_body')

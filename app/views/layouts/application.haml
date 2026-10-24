@@ -1,6 +1,11 @@
+-# Split client bundles: topbar is global on raku pages (must be provided
+-# before the layout head renders the bundle tags).
+- if FeatureFlagHelper.feature_enabled?(:topbar_v1)
+  - provide_react_app :topbar
+
 = render 'layouts/head'
 
-%body
+%body.dark-theme
 
   #sidewinder-wrapper
 
@@ -43,45 +48,47 @@
           .banner--title-wrapper
             .banner--title
               = yield :banner_warning
-      %section.marketplace-lander
-        - if @big_cover_photo
-          .coverimage
-            %figure.marketplace-cover.fluidratio
-              .lander-content.marketplace-lander-content
-                = yield :title_header
-        - elsif !(is_homepage && FeatureFlagHelper.feature_enabled?(:topbar_v1))
-          .coverimage
-            %figure.marketplace-cover-small.fluidratio
-            .coverimage-fade{:class => yield(:coverfade_class)}
-              %figure.marketplace-cover-small-fade.fluidratio
-          .title-container
-            .title-header-wrapper
-              .marketplace-title-header
-                = yield :title_header
+      -# カバー画像セクションは使用しない（計画20261012）。タイトルがある
+      -# ページのみ、通常フローのヘッダーとして描画する。
+      - if content_for?(:title_header)
+        %section.raku-page-head
+          .raku-page-head__inner
+            = yield :title_header
 
-      %article.page-content{class: is_homepage && !@big_cover_photo ? 'no-cover-photo' : ''}
+      %main.page-content{class: is_homepage && !@big_cover_photo ? 'no-cover-photo' : ''}
+        -# ヒーロー（トップ専用・_hero.haml）は .wrapper と #homepage-filters の
+        -# 外に置く。これにより背景がビューポート全幅に広がり（Issue #3）、
+        -# 検索バーを /browse へ送信する独立フォームとして実装できる（Issue #4）。
+        - if is_homepage && !@listing_page
+          = render partial: "homepage/hero"
         .wrapper
           = render :partial => "layouts/notifications"
-          = yield
+          -# トップ（/・/browse）では、絞り込みフォーム（#homepage-filters）で
+          -# ページ内の検索・フィールド全項目をまとめて送信できるようにする。
+          -# 送信先は一覧画面（/browse）に統一（Issue #4/#5/#7）。
+          - if is_homepage
+            %form{method: "get", id: "homepage-filters", action: browse_path}
+              - # New top bar search params are in different form and they have to be retained here
+              - search_params = ["q", "lc", "ls", "boundingbox", "distance_max"]
+              - excluded_params = search_params unless FeatureFlagHelper.feature_enabled?(:topbar_v1)
+              - params.except("action", "controller", "view", "utf8", *excluded_params).each do |param, value|
+                - unless CustomFieldSearchParams.custom_field_search_param?(param) || param.match(/^price_/)
+                  = hidden_field_tag param, value
+              = hidden_field_tag "view", @view_type
+              = yield
+          - else
+            = yield
           - if display_branding_info?
             = render partial: "layouts/non_whitelabel_branding", locals: {link_to_sharetribe: "https://www.sharetribe.com/?utm_source=#{@current_community.ident}.sharetribe.com&utm_medium=referral&utm_campaign=nowl-footer"}
     -#
-      This is not pretty, but works.
-      On homepage, we want to wrap the whole page content (search bar and the "real" content) to a form, so that
-      pressing send from either search bar of filter list will send all the form fields
+      ホームページの絞り込みフォーム（#homepage-filters）は上記の .wrapper 内に
+      描画する。ヒーロー検索はフォームのネストを避けるため、_hero.haml に
+      独立した GET フォーム（action=/browse）として持たせている。
 
-    - if is_homepage
-      %form{method: "get", id: "homepage-filters"}
-        - # New top bar search params are in different form and they have to be retained here
-        - search_params = ["q", "lc", "ls", "boundingbox", "distance_max"]
-        - excluded_params = search_params unless FeatureFlagHelper.feature_enabled?(:topbar_v1)
-        - params.except("action", "controller", "view", "utf8", *excluded_params).each do |param, value|
-          - unless CustomFieldSearchParams.custom_field_search_param?(param) || param.match(/^price_/)
-            = hidden_field_tag param, value
-        = hidden_field_tag "view", @view_type
-        = content_for(:page_content)
-    - else
-      = content_for(:page_content)
+    = content_for(:page_content)
+
+    -# 楽市楽問固定フッター（カスタムフッター設定とは別に常に表示）
+    = render 'layouts/raku_footer'
 
     - if @custom_footer.try(:display?)
       = render 'layouts/footer'
@@ -99,6 +106,7 @@
     = javascript_include_tag "i18n/#{I18n.locale}"
 
     = javascript_include_tag 'application'
+    = react_bundle_js_tags
 
     :javascript
       window.ST.jsonTranslations = #{raw JSONTranslations.get(I18n.locale)}
@@ -127,3 +135,4 @@
     = render 'analytics/bottom_scripts'
     = render 'layouts/noscript'
     = render 'layouts/body_script'
+</html>

@@ -10,8 +10,9 @@
 // NOTE: See config/initializers/assets.rb for some critical configuration regarding sprockets.
 // Basically, in HOT mode, we do not include this file for
 // Rails.application.config.assets.precompile
-//= require vendor-bundle
-//= require app-bundle
+// Webpack bundles (vendor-bundle + app-bundle) are intentionally NOT required
+// here: split-page loading goes through ClientAssetsHelper (vendor + common +
+// per-app bundles), with webpack_bundles.js as the legacy full-bundle fallback.
 
 // This is a manifest file that'll be compiled into including all the files listed below.
 // Add new JavaScript/Coffee code in separate files in this directory and they'll automatically

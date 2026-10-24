@@ -94,8 +94,9 @@ module ApplicationHelper
     return "" if person.nil?
 
     image_url = person.image.present? ? person.image.url(size) : missing_avatar(size)
+    alt_text = avatar_html_options.delete(:alt) || person.display_name.presence || "avatar"
 
-    link_to_unless(person.deleted?, image_tag(image_url, avatar_html_options), person)
+    link_to_unless(person.deleted?, image_tag(image_url, avatar_html_options.merge(alt: alt_text)), person)
   end
 
   def large_avatar_thumb(person, options={})
@@ -330,260 +331,6 @@ module ApplicationHelper
     }
   end
 
-  # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
-  # Admin view left hand navigation content
-  def admin_links_for(community)
-    links = [
-      {
-        :topic => :general,
-        :text => t("admin.communities.getting_started.getting_started"),
-        :icon_class => icon_class("openbook"),
-        :path => admin_getting_started_guide_path,
-        :name => "getting_started_guide"
-      },
-      {
-        :id => "admin-help-center-link",
-        :topic => :general,
-        :text => t("admin.left_hand_navigation.help_center"),
-        :icon_class => icon_class("help"),
-        :path => "#{APP_CONFIG.knowledge_base_url}/",
-        :name => "help_center",
-        :target => "_blank"
-      },
-      {
-        :id => "admin-academy-link",
-        :topic => :general,
-        :text => t("admin.left_hand_navigation.academy"),
-        :icon_class => icon_class("academy"),
-        :path => "https://www.sharetribe.com/academy/guide/?utm_source=marketplaceadminpanel&utm_medium=referral&utm_campaign=leftnavi",
-        :name => "academy",
-        :target => "_blank"
-      }
-    ]
-
-    if APP_CONFIG.external_plan_service_in_use
-      links << {
-        :topic => :general,
-        :text => t("admin.left_hand_navigation.subscription"),
-        :icon_class => icon_class("credit_card"),
-        :path => admin_plan_path,
-        :name => "plan"
-      }
-    end
-
-    links << {
-      :topic => :general,
-      :text => t("admin.left_hand_navigation.preview"),
-      :icon_class => icon_class("eye"),
-      :path => homepage_without_locale_path(big_cover_photo: true, locale: nil),
-      :name => "preview",
-      :target => "_blank"
-    }
-
-    links += [
-      {
-        :topic => :manage,
-        :text => t("admin.communities.manage_members.manage_members"),
-        :icon_class => icon_class("community"),
-        :path => admin_community_community_memberships_path(@current_community, sort: "join_date", direction: "desc"),
-        :name => "manage_members"
-      },
-      {
-        :topic => :manage,
-        :text => t("admin.communities.listings.listings"),
-        :icon_class => icon_class("thumbnails"),
-        :path => admin_community_listings_path(@current_community, sort: "updated"),
-        :name => "listings"
-      },
-      {
-        :topic => :manage,
-        :text => t("admin.communities.transactions.transactions"),
-        :icon_class => icon_class("coins"),
-        :path => admin_community_transactions_path(@current_community, sort: "last_activity", direction: "desc"),
-        :name => "transactions"
-      },
-      {
-        :topic => :manage,
-        :text => t("admin.communities.conversations.conversations"),
-        :icon_class => icon_class("chat_bubble"),
-        :path => admin_community_conversations_path(@current_community, sort: "last_activity", direction: "desc"),
-        :name => "conversations"
-      },
-      {
-        :topic => :manage,
-        :text => t("admin.communities.testimonials.testimonials"),
-        :icon_class => icon_class("like"),
-        :path => admin_community_testimonials_path(@current_community),
-        :name => "testimonials"
-      },
-      {
-        :topic => :manage,
-        :text => t("admin.emails.new.send_email_to_members"),
-        :icon_class => icon_class("send"),
-        :path => new_admin_community_email_path(:community_id => @current_community.id),
-        :name => "email_members"
-      },
-      {
-        :topic => :manage,
-        :text => t("admin.communities.invitations.invitations"),
-        :icon_class => icon_class("invitations"),
-        :path => admin_community_invitations_path(@current_community),
-        :name => "invitations"
-      },
-      {
-        :topic => :configure,
-        :text => t("admin.communities.edit_details.community_details"),
-        :icon_class => icon_class("details"),
-        :path => admin_details_edit_path,
-        :name => "tribe_details"
-      },
-      {
-        :topic => :configure,
-        :text => t("admin.communities.edit_details.community_look_and_feel"),
-        :icon_class => icon_class("looknfeel"),
-        :path => admin_look_and_feel_edit_path,
-        :name => "tribe_look_and_feel"
-      },
-      {
-        :topic => :configure,
-        :text => t("admin.communities.domain.domain"),
-        :icon_class => icon_class("domain"),
-        :path => admin_domain_path,
-        :name => "domain"
-      },
-      {
-        :topic => :configure,
-        :text => t("admin.communities.new_layout.new_layout"),
-        :icon_class => icon_class("layout"),
-        :path => admin_new_layout_path,
-        :name => "new_layout"
-      }
-    ]
-
-    links += [
-      {
-        :topic => :configure,
-        :text => t("admin.communities.topbar.topbar"),
-        :icon_class => icon_class("topbar_menu"),
-        :path => admin_topbar_edit_path,
-        :name => "topbar"
-      }
-    ]
-
-    links += [
-      {
-        :topic => :configure,
-        :text => t("admin.communities.footer.footer"),
-        :icon_class => icon_class("footer_menu"),
-        :path => admin_footer_edit_path,
-        :name => "footer"
-      }
-    ]
-
-    if APP_CONFIG.show_landing_page_admin
-      links << {
-        :topic => :configure,
-        :text => t("admin.landing_page.landing_page"),
-        :icon_class => icon_class("home"),
-        :path => @current_plan.try(:[], :features).try(:[], :landing_page) ? admin_landing_page_versions_path : admin_landing_page_path,
-        :name => "landing_page"
-      }
-    end
-
-    links += [
-      {
-        :topic => :configure,
-        :text => t("admin.communities.user_fields.user_fields"),
-        :icon_class => icon_class("user_edit"),
-        :path => admin_person_custom_fields_path,
-        :name => "user_fields"
-      }
-    ]
-
-    links += [
-      {
-        :topic => :configure,
-        :text => t("admin.categories.index.listing_categories"),
-        :icon_class => icon_class("list"),
-        :path => admin_categories_path,
-        :name => "listing_categories"
-      },
-      {
-        :topic => :configure,
-        :text => t("admin.custom_fields.index.listing_fields"),
-        :icon_class => icon_class("form"),
-        :path => admin_custom_fields_path,
-        :name => "listing_fields"
-      }
-    ]
-
-    links << {
-      :topic => :configure,
-      :text => t("admin.listing_shapes.index.listing_shapes"),
-      :icon_class => icon_class("order_types"),
-      :path => admin_listing_shapes_path,
-      :name => "listing_shapes"
-    }
-
-    if PaypalHelper.paypal_active?(@current_community.id) || StripeHelper.stripe_provisioned?(@current_community.id)
-      links << {
-        :topic => :configure,
-        :text => t("admin.communities.settings.payment_preferences"),
-        :icon_class => icon_class("payments"),
-        :path => admin_payment_preferences_path(),
-        :name => "payment_preferences"
-      }
-    end
-
-    links << {
-      :topic => :configure,
-      :text => t("admin.communities.social_media.social_media"),
-      :icon_class => icon_class("social_media"),
-      :path => social_media_admin_community_path(@current_community),
-      :name => "social_media"
-    }
-
-    links << {
-      :topic => :configure,
-      :text => t("admin.communities.seo_settings.seo"),
-      :icon_class => icon_class("seo"),
-      :path => admin_community_seo_settings_path,
-      :name => "seo"
-    }
-
-    links << {
-      :topic => :configure,
-      :text => t("admin.communities.analytics.analytics"),
-      :icon_class => icon_class("analytics"),
-      :path => analytics_admin_community_path(@current_community),
-      :name => "analytics"
-    }
-
-    links << {
-      :topic => :configure,
-      :text => t("admin.communities.edit_text_instructions.edit_text_instructions"),
-      :icon_class => icon_class("edit"),
-      :path => edit_text_instructions_admin_community_path(@current_community),
-      :name => "text_instructions"
-    }
-    links << {
-      :topic => :configure,
-      :text => t("admin.left_hand_navigation.emails_title"),
-      :icon_class => icon_class("mail"),
-      :path => edit_welcome_email_admin_community_path(@current_community),
-      :name => "welcome_email"
-    }
-    links << {
-      :topic => :configure,
-      :text => t("admin.communities.settings.settings"),
-      :icon_class => icon_class("settings"),
-      :path => admin_setting_path,
-      :name => "admin_settings"
-    }
-
-    links
-  end
-  # rubocop:enable Metrics/MethodLength, Metrics/AbcSize
 
   # Settings view left hand navigation content
   def settings_links_for(person, community=nil, restrict_for_admin=false)
@@ -756,6 +503,40 @@ module ApplicationHelper
       logged_in: @current_user.present?,
       default_locale: @current_community.default_locale,
       locale_param: params[:locale])
+  end
+
+  # Base path for listing-browse controls (view type, transaction type) and
+  # pagination (will_paginate, pageless, SEO prev/next).
+  # Stays on the dedicated listing page (/browse) when already there;
+  # otherwise falls back to the homepage search path.
+  # 一覧ページ/トップの切り替えはこのルールだけに宿す（Issue #26）。
+  # パス生成に不要な controller/action/utf8 と locale をここでまとめて除去する。
+  # locale は default_url_options が現在のロケールをパス段として付け直すため、
+  # 渡すとクエリに locale= が二重に出るだけ。既存のビューコーラーも同じ除去をしている。
+  def raku_listing_index_path(options = {})
+    opts = options.except(:controller, :action, :locale, :utf8)
+    @listing_page ? browse_path(opts) : search_path(opts)
+  end
+
+  # Marks the active item in the raku sub-navigation based on the current page.
+  # マーケット = marketplace/homepage; 出品 = new listing form.
+  def raku_nav_active?(section)
+    case section
+    when :marketplace
+      controller_name.in?(%w[homepage landing_page]) && !request.path.match?(%r{/browse$})
+    when :browse
+      controller_name == "homepage" && request.path.match?(%r{/browse$})
+    when :new_listing
+      controller_name == "listings" && action_name == "new"
+    when :rankings
+      controller_name == "rankings"
+    when :battles
+      controller_name == "battles"
+    when :docs
+      controller_name == "docs"
+    else
+      false
+    end
   end
 
   # Give an array of translation keys you need in JavaScript. The keys will be loaded and ready to be used in JS

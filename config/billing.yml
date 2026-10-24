@@ -1,0 +1,30 @@
+# frozen_string_literal: true
+
+# Capafy AI Clone — Billing Configuration
+#
+# Defines pricing for all 3 billing models (shared across all Personas).
+# Override via environment variables or Rails settings as needed.
+
+billing:
+  # Shared settings
+  currency: "USD"
+  unit_type: "tokens"
+
+  # Model 1: Subscription + per-token overage
+  subscription:
+    base_price_cents: 1000            # $10/month
+    included_tokens: 100_000          # 100K tokens included
+    per_token_price_cents: 2          # $0.002 per token overage
+
+  # Model 2: Pure pay-per-use (prepaid)
+  pay_per_use:
+    per_token_price_cents: 3          # $0.003 per token
+
+  # Model 3: Subscription with auto-recharge
+  subscription_with_overage:
+    base_price_cents: 1000            # $10/month
+    included_tokens: 100_000          # 100K tokens included
+    per_token_price_cents: 2          # $0.002 per token overage
+    auto_recharge_threshold_cents: 500   # Recharge when balance drops below $5
+    auto_recharge_amount_cents: 2000     # Auto-charge $20
+    max_monthly_charge_cents: 10_000     # Monthly cap $100

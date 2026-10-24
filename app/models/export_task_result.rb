@@ -12,6 +12,10 @@
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
 #
+# Indexes
+#
+#  index_on_token  (token) UNIQUE
+#
 
 class ExportTaskResult < ApplicationRecord
   attr_accessor :original_filename, :original_extname

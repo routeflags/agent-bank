@@ -82,7 +82,7 @@
     %meta{ :property => "fb:app_id", :content => "#{@current_community.facebook_connect_id}" }
 
   = stylesheet_link_tag "react_page/styles"
-  = stylesheet_link_tag "app-bundle"
+  = stylesheet_link_tag "react_page/styles", "sections-bundle"
 
   / Detect if JS is enabled.
   :javascript
@@ -115,7 +115,8 @@
     - key_param = maps_key ? "&key=#{maps_key}" : ""
     = javascript_include_tag "//maps.googleapis.com/maps/api/js?libraries=places#{key_param}"
 
-  = yield
+  %main.react-page-main
+    = yield
 
   -# Initialize global I18n variable and load translations there
   :javascript

@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-ruby '3.4.8'
+ruby '3.4.10'
 
 gem 'rails', '8.1.2'
 gem 'csv', '3.3.2'
@@ -128,6 +128,7 @@ group :development, :test do
 end
 
 group :development do
+  gem 'dotenv-rails'
   gem 'rb-fsevent', require: false
   gem 'listen', '~> 3.7.1'
   gem 'annotate'
@@ -139,6 +140,9 @@ end
 group :test do
   gem 'capybara', '~> 3.40.0'
   gem 'rspec-rails', '~> 7.0.0'
+
+  # カバレッジ計測（COVERAGE=1 bundle exec rspec で有効化）
+  gem 'simplecov', '~> 0.22.0', require: false
 
   gem 'cucumber-rails', '~> 3.1.1', require: false # require: false is needed for cucumber-rails
   gem 'cucumber', '9.2.1'
@@ -186,3 +190,6 @@ gem 'fast-polylines', '~> 2.2.2'
 gem 'rb-inotify', '~> 0.10', require: false
 gem 'psych', '< 4'
 gem 'sorted_set'
+
+# TOTP / OTP support for two-factor authentication
+gem 'rotp', '~> 6.3'

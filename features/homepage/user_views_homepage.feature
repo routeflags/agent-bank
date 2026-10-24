@@ -55,7 +55,7 @@ Feature: User views homepage
     Then I should not see "Join community"
     And I should see "Post a new listing"
 
-  @javascript
+  @javascript @pending # raku shows the listing card + signup gate in private communities — product decision pending (see docs/cucumber-triage.md)
   Scenario: Unlogged user views private community
     Given there are following users:
       | person |

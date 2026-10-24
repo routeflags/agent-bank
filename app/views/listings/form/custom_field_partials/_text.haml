@@ -1,2 +1,5 @@
 - value = custom_field_value ? custom_field_value.text_value : ""
-= text_field_tag "custom_fields[#{custom_field.id}]", value, :class => (custom_field.required? ? "required" : "")
+- if custom_field.respond_to?(:long_text?) && custom_field.long_text?
+  = text_area_tag "custom_fields[#{custom_field.id}]", value, :class => (custom_field.required? ? "required" : ""), :rows => 8
+- else
+  = text_field_tag "custom_fields[#{custom_field.id}]", value, :class => (custom_field.required? ? "required" : "")

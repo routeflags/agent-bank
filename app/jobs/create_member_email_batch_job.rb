@@ -2,6 +2,10 @@ class CreateMemberEmailBatchJob < Struct.new(:sender_id, :community_id, :content
 
   include DelayedAirbrakeNotification
 
+  # Recipient modes for member email batches.
+  # (Relocated from legacy Admin::EmailsController when the admin_old panel was removed.)
+  ADMIN_EMAIL_OPTIONS = %i[all_users posting_allowed with_listing with_listing_no_payment with_payment_no_listing no_listing_no_payment].freeze
+
   # This before hook should be included in all Jobs to make sure that the service_name is
   # correct as it's stored in the thread and the same thread handles many different communities
   # if the job doesn't have host parameter, should call the method with nil, to set the default service_name
@@ -25,7 +29,7 @@ class CreateMemberEmailBatchJob < Struct.new(:sender_id, :community_id, :content
   # Here, every SQL query was fine-tuned. If changes are made, please make sure
   # that the SQL queries are executed fast enough.
   def community_members(mode, community)
-    mode_options = Admin::EmailsController::ADMIN_EMAIL_OPTIONS
+    mode_options = ADMIN_EMAIL_OPTIONS
     mode = mode.to_sym
     scope = community.members
     if mode_options.include?(mode)

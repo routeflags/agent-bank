@@ -1,0 +1,87 @@
+# frozen_string_literal: true
+
+# Builds the i18n props hash consumed by the ChatPanel React component
+# (client/app/startup/ChatPanelApp.js). Keys mirror lamprey.chat.*.
+module ChatPanelHelper
+  def chat_panel_i18n
+    chat = I18n.t("lamprey.chat")
+    chat = chat.respond_to?(:symbolize_keys) ? chat.symbolize_keys : {}
+    {
+      wallet_topup_title: chat[:wallet_topup_title],
+      wallet_topup_close: chat[:wallet_topup_close],
+      wallet_current_balance: chat[:wallet_current_balance],
+      wallet_custom_label: chat[:wallet_custom_label],
+      wallet_amount_placeholder: chat[:wallet_amount_placeholder],
+      wallet_invalid_amount: chat[:wallet_invalid_amount],
+      wallet_pay_failed: chat[:wallet_pay_failed],
+      wallet_success: chat[:wallet_success],
+      wallet_processing: chat[:wallet_processing],
+      wallet_submit: chat[:wallet_submit],
+      wallet_redirecting: chat[:wallet_redirecting],
+      wallet_add_credits: chat[:wallet_add_credits],
+      wallet_buy: chat[:wallet_buy],
+      wallet_add_preparing: chat[:wallet_add_preparing],
+      wallet_add_preparing_body: chat[:wallet_add_preparing_body],
+      purchase_preparing_body: chat[:purchase_preparing_body],
+      purchase_not_configured: chat[:purchase_not_configured],
+      purchase_checkout_failed: chat[:purchase_checkout_failed],
+      dev_purchase_success: chat[:dev_purchase_success],
+      dev_purchase_failed: chat[:dev_purchase_failed],
+      new_chat_title: chat[:new_chat_title],
+      insufficient_tokens: chat[:insufficient_tokens],
+      purchase_required: chat[:purchase_required],
+      error_generic: chat[:error_generic],
+      wallet_insufficient: chat[:wallet_insufficient],
+      connect_failed: chat[:connect_failed],
+      session_create_failed: chat[:session_create_failed],
+      history_title: chat[:history_title],
+      history_new: chat[:history_new],
+      history_today: chat[:history_today],
+      history_past_week: chat[:history_past_week],
+      history_earlier: chat[:history_earlier],
+      history_empty: chat[:history_empty],
+      loading: chat[:loading],
+      empty_state: chat[:empty_state],
+      input_placeholder: chat[:input_placeholder],
+      disclaimer: chat[:disclaimer],
+      balance_label: chat[:balance_label],
+      settings_title: chat[:settings_title],
+      settings_model: chat[:settings_model],
+      settings_token_limit: chat[:settings_token_limit],
+      settings_tokens_unit: chat[:settings_tokens_unit],
+      settings_output_length: chat[:settings_output_length],
+      output_short: chat[:output_short],
+      output_standard: chat[:output_standard],
+      output_long: chat[:output_long],
+      settings_tone: chat[:settings_tone],
+      tone_polite: chat[:tone_polite],
+      tone_casual: chat[:tone_casual],
+      tone_professional: chat[:tone_professional],
+      tone_friendly: chat[:tone_friendly],
+      message_tokens: chat[:message_tokens],
+      result_panel_heading: chat[:result_panel_heading],
+      result_panel_jump: chat[:result_panel_jump],
+      result_badge: chat[:result_badge],
+      result_title: chat[:result_title],
+      attach_button: chat[:attach_button],
+      attach_remove: chat[:attach_remove],
+      attach_upload_failed: chat[:attach_upload_failed],
+      attach_invalid_type: chat[:attach_invalid_type],
+      attach_too_large: chat[:attach_too_large],
+      a11y_dialog: chat["a11y_dialog"],
+      a11y_open: chat["a11y_open"],
+      a11y_close: chat["a11y_close"],
+      a11y_input: chat["a11y_input"],
+      a11y_send: chat["a11y_send"]
+    }
+  end
+
+  # 開発/テスト専用の購入付与（DevPersonaPurchase）が有効か。
+  # ChatPanel の購入ボタンは、有効なときだけ実際の購入 API を呼ぶ。
+  # 無効な環境（本番など）では従来どおり「準備中」を表示する。
+  #
+  # @return [Boolean]
+  def dev_purchase_enabled?
+    DevPersonaPurchase.enabled?
+  end
+end

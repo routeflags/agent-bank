@@ -1,98 +1,169 @@
 - person = @service.person
+-# 「出品管理」タブ（?show_closed=true）かどうか。サイドバーの活性表示、
+-# 見出し、空状態の文言を切り替える（Issue #14）。
+- closed_view = params[:show_closed].present? && current_user?(person)
 
 - content_for :javascript do
   initialize_profile_view("#{person.username}");
 
 - content_for :title_header do
-  %h1
-    %span.profile-title= PersonViewUtils.person_display_name(person, @service.community)
+  -# Title header hidden — using profile card instead
 
 - if person.image.present?
   - content_for :meta_image, person.image.url(:medium)
   - content_for :meta_image_width, '288'
   - content_for :meta_image_height, '288'
 
-.row
-  .col-8
+-# ═══════════════════════════════════════════════════════════
+-# 楽市楽問 — My Page (出品者ダッシュボード)
+-# ═══════════════════════════════════════════════════════════
+.raku-mypage
+  -# ── Sidebar ────────────────────────────────────────────
+  .raku-sidebar
+    .raku-profile
+      - if person.image.present?
+        %img.raku-profile__avatar{src: person.image.url(:medium), alt: person.username}
+      - else
+        .raku-profile__avatar.raku-avatar-placeholder
+          = person.username[0].upcase
+      %h2.raku-profile__name= PersonViewUtils.person_display_name(person, @service.community)
+      %p.raku-profile__username @#{person.username}
+      .raku-profile__verified= t('lamprey.mypage.verified_seller')
+      .raku-profile__tags
+        - t('lamprey.mypage.profile_tags').each do |tag|
+          .raku-profile__tag= tag
+      .raku-profile__stats
+        .raku-profile__stat
+          .raku-profile__stat-value= @raku_stats[:published]
+          .raku-profile__stat-label= t('lamprey.mypage.stats_published')
+        .raku-profile__stat
+          .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_views])
+          .raku-profile__stat-label= t('lamprey.mypage.stats_total_views')
+        .raku-profile__stat
+          .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_sold])
+          .raku-profile__stat-label= t('lamprey.mypage.stats_total_sold')
 
-    .row.relative
-      .people-image-mobile
-        = huge_avatar_thumb(person)
-      .profile-action-buttons-mobile
-        = render "profile_action_buttons", service: @service
+    .raku-sidebar__nav
+      .raku-sidebar__section-label= t('lamprey.mypage.menu')
+      %a.raku-sidebar__link{class: (closed_view ? nil : "is-active"), href: person_path(username: person.username)}
+        %span.raku-sidebar__icon 📊
+        = t('lamprey.mypage.dashboard')
+      %a.raku-sidebar__link{class: (closed_view ? "is-active" : nil), href: person_path(username: person.username, show_closed: true)}
+        %span.raku-sidebar__icon 📦
+        = t('lamprey.mypage.manage_listings')
+      .raku-sidebar__divider
+      .raku-sidebar__section-label= t('lamprey.mypage.account')
+      - if current_user?(person)
+        %a.raku-sidebar__link{href: person_settings_path(person)}
+          %span.raku-sidebar__icon ⚙️
+          = t('lamprey.mypage.settings')
 
-    .row.profile-about-me
-      - if person.description && !person.description.blank?
-        = markdown(person.description)
-      - elsif current_user?(person)
-        %a{href: person_settings_path(person)}
-          .icon-with-text-container
-            .ss-chat.icon-part
-            .ss.text-part= t(".add_description")
+  -# ── Main content ───────────────────────────────────────
+  .raku-mypage__main
+    -# ── Summary（実データのみ。偽トレンドは非表示 — DESIGN.md §25.10） ──
+    .raku-summary
+      .raku-summary__item
+        .raku-summary__label
+          %span.raku-summary__icon 📦
+          = t('lamprey.mypage.summary_published')
+        .raku-summary__value= @raku_stats[:published]
+      .raku-summary__item
+        .raku-summary__label
+          %span.raku-summary__icon 💰
+          = t('lamprey.mypage.summary_total_sold')
+        .raku-summary__value= number_with_delimiter(@raku_stats[:total_sold])
+      .raku-summary__item
+        .raku-summary__label
+          %span.raku-summary__icon 👆
+          = t('lamprey.mypage.summary_total_views')
+        .raku-summary__value= number_with_delimiter(@raku_stats[:total_views])
+      - if @raku_stats[:avg_rating]
+        .raku-summary__item
+          .raku-summary__label
+            %span.raku-summary__icon ★
+            = t('lamprey.mypage.summary_avg_rating')
+          .raku-summary__value
+            %span.raku-link-gold= "★ #{@raku_stats[:avg_rating]}"
 
-    - if @service.community_person_custom_fields.any?
-      -  @service.community_person_custom_fields.each do |custom_field|
-        - custom_field_value = person.custom_field_value_for(custom_field)
-        - if custom_field_value
-          - if custom_field.required? || custom_field_value.display_value.to_s.present?
-            .row
-              .col-12
-                %span.people-custom-fields-title
-                  = "#{custom_field.name(I18n.locale)}:"
-                - if custom_field.is_a?(CheckboxField)
-                  = render 'people/custom_fields/checkbox', custom_field: custom_field,
-                  custom_field_value: custom_field_value
-                - elsif custom_field.is_a?(TextField)
-                  - text_with_url_links do
-                    = custom_field_value.display_value
+    -# ── About（自己紹介がある場合のみ）──────────────
+    - if person.description.present?
+      %section.raku-about
+        %h2.raku-about__title= t('lamprey.mypage.about_title')
+        .raku-about__body= simple_format(person.description)
+
+    -# ── Quick Actions（未実装ページへのリンクは置かない — §25.10）
+    -# 「出品管理」はサイドバーと重複するため置かない（Issue #19）──
+    .raku-quick-actions
+      %a.raku-quick-actions__btn{href: new_listing_path}
+        = "📝 #{t('lamprey.mypage.new_listing')}"
+
+
+    -# ── Skill Table ──────────────────────────────────────
+    %h2.raku-table-title= closed_view ? t('lamprey.mypage.table_title_closed') : t('lamprey.mypage.table_title')
+    - if @skill_listings.total_entries > 0
+      %table.raku-table
+        %thead
+          %tr
+            %th= t('lamprey.mypage.th_skill')
+            %th= t('lamprey.mypage.th_views')
+            %th= t('lamprey.mypage.th_rating')
+            %th= t('lamprey.mypage.th_price')
+            %th= t('lamprey.mypage.th_status')
+            %th= t('lamprey.mypage.th_actions')
+        %tbody
+          - @skill_listings.each do |listing|
+            %tr
+              %td
+                .raku-table__skill
+                  - if (listing_image = listing.listing_images.first)
+                    %img.raku-table__skill-thumb{src: listing_image.image.url(:thumb), alt: listing.title}
+                  - else
+                    .raku-table__skill-thumb.raku-thumb-placeholder 🤖
+                  %div
+                    .raku-table__skill-name= link_to listing.title, listing_path(listing), class: "raku-table__skill-link"
+                    .raku-table__skill-desc= StringUtils.first_words(listing.description, 40)
+              %td= number_with_delimiter(listing.times_viewed.to_i)
+              %td
+                .raku-table__rating
+                  - if listing.avg_rating.to_f > 0
+                    = "★ #{listing.avg_rating.round(1)}"
+                  - else
+                    = "—"
+              %td= number_to_currency(listing.price_cents.to_i / 100.0, unit: "¥", precision: 0, delimiter: ",")
+              %td
+                - if listing.open?
+                  .raku-table__status.raku-table__status--active
+                    %span.raku-table__status-dot
+                    = t('lamprey.mypage.status_published')
                 - else
-                  %span.people-custom-fields-value
-                    = custom_field_value.display_value
-
-    .row
-      %h2.people-header
-        - if @service.listings.total_entries > 0
-          - if current_user?(person) && params[:show_closed]
-            = pluralize(@service.listings.total_entries, t(".listing"), t(".listings"))
-          - else
-            = pluralize(@service.listings.total_entries, t(".open_listing"), t(".open_listings"))
+                  .raku-table__status
+                    %span.raku-table__status-dot
+                    = t('lamprey.mypage.status_closed')
+              %td
+                .raku-table__actions
+                  %a.raku-table__action-btn{href: edit_listing_path(listing), title: t('lamprey.mypage.action_edit')} ✏️
+                  %a.raku-table__action-btn{href: listing_path(listing), title: t('lamprey.mypage.action_view')} 👁️
+    - else
+      .raku-table__empty
+        .raku-table__empty-icon 📦
+        - if closed_view
+          = t('lamprey.mypage.empty_closed_listings')
         - else
-          - if current_user?(person) && params[:show_closed]
-            = t(".no_listings")
-          - else
-            = t(".no_open_listings")
-        %span.people-show-closed-link
-          - if current_user?(person)
-            = link_to t("people.profile_listings.manage_listings"), listings_person_settings_path(person.username)
+          = t('lamprey.mypage.empty_listings')
+          %br
+          %a.raku-link-gold{href: new_listing_path}= t('lamprey.mypage.empty_listings_cta')
 
-    #profile-listings-list
-      - limit = 6
-      = render :partial => 'listings/profile_listings', :locals => {person: person, limit: limit, listings: @service.listings}
+    -# ── Reviews ──────────────────────────────────────────
+    .raku-reviews
+      .raku-reviews__header
+        %h2.raku-reviews__title
+          = t('lamprey.mypage.reviews_title')
+          %span.raku-reviews__count= t('lamprey.mypage.reviews_count', count: 0)
+      .raku-reviews__list
+        .raku-reviews__empty
+          = t('lamprey.mypage.reviews_empty')
 
-    - if @service.community.follow_in_use?
-      = render :partial => "followed_people", :locals => { person: person, followed_people: @service.followed_people, limit: 6 }
-
-    #people-testimonials.listing-main
-      .row
-        %h2.people-header
-          - if @service.received_testimonials?
-            = pluralize(@service.received_testimonials.size, t(".review"), t(".reviews"))
-            = "(#{@service.feedback_positive_percentage.to_s}% #{t("people.show.positive")}, #{@service.received_positive_testimonials.size}/#{@service.received_testimonials.size})"
-          - else
-            = t(".no_reviews")
-        - if @service.received_testimonials?
-          #profile-testimonials-list
-            = render :partial => "testimonials", :locals => {:received_testimonials => @service.received_testimonials, :limit => 3}
-
-  .col-4
-    .row
-      .people-image
-        = huge_avatar_thumb(person)
-
-    .row
-      .profile-action-buttons-desktop
-        = render "profile_action_buttons", service: @service
-
+-# ── Original profile content (preserved) ────────────────
 - content_for :extra_javascript do
   :javascript
     window.ST.initializeFollowButtons();

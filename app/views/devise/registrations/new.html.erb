@@ -10,10 +10,10 @@
   <%= f.email_field :email %></div>
 
   <div><%= f.label :password %><br />
-  <%= f.password_field :password %></div>
+  <%= f.password_field :password, autocomplete: "new-password" %></div>
 
   <div><%= f.label :password_confirmation %><br />
-  <%= f.password_field :password_confirmation %></div>
+  <%= f.password_field :password_confirmation, autocomplete: "new-password" %></div>
 
   <div><%= f.submit "Sign up" %></div>
 <% end %>

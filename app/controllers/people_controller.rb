@@ -20,14 +20,30 @@ class PeopleController < Devise::RegistrationsController
   skip_before_action :ensure_consent_given,               only: LOOSER_ACCESS_CONTROL
   skip_before_action :ensure_user_belongs_to_community,   only: LOOSER_ACCESS_CONTROL
 
-  helper_method :show_closed?
-
   def show
     @service = Persons::ShowService.new(community: @current_community, params: params, current_user: @current_user)
     redirect_to landing_page_path and return unless @service.person
     redirect_to landing_page_path and return if @current_community.private? && !@current_user
     @selected_tribe_navi_tab = "members"
     @seo_service.user = @service.person
+
+    # raku-mypage のKPI（DESIGN.md §16 — 実データのみ表示。ハードコード値禁止）
+    person_listings = Listing.where(community_id: @current_community.id, author_id: @service.person.id, deleted: false)
+    @raku_stats = {
+      published: @service.listings.total_entries,
+      total_sold: person_listings.sum(:total_sold).to_i,
+      total_views: person_listings.sum(:times_viewed).to_i,
+      avg_rating: person_listings.where("avg_rating > 0").average(:avg_rating)&.round(1)
+    }
+
+    # 出品中スキル表はAR実体を直接使う。
+    # @service.listings の要素は ListingIndexViewUtils::ListingItem 構造体で
+    # times_viewed / avg_rating / open を持たないため（NoMethodError の原因）
+    include_closed = @current_user.present? && @current_user == @service.person && params[:show_closed].present?
+    skill_scope = include_closed ? person_listings : person_listings.currently_open
+    @skill_listings = skill_scope.includes(:listing_images)
+                                 .order(Arel.sql("listings.sort_date DESC"))
+                                 .paginate(page: 1, per_page: 20)
   end
 
   def new
@@ -259,10 +275,6 @@ class PeopleController < Devise::RegistrationsController
     respond_to do |format|
       format.json { render :json => Invitation.code_usable?(params[:invitation_code], @current_community) }
     end
-  end
-
-  def show_closed?
-    params[:closed] && params[:closed].eql?("true")
   end
 
   private

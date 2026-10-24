@@ -13,11 +13,7 @@ I want to see see all the conversations happening in my community
     And there is a listing with title "listing1" from "kassi_testperson1"
 
   Scenario: Admin views conversations started from user's profile
-    When I am logged in as "kassi_testperson2"
-    And I go to the profile page of "kassi_testperson1"
-    And I follow "Contact"
-    And I fill in "conversation[message_attributes][content]" with "contacted from listing"
-    And I press submit
+    Given "kassi_testperson2" sends a profile message to "kassi_testperson1" with "contacted from profile"
     When I am logged in as "manager"
     And "manager" has admin rights in community "test"
     And I am on the conversations admin2 page
@@ -28,7 +24,7 @@ I want to see see all the conversations happening in my community
     And I go to the listing page
     And I follow "Contact"
     And I fill in "listing_conversation[content]" with "contacted from listing"
-    And I press submit
+    And I press "Send message"
     When I am logged in as "manager"
     And "manager" has admin rights in community "test"
     And I am on the conversations admin2 page

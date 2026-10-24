@@ -38,6 +38,7 @@ Rails.application.routes.draw do
 
   # Some non-RESTful mappings
   post '/webhooks/paypal_ipn' => 'paypal_ipn#ipn_hook', as: :paypal_ipn_hook
+  post '/webhooks/freemius' => 'freemius_webhooks#receive', as: :freemius_webhook
   post '/webhooks/plans' => 'plans#create'
   get '/webhooks/trials' => 'plans#get_trials'
 
@@ -513,220 +514,9 @@ Rails.application.routes.draw do
 
     get '/admin2', to: redirect('/admin')
     get '/:locale/admin2(*all)', to: redirect('/%{locale}/admin%{all}')
-    
-    scope module: "admin", path: "/admin_old", as: "admin" do
-      get '' => "getting_started_guide#index"
 
-      # Payments
-      resources :payment_preferences, only: [:index], param: :payment_gateway do
-        collection do
-          put :common_update
-          put :update_stripe_keys
-        end
-        member do
-          get :disable
-          get :enable
-        end
-      end
-      # PayPal Connect
-      get  "/paypal_preferences" => redirect("/%{locale}/admin/payment_preferences")
-      get  "/paypal_preferences/account_create"       => "paypal_preferences#account_create"
-      get  "/paypal_preferences/permissions_verified" => "paypal_preferences#permissions_verified"
 
-      # Settings
-      resource :setting, path: 'settings', only: [:show, :update]
-
-      # Guide
-      get "getting_started_guide"                        => "getting_started_guide#index",                  as: :getting_started_guide
-      get "getting_started_guide/slogan_and_description" => "getting_started_guide#slogan_and_description", as: :getting_started_guide_slogan_and_description
-      get "getting_started_guide/cover_photo"            => "getting_started_guide#cover_photo",            as: :getting_started_guide_cover_photo
-      get "getting_started_guide/filter"                 => "getting_started_guide#filter",                 as: :getting_started_guide_filter
-      get "getting_started_guide/payment"                => "getting_started_guide#payment",                as: :getting_started_guide_payment
-      get "getting_started_guide/listing"                => "getting_started_guide#listing",                as: :getting_started_guide_listing
-      get "getting_started_guide/invitation"             => "getting_started_guide#invitation",             as: :getting_started_guide_invitation
-      get "getting_started_guide/skip_payment"           => "getting_started_guide#skip_payment",           as: :getting_started_guide_skip_payment
-
-      # Details and look 'n feel
-      get   "/look_and_feel/edit" => "communities#edit_look_and_feel",          as: :look_and_feel_edit
-      patch "/look_and_feel"      => "communities#update_look_and_feel",        as: :look_and_feel
-      get   "/details/edit"       => "community_customizations#edit_details",   as: :details_edit
-      patch "/details"            => "community_customizations#update_details", as: :details
-      get   "/new_layout"         => "communities#new_layout",                  as: :new_layout
-      patch "/new_layout"         => "communities#update_new_layout",           as: :update_new_layout
-
-      # Topbar menu
-      get   "/topbar/edit"        => "communities/topbar#edit",                 as: :topbar_edit
-      patch "/topbar"             => "communities/topbar#update",               as: :topbar
-
-      # Footer menu
-      get   "/footer/edit"        => "communities/footer#edit",                 as: :footer_edit
-      patch "/footer"             => "communities/footer#update",               as: :footer
-
-      # Landing page menu
-      get   "/landing_page"         => "communities#landing_page",                  as: :landing_page
-
-      resources :communities do
-        member do
-          get :edit_welcome_email
-          post :create_sender_address
-          get :check_email_status
-          post :resend_verification_email
-          get :edit_text_instructions
-          get :test_welcome_email
-          get :social_media
-          get :analytics
-          put :social_media, to: 'communities#update_social_media'
-          put :analytics, to: 'communities#update_analytics'
-          delete :delete_marketplace
-
-          # DEPRECATED (2016-08-26)
-          # These routes are not in use anymore, don't use them
-          # See new "Topbar menu" routes above, outside of communities resource
-          get :topbar, to: redirect("/admin/topbar/edit")
-          put :topbar, to: "communities#update_topbar" # PUT request, no redirect
-          # also redirect old menu link requests to topbar
-          get :menu_links, to: redirect("/admin/topbar/edit")
-          put :menu_links, to: "communities#update_topbar" # PUT request, no redirect
-
-          # DEPRECATED (2016-07-07)
-          # These routes are not in use anymore, don't use them
-          # See new "Guide" routes above, outside of communities resource
-          get :getting_started, to: redirect('/admin/getting_started_guide')
-
-          # DEPRECATED (2016-03-22)
-          # These routes are not in use anymore, don't use them
-          # See new routes above, outside of communities resource
-          get :edit_details,       to: redirect("/admin/details/edit")
-          put :update_details,     to: "community_customizations#update_details" # PUT request, no redirect
-          get :edit_look_and_feel, to: redirect("/admin/look_and_feel/edit")
-          put :edit_look_and_feel, to: "community_customizations#update_look_and_feel" # PUT request, no redirect
-
-          # DEPRECATED (2016-03-22)
-          # These routes are not in use anymore, don't use them
-          # See the above :admin_settings routes, outside of :communities resource
-          get :settings,       to: redirect("/admin/settings")
-          put :update_settings # PUT request, no redirect
-          get "getting_started_guide",                        to: redirect("/admin/getting_started_guide")
-          get "getting_started_guide/slogan_and_description", to: redirect("/admin/getting_started_guide/slogan_and_description")
-          get "getting_started_guide/cover_photo",            to: redirect("/admin/getting_started_guide/cover_photo")
-          get "getting_started_guide/filter",                 to: redirect("/admin/getting_started_guide/filter")
-          get "getting_started_guide/paypal",                 to: redirect("/admin/getting_started_guide/paypal")
-          get "getting_started_guide/listing",                to: redirect("/admin/getting_started_guide/listing")
-          get "getting_started_guide/invitation",             to: redirect("/admin/getting_started_guide/invitation")
-
-        end
-        resources :listings, controller: :community_listings, only: [:index, :edit, :update] do
-          member do
-            put :approve
-            put :reject
-          end
-          collection do
-            get 'export'
-            get 'export_status'
-          end
-        end
-        resources :transactions, controller: :community_transactions, only: [:index, :show] do
-          collection do
-            get 'export'
-            get 'export_status'
-          end
-          member do
-            get :confirm
-            get :cancel
-            get :refund
-            get :dismiss
-          end
-        end
-        resources :conversations, controller: :community_conversations, only: [:index, :show]
-        resources :testimonials, controller: :community_testimonials, only: [:index, :edit, :update, :new, :create] do
-          collection do
-            get :new_unskip
-            post :unskip
-          end
-        end
-        resources :invitations, controller: :community_invitations, only: [:index]
-        resources :emails
-        resources :community_memberships do
-          member do
-            put :ban
-            put :unban
-            put :resend_confirmation
-          end
-          collection do
-            post :promote_admin
-            post :posting_allowed
-          end
-        end
-        resource :paypal_preferences, only: [] do
-
-          # DEPRECATED (2015-11-16)
-          # Do not add new routes here.
-          # See the above :paypal_preferences routes, outside of communities resource
-
-          collection do
-            get :index,                to: redirect("/admin/paypal_preferences")
-            post :preferences_update   # POST request, no redirect
-            get :account_create,       to: redirect("/admin/paypal_preferences/account_create")
-            get :permissions_verified, to: redirect("/admin/paypal_preferences/permissions_verified")
-          end
-        end
-      end
-      resources :custom_fields do
-        collection do
-          get :edit_price
-          get :edit_location
-          post :order
-          put :update_price
-          put :update_location
-          get :edit_expiration
-          put :update_expiration
-        end
-      end
-      resources :person_custom_fields, path: 'user_fields' do
-        collection do
-          post :order
-        end
-      end
-      resources :categories do
-        member do
-          get :remove
-          delete :destroy_and_move
-        end
-        collection do
-          post :order
-        end
-      end
-      resources :listing_shapes do
-        collection do
-          post :order
-        end
-        member do
-          get :close_listings
-        end
-      end
-      resource :plan, only: [:show]
-      resource :domain, only: [:show, :update] do
-        collection do
-          get :check_availability
-        end
-        member do
-          patch :create_domain_setup
-          patch :recheck_domain_setup
-          patch :reset_domain_setup
-          patch :confirm_domain_setup
-          patch :retry_domain_setup
-        end
-      end
-      resource :community_seo_settings, only: [:show, :update]
-      resources :landing_page_versions do
-        member do
-          get :release
-        end
-        resources :sections, controller: 'landing_page_versions/sections'
-      end
-    end
-
-    resources :invitations, only: [:new, :create ] do
+    resources :invitations, only: [:new, :create] do
       collection do
         get :unsubscribe
         post :unsubscribe
@@ -779,6 +569,12 @@ Rails.application.routes.draw do
         put :add_from_url
       end
     end
+
+    # 楽市楽問サブナビの遷移先（ランキング / バトル / ドキュメント）
+    get 'rankings' => 'rankings#index', as: :rankings
+    get 'battles' => 'battles#index', as: :battles
+    get 'docs' => 'docs#index', as: :docs
+    get 'browse' => 'homepage#index', as: :browse
 
     resources :infos do
       collection do
@@ -909,7 +705,7 @@ Rails.application.routes.draw do
 
   end # scope locale
 
-  id_to_username = Proc.new do |params, req|
+  id_to_username = proc do |params, req|
     username = Person.find(params[:person_id]).try(:username)
     locale = params[:locale] + "/" if params[:locale]
     if username
@@ -922,4 +718,33 @@ Rails.application.routes.draw do
   get "(/:locale)/people/:person_id(*path)" => redirect(id_to_username), :constraints => { :locale => locale_matcher, :person_id => /[a-zA-Z0-9_-]{22}/ }
 
   get "(/:locale)/:person_id(*path)" => redirect(id_to_username), :constraints => { :locale => locale_matcher, :person_id => /[a-zA-Z0-9_-]{22}/ }
+
+  # Lamprey AI — API v1 namespace for chat sessions
+  namespace :api do
+    namespace :v1 do
+      resources :chat_sessions, only: [:index, :show, :create, :update] do
+        resources :attachments, only: [:create], controller: 'chat_attachments'
+      end
+
+      # Wallet top-up: create PaymentIntent + confirm after Stripe checkout
+      resources :wallet_topup, only: [:create], controller: 'wallet_topup' do
+        collection do
+          post :confirm
+          get :balance
+        end
+      end
+
+      # 本番購入導線: Freemius Checkout の作成（Issue #23）
+      # 決済完了は Webhook 経由で購入権利が付与される
+      # （FreemiusWebhooksController#handle_payment_completed の persona_purchase 経路）
+      resources :persona_purchases, only: [:create]
+
+      # 開発/テスト専用の購入付与（production では 404）
+      # 詳細: documents/guides/dev_persona_purchase_flow.md
+      namespace :dev do
+        resources :persona_purchases, only: [:create]
+      end
+    end
+    mount ActionCable.server => '/cable'
+  end
 end

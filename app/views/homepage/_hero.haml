@@ -1,0 +1,34 @@
+-# 楽市楽問 — Hero Section
+-# ═══════════════════════════════════════════════════════════
+-# application.haml が main.page-content 直下（.wrapper と
+-# #homepage-filters フォームの外）に render するトップ専用パーシャル。
+-# フォームの外に出ることで以下を両立している:
+-#   1. 背景がビューポート全幅に広がる（#3）
+-#   2. 検索バー自身の GET フォームで /browse へ送信できる（#4）。
+-#      #homepage-filters の内側に置くと form のネストになるため不可
+-#      （_intro.haml の旧 NOTE 参照）。
+.raku-hero
+  .raku-hero__badge
+    🚀
+    = t('lamprey.homepage.hero_tagline')
+  %h1.raku-hero__title
+    = t('lamprey.homepage.hero_title')
+  %p.raku-hero__subtitle
+    = t('lamprey.homepage.hero_subtitle')
+
+  -# Search bar — 一覧画面（/browse）へ遷移させる独立した GET フォーム
+  %form.raku-hero__search{action: browse_path, method: "get"}
+    .raku-hero__search-type
+      = t('lamprey.homepage.search_type_all')
+      %svg{viewBox: "0 0 20 20", fill: "currentColor"}
+        %path{d: "M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"}
+    %input.raku-hero__search-input{type: "text", name: "q", placeholder: t('lamprey.homepage.search_placeholder')}
+    %button.raku-hero__search-btn{type: "submit", aria: { label: t('lamprey.homepage.search_button') }}
+      %svg{viewBox: "0 0 20 20", fill: "currentColor"}
+        %path{d: "M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"}
+
+  -# Popular search tags — 検索導線を統一し /browse へ遷移させる
+  .raku-hero__tags
+    = link_to "SEO", browse_path(q: "SEO"), class: "raku-hero__tag"
+    - t("lamprey.homepage.hero_tags").each do |tag|
+      = link_to tag, browse_path(q: tag), class: "raku-hero__tag"

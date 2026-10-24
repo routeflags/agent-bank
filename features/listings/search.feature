@@ -34,37 +34,37 @@ Feature: Search
     And I am on the home page
 
     # Reset previous searches
-    When I fill in "q" with ""
+    When I fill in the search box with ""
     And I set price range between "0" and "1000"
     And I set search range for numeric filter "Weight (kg)" between "0" and "200"
 
   @javascript
   Scenario: basic search
-    When I fill in "q" with "sofa"
-    And I press "search-button"
+    When I fill in the search box with "sofa"
+    And I press the hero search button
     Then I should see "old sofa for sale"
 
   @javascript
   Scenario: should exclude non-matching results
-    When I fill in "q" with "chair"
-    And I press "search-button"
+    When I fill in the search box with "chair"
+    And I press the hero search button
     Then I should not see "old sofa for sale"
     And I should see "Sorry, no listings could be found for your search criteria"
 
   @javascript
   Scenario: Finding by description
-    When I fill in "q" with "pink"
-    And I press "search-button"
+    When I fill in the search box with "pink"
+    And I press the hero search button
     Then I should see "old sofa for sale"
 
   @javascript
   Scenario: Finding by partial word
-    When I fill in "q" with "wond"
-    And I press "search-button"
+    When I fill in the search box with "wond"
+    And I press the hero search button
     Then I should see "old sofa for sale"
 
-    When I fill in "q" with "ofa"
-    And I press "search-button"
+    When I fill in the search box with "ofa"
+    And I press the hero search button
     Then I should see "old sofa for sale"
 
   @javascript
@@ -79,8 +79,8 @@ Feature: Search
     Then I should see "old sofa for sale"
     Then I should not see "light-weigth plastic outdoor sofa"
 
-    When I fill in "q" with "light-weight"
-    And I press "search-button"
+    When I fill in the search box with "light-weight"
+    And I press the hero search button
     Then I should see "Sorry, no listings could be found for your search criteria"
 
   @javascript

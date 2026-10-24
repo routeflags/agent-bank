@@ -18,7 +18,7 @@ class Listing::ListPresenter
 
   def reset_search_path
     if admin_mode
-      admin_community_listings_path(community, locale: I18n.locale)
+      admin2_listings_manage_listings_path(community, locale: I18n.locale)
     else
       listings_person_settings_path(author.username, sort: "updated", locale: I18n.locale)
     end

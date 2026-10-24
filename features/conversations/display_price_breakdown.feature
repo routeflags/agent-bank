@@ -20,7 +20,7 @@ Feature: User make transaction
     And there is a listing with title "Massage" from "kassi_testperson1" with category "Services" and with listing shape "Requesting"
     And I am logged in as "kassi_testperson2"
     And I am on the home page
-    When I follow "Massage"
+    When I follow the first "Massage"
     Then I should see "Massage"
     When I follow "Contact"
     When I fill in "listing_conversation_content" with "How are You."

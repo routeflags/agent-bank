@@ -8,5 +8,10 @@ class Mercury::ImagesController < MercuryController
     respond_to do |format|
       format.json { render json: image }
     end
+  rescue StandardError => e
+    # 不正なペイロードで Paperclip が例外を送出しても500にせずJSONで応答する
+    respond_to do |format|
+      format.json { render json: { error: e.message }, status: :unprocessable_entity }
+    end
   end
 end

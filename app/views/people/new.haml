@@ -67,7 +67,9 @@
     = form.text_field :family_name, :class => :text_field, :maxlength => "30"
 
     -# Password
-    = form.label :password, t('common.password')
+    -# for must match the explicit id "person_password1" (Rails' form.label
+    -# :password would generate for="person_password" and break the association)
+    = label_tag :person_password1, t('common.password')
     = form.password_field :password, :class => :text_field, :maxlength => "255", :id => "person_password1"
     = form.label :password2, t('.password_again')
     = form.password_field :password2, :class => :text_field, :maxlength => "255"
@@ -111,6 +113,8 @@
     - if @current_community.recaptcha_configured?
       .recaptcha
         = recaptcha_tags(site_key: @current_community.recaptcha_site_key, hl: I18n.locale)
-    = button_tag t('.create_new_account')
+    -# send_button class ensures the gold/dark-text contrast (default
+    -# browser button styling failed axe color-contrast on this page)
+    = button_tag t('.create_new_account'), :class => "send_button"
 
 = render :partial => "help_texts", :collection => ["terms", "help_invitation_code", "privacy"], :as => :field

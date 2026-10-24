@@ -270,3 +270,10 @@ Given(/^that listing is pending for admin approval$/)do
 end
 
 
+
+# Navigate to the edit form of the most recently created listing
+# (the raku show page no longer renders an author "Edit listing" link).
+When(/^I edit the listing just created$/) do
+  listing = Listing.order(:id).last
+  visit edit_listing_path(listing.author, listing)
+end

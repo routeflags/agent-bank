@@ -1,0 +1,12 @@
+-# 楽市楽問 — 固定フッター（カスタムフッター設定に依存せず常に表示）
+%footer.raku-footer
+  .raku-footer__inner
+    .raku-footer__brand
+      %span.raku-footer__logo= @current_community.full_name(I18n.locale)
+      %span.raku-footer__tagline= t('lamprey.footer.tagline')
+    %nav.raku-footer__links{"aria-label": t('lamprey.footer.tagline')}
+      = link_to t('lamprey.footer.docs'), docs_path, class: "raku-footer__link"
+      = link_to t('lamprey.footer.terms'), terms_infos_path, class: "raku-footer__link"
+      = link_to t('lamprey.footer.privacy'), privacy_infos_path, class: "raku-footer__link"
+    .raku-footer__copyright
+      = t('lamprey.footer.copyright', year: Time.current.year, marketplace_name: @current_community.full_name(I18n.locale))

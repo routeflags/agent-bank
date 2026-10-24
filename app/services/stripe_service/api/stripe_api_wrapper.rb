@@ -15,7 +15,12 @@ module StripeService
 
         def configure_payment_for(settings)
           Stripe.api_version = API_2019_12_03
-          Stripe.api_key = TransactionService::Store::PaymentSettings.decrypt_value(settings.api_private_key, settings.key_encryption_padding)
+          # 未設定（キー空）の設定行では復号せずに空キーで扱い、ページ描画を壊さない
+          Stripe.api_key = if settings.api_private_key.blank?
+                             ""
+                           else
+                             TransactionService::Store::PaymentSettings.decrypt_value(settings.api_private_key, settings.key_encryption_padding)
+                           end
         end
 
         def reset_configurations

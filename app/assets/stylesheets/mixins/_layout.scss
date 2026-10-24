@@ -2,7 +2,9 @@
 
 @mixin overlay {
   $overlay-start-color: rgba(0, 0, 0, 0);
-  $overlay-end-color: rgba(0, 0, 0, 0.6);
+  // 画像上のタイトル/価格テキストの WCAG AA 確保のため 0.6 → 0.82 に強化
+  // （白画像上 0.6 だと白文字 5.7:1・teal 文字 2.3:1 まで低下する）
+  $overlay-end-color: rgba(0, 0, 0, 0.82);
   $overlay-start-color-ie: ie-hex-str($overlay-start-color);
   $overlay-end-color-ie: ie-hex-str($overlay-end-color);
   @include background-image(linear-gradient($overlay-start-color, $overlay-end-color));

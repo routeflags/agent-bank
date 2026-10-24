@@ -182,4 +182,9 @@ storage/
 /.github/skills/web-article-update/
 /.mcp.json
 /opencode.json
-/.opencode/
+/.opencode
+/.serena/
+/.playwright-mcp/
+/artifacts/
+/vendor/bundle/
+/screenshots/

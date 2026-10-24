@@ -12,6 +12,16 @@
       = t('admin2.stripe.enable_first_stripe_fee_keys', url: '#stripe-api-settings').html_safe
 
 .form-group
+  = form.label :platform_commission_rate, "プラットフォームコミッション率（管理者設定）"
+  .input-group
+    = form.text_field :platform_commission_rate, class: %i[form-control], number_min: 0, number_max: 100, number_no_decimals: true, disabled: disabled_fee,
+                      style: 'border-radius: 4px 0 0 4px'
+    .input-group-append{class: disabled_fee ? 'disabled' : ''}
+      %span.input-group-text %
+  %small.form-text
+    AI 利用時のプラットフォーム手数料率。トークン原価に追加で請求されます。
+
+.form-group
   = form.label :commission_from_seller, t('admin2.stripe.minimum_transaction_fee')
   .input-group
     - max_tx_fee = payment_prefs_form.minimum_listing_price.to_f

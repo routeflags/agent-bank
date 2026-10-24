@@ -491,6 +491,71 @@ FactoryBot.define do
     person_id         {"ABC"}
   end
 
+  # -- Capafy AI: Chat Session & Message factories --
+
+  factory :ai_provider do
+    sequence(:name) { |n| "Provider #{n}" }
+    sequence(:slug) { |n| "provider-#{n}" }
+  end
+
+  factory :ai_model do
+    ai_provider
+    sequence(:name) { |n| "Model #{n}" }
+    sequence(:slug) { |n| "model-#{n}" }
+    sequence(:model_id) { |n| "model-#{n}" }
+    is_active { true }
+  end
+
+  factory :listing_ai_model do
+    listing
+    ai_model
+    is_default { false }
+  end
+
+  factory :chat_session do
+    person_id { SecureRandom.urlsafe_base64 }
+    # FK の column presence 検証を満たすため create 戦略を明示
+    # （build 親配下では build 戦略になり listing_id が nil のまま）
+    association :listing, strategy: :create
+    status { "active" }
+    billing_model { "token" }
+    started_at { Time.current }
+    total_tokens { 0 }
+  end
+
+  factory :chat_message do
+    association :chat_session, strategy: :create
+    sender_type { "Person" }
+    sender_id { "" }
+    content { "Hello, AI!" }
+    role { "user" }
+    seq { 1 }
+    input_tokens { 0 }
+    output_tokens { 0 }
+  end
+
+  factory :wallet do
+    person
+    community
+    balance_cents { 0 }
+    currency { "JPY" }
+  end
+
+  factory :user_plan_subscription do
+    person
+    listing
+    billing_model { "token_based" }
+    status { "active" }
+    current_period_start { Time.current }
+    current_period_end { 1.year.from_now }
+  end
+
+  factory :credit_transaction do
+    wallet
+    transaction_type { "topup" }
+    amount_cents { 1000 }
+  end
+
   factory :landing_page, class: 'LandingPage' do
     community_id      {123}
     enabled           {true}

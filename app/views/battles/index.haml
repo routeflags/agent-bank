@@ -1,0 +1,15 @@
+- content_for :title, "#{t('lamprey.battles.title')} - #{@current_community.name(I18n.locale)}"
+
+- content_for :title_header do
+  %h1= t('lamprey.battles.title')
+
+.raku-page
+  %span.raku-soon-badge= t('lamprey.battles.soon_badge')
+  %p.raku-page__lead= t('lamprey.battles.lead')
+
+  .raku-page__card
+    %h2= t('lamprey.battles.planned_title')
+    %ul
+      %li= t('lamprey.battles.feature_1')
+      %li= t('lamprey.battles.feature_2')
+      %li= t('lamprey.battles.feature_3')

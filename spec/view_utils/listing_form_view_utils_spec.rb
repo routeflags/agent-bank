@@ -8,6 +8,73 @@ require 'active_support'
 require 'active_support/core_ext/object'
 
 describe ListingFormViewUtils do
+  describe "#build_listing_params" do
+    let(:shape) do
+      OpenStruct.new(
+        id: 1,
+        transaction_process_id: 2,
+        name_tr_key: "listings.listing",
+        action_button_tr_key: "listings.show",
+        availability: "none",
+        price_enabled: false,
+        shipping_enabled: false,
+        units: []
+      )
+    end
+    let(:community) { double(currency: "JPY", hide_expiration_date: true, id: 3) }
+    let(:listing_params) do
+      ActionController::Parameters.new(
+        listing: {
+          title: "AIペルソナ",
+          description: "説明",
+          unit: ""
+        }
+      )
+    end
+
+    it "実行モードが送信されない新規出品をオンライン実行にする" do
+      result = described_class.build_listing_params(shape, "uuid", listing_params, community)
+
+      expect(result.success).to eq(true)
+      expect(result.data).to include(
+        default_run_mode: "run_online",
+        supported_run_modes: ["run_online"]
+      )
+    end
+
+    it "編集時に指定された既存の実行モードを維持する" do
+      result = described_class.build_listing_params(
+        shape,
+        "uuid",
+        listing_params,
+        community,
+        default_run_mode: "download"
+      )
+
+      expect(result.success).to eq(true)
+      expect(result.data).to include(
+        default_run_mode: "download",
+        supported_run_modes: ["download"]
+      )
+    end
+
+    it "スキル説明 (skill_markdown) を保存パラメータに含める" do
+      params = ActionController::Parameters.new(
+        listing: {
+          title: "AIペルソナ",
+          description: "説明",
+          unit: "",
+          skill_markdown: "- Python\n- 英語会話"
+        }
+      )
+
+      result = described_class.build_listing_params(shape, "uuid", params, community)
+
+      expect(result.success).to eq(true)
+      expect(result.data).to include(skill_markdown: "- Python\n- 英語会話")
+    end
+  end
+
   describe "#filter" do
     def expect_filter(params, shape_opts, valid_until_enabled = false)
       shape_defaults = {

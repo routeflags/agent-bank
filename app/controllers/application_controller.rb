@@ -359,9 +359,17 @@ class ApplicationController < ActionController::Base
   end
 
   # Before filter for payments, shows notification if user is not ready for payments
+  # 出品者（卖家）のみに表示し、買い手には表示しない
   def warn_about_missing_payment_info
     if @current_user
+      # AI ペルソナ（run_online）のみで出品している場合はウォレット決済のため警告不要
       has_paid_listings = PaymentHelper.open_listings_with_payment_process?(@current_community.id, @current_user.id)
+
+      # AI ペルソナの出品のみで構成されている場合、Stripe/PayPal 設定は不要
+      if has_paid_listings && ai_persona_only_seller?(@current_user.id)
+        return
+      end
+
       paypal_community  = PaypalHelper.community_ready_for_payments?(@current_community.id)
       stripe_community  = StripeHelper.community_ready_for_payments?(@current_community.id)
       paypal_ready      = PaypalHelper.account_prepared_for_user?(@current_user.id, @current_community.id)
@@ -384,6 +392,16 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  # ユーザーの有効な出品がすべて AI ペルソナ（run_online）のみかどうかを判定
+  # AI ペルソナのみの出品者はウォレット決済のため、Stripe/PayPal 設定が不要
+  def ai_persona_only_seller?(person_id)
+    open_listings = Person.find(person_id).listings.where(open: true)
+    return false if open_listings.empty?
+
+    non_persona_count = open_listings.where(default_run_mode: [nil, '', 'download', 'free']).count
+    non_persona_count == 0
+  end
+
   def maintenance_warning
     now = Time.now
     @show_maintenance_warning = NextMaintenance.show_warning?(15.minutes, now)
@@ -404,7 +422,11 @@ class ApplicationController < ActionController::Base
       session[:return_to_content] = nil
       return_to_path
     else
-      search_path
+      # Preserve the locale from the request so that Japanese users
+      # stay in /ja/ after login instead of being redirected to the
+      # account-saved locale (e.g. /fi/).
+      request_locale = request.env['rack.locale'] || I18n.locale.to_s
+      "/#{request_locale}/"
     end
   end
 
@@ -547,7 +569,6 @@ class ApplicationController < ActionController::Base
         current_user_name: PersonViewUtils.person_display_name(u, @current_community),
         inbox_path: person_inbox_path(u),
         profile_path: person_path(u),
-        manage_listings_path: person_path(u, show_closed: true),
         settings_path: person_settings_path(u),
         logout_path: logout_path
       }
@@ -593,7 +614,7 @@ class ApplicationController < ActionController::Base
   def make_onboarding_popup
     @onboarding_popup = OnboardingViewUtils.popup_locals(
       flash[:show_onboarding_popup],
-      admin_getting_started_guide_path,
+      admin2_path,
       Admin::OnboardingWizard.new(@current_community.id).setup_status)
   end
 

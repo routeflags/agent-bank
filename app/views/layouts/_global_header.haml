@@ -1,17 +1,47 @@
--# Hide header in map view if mobile
-%header.header
+-# 楽市楽問 — Dark Theme Global Header
+%header.header.raku-header
   .header-wrapper
+    -# Logo (left side)
+    .header-left.header-logo-container
+      = link_to landing_page_path, :class => "header-logo", :id => "header-logo" do
+        %span.header-wide-logo-text 楽市楽問
+
+    -# Primary navigation (DESIGN.md §7/§8) — inline in the single header row.
+    -# Hidden below tablet, where the hamburger menu carries these links.
+    .raku-nav.visible-tablet
+      .raku-nav__inner
+        = link_to landing_page_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:marketplace)}" do
+          %span.raku-nav__icon 🔍
+          = t("lamprey.header.nav_marketplace")
+        = link_to browse_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:browse)}" do
+          %span.raku-nav__icon 🗂️
+          = t("lamprey.header.nav_browse")
+        -# 「出品」は右側の「出品する」CTAと重複するためナビから除外
+        = link_to rankings_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:rankings)}" do
+          %span.raku-nav__icon 🏆
+          = t("lamprey.header.nav_rankings")
+        = link_to battles_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:battles)}" do
+          %span.raku-nav__icon ⚔️
+          = t("lamprey.header.nav_battles")
+        = link_to docs_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:docs)}" do
+          %span.raku-nav__icon 📚
+          = t("lamprey.header.nav_docs")
+
+    -# Desktop/tablet compact search (DESIGN.md §7/§11) — 送信先は一覧画面（/browse）
+    .header-search.visible-tablet
+      = form_tag browse_path, method: :get, class: "header-search__form" do
+        = text_field_tag :q, params[:q], class: "header-search__input", placeholder: t("homepage.index.what_do_you_need"), aria: { label: t("lamprey.header.search_label") }
+        = button_tag type: :submit, class: "header-search__button", aria: { label: t("lamprey.header.search_submit") } do
+          🔍
+
+    -# Desktop auth / actions (right side)
     .header-right.header-padding.visible-tablet
       = link_to t("homepage.index.post_new_listing"), new_listing_path, :class => "new-listing-link", :id => "new-listing-link"
-
-    .header-right.visible-tablet
-      #header-menu-desktop-anchor.header-menu-container.toggle.hidden{data: {toggle: '#header-menu-toggle-menu', 'toggle-position' => 'absolute'}}
 
     - if logged_in
       .header-right
         = render :partial => "layouts/header_anchors", locals: {avatar_url: avatar_url, current_user_name: current_user_name, icons: icons}
-        = render :partial => "layouts/header_user_menu", locals: {unread_count: unread_count, inbox_path: inbox_path, profile_path: profile_path, manage_listings_path: manage_listings_path, settings_path: settings_path, logout_path: logout_path, icons: icons}
-
+        = render :partial => "layouts/header_user_menu", locals: {unread_count: unread_count, inbox_path: inbox_path, profile_path: profile_path, settings_path: settings_path, logout_path: logout_path, icons: icons}
       = render :partial => "layouts/header_right_visible_tablet", locals: {unread_count: unread_count, inbox_path: inbox_path, icons: icons}
 
     - if available_locales.size > 1
@@ -27,35 +57,16 @@
 
     - unless logged_in
       .header-right
-        = link_to login_path, class: "header-text-link header-hover", id: "header-login-link" do
-          = t("header.login")
+        = link_to login_path, class: "raku-nav__login", id: "header-login-link" do
+          = t("lamprey.header.login")
       .header-right
-        = link_to sign_up_path, class: "header-text-link header-hover" do
-          = t("header.signup")
+        = link_to sign_up_path, class: "raku-nav__signup" do
+          = t("lamprey.header.signup")
 
+    -# Mobile hamburger
     .header-left.hidden-tablet
       .header-menu-container.toggle.hidden{data: {toggle: '#header-menu-toggle-menu', 'toggle-position' => 'absolute'}}
         #header-menu-mobile-anchor.header-menu-toggle-container.toggle-header-container
           = icon_map_tag(icons, "rows", ["header-menu-icon"])
-          %span.visible-tablet-inline
-            = t("header.menu")
 
     = render :partial => "layouts/header_menu", locals: { locale_change_links: locale_change_links, icons: icons}
-
-    -#
-      If necessary, the buttons will overlap with the logo. Buttons should be on top, that's
-      keep the logo here after buttons
-    .header-left.header-logo-container
-      = link_to landing_page_path, :class => "header-logo", :id => "header-logo" do
-        - if @current_community.logo.present?
-          %i.header-square-logo.hidden-tablet
-            -# Logo is here, it's a CSS background
-        - else
-          %span.header-square-logo-text.hidden-tablet
-            = @current_community.name(I18n.locale)[0]
-        - if @current_community.wide_logo.present?
-          %i.header-wide-logo.visible-tablet
-            -# Logo is here, it's a CSS background
-        - else
-          %span.header-wide-logo-text.visible-tablet
-            = @current_community.name(I18n.locale)

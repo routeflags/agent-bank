@@ -1,5 +1,8 @@
+@pending
 Feature: User follows another user
-
+  # NOTE: raku moved to listing-level follows (followed_listings); the old
+  # person-follow UI is no longer rendered on people/show. Scenarios below are
+  # pending a product decision: rewrite for listing follows or move to E2E.
   Background:
     Given there are following users:
        | person            | given_name |

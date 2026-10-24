@@ -4,6 +4,21 @@
     = icon_map_tag(icons, "home", ["icon-with-text"])
     = t("header.home")
 
+  -# Primary navigation (hidden on desktop where the inline nav shows it)
+  .hidden-desktop
+    = link_to browse_path do
+      %span.raku-nav__icon 🗂️
+      = t("lamprey.header.nav_browse")
+    = link_to rankings_path do
+      %span.raku-nav__icon 🏆
+      = t("lamprey.header.nav_rankings")
+    = link_to battles_path do
+      %span.raku-nav__icon ⚔️
+      = t("lamprey.header.nav_battles")
+    = link_to docs_path do
+      %span.raku-nav__icon 📚
+      = t("lamprey.header.nav_docs")
+
   = link_to new_listing_path, :class => "hidden-tablet" do
     = icon_map_tag(icons, "new_listing", ["icon-with-text"])
     = t("homepage.index.post_new_listing")

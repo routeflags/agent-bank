@@ -1,0 +1,247 @@
+// ═══ 楽市楽問 — shared utility classes ═══
+// Extracted from inline style attributes to satisfy html-validate
+// `no-inline-style` (see designs/design.md §2 palette).
+
+// Muted caption text (rating labels etc.)
+.raku-muted-label {
+  color: #999;
+  font-size: 12px;
+}
+
+// Emoji placeholder shown when a skill card has no image
+.raku-card__image--placeholder {
+  background: linear-gradient(135deg, #2a2a2a, #1e1e1e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  // #555 measured 2.24:1 on the dark gradient placeholder (large text needs 3:1)
+  color: #909090;
+}
+
+// Initial-letter avatar placeholder on the profile page
+.raku-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  background: #333;
+  color: #999;
+}
+
+// Notification badge that floats to the right of a sidebar row
+.raku-badge--meta {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+// Emoji placeholder for skill thumbnails in the mypage table
+.raku-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+// Gold text link (new listing CTA etc.)
+.raku-link-gold {
+  color: var(--accent-gold);
+}
+
+// ═══ アクセシビリティ修正（axe-core 監査 2026-10-06） ═══
+// 各レガシー部品でコントラスト比（WCAG AA 4.5:1）を満たすよう調整。
+// main.scss の body.dark-theme ブロックが !important で上書きするため、
+// 同一スコープ + !important で優先する。
+
+// ヘッダーのユーザー名（レガシー白帯の上での #999=2.84:1 に対し、
+// _dark_header.scss で wrapper を透明化した暗地 #1e1e1e 上で #e8e8e8 ≒ 13.6:1）
+#header-user-display-name {
+  color: #e8e8e8 !important;
+}
+
+// 検索ツールバーの切替ボタン（デザインレビュー P1-c: 旧 #e8e8e8+#666 の明色
+// チップからダークサーフェス+明色テキストへ。#999 on #242424 = 5.5:1。
+// 選択/ホバーは Gold + dark text = 8.9:1（§8 Selected → Gold）
+body.dark-theme .home-toolbar-button-group-button {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-secondary) !important;
+}
+
+body.dark-theme .home-toolbar-button-group-button.selected,
+body.dark-theme .home-toolbar-button-group-button:hover {
+  background-color: var(--accent-gold) !important;
+  border-color: var(--accent-gold-hover) !important;
+  color: #0d0d0d !important;
+}
+
+// シェアタイプ切替（白文字 #ffffff on #e8e8e8 = 1.22:1 だった部分）
+body.dark-theme #home_toolbar-select-share-type,
+body.dark-theme #home_toolbar-select-share-type .toggle-header {
+  color: #666 !important;
+  background-color: #e8e8e8 !important;
+}
+
+// 検索結果グリッドの出品者バー（旧ライト背景 #e8e8e8 が残り、カード本体
+// #242424 と不整合。ダークテーマに合わせて暗色化し、文字を #999 に）
+body.dark-theme .home-fluid-thumbnail-grid-author {
+  background-color: #242424 !important;
+}
+
+// 検索結果グリッド / リストの出品者名。グリッドはダーク化したバー上、
+// リストはダーク背景 #1a1a1a 上に載るため #999 で 4.5:1 以上を確保。
+body.dark-theme .home-fluid-thumbnail-grid-author-name,
+body.dark-theme .home-fluid-thumbnail-grid-details-author-name,
+body.dark-theme .home-list-author-name {
+  color: #999 !important;
+}
+
+// 送信ボタン（問い合わせフォーム等: white on #4a90e2 = 3.29:1 だった部分。
+// レッド CTA #c41e3a + white = 6.8:1）
+// 送信/ログインボタン（DESIGN.md §10: Primary = Gold + dark text。
+// Red は Battle/破壊的操作限定のため、レッドCTAはGoldに統一）
+.send_button {
+  background-color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #1a1a1a;
+}
+
+// 問い合わせフォーム見出し内のリンク（色のみに頼らない識別にする）
+#new_message_form h2 a {
+  text-decoration: underline;
+}
+
+// フラッシュ通知の本文（ライト背景 #e8e8e8 / #b2d9ab 上で白文字 = 1.2〜1.6:1
+// だった部分。#8: warning / success も notice と同じ #333333 に統一する。
+// ダークテーマの白文字パッチがライト背景の通知に適用されないよう scope を限定）
+body.dark-theme .flash-notice .flash-text,
+body.dark-theme .ajax-notice .ajax-text,
+body.dark-theme .flash-warning .flash-text,
+body.dark-theme .ajax-warning .ajax-text,
+body.dark-theme .flash-success .flash-text,
+body.dark-theme .ajax-success .ajax-text {
+  color: #333333 !important;
+}
+
+// Rails フォームビルダの button（devise 等: white on #4a90e2 = 3.29:1 だった部分。
+// レッド CTA で統一）
+button.button {
+  background-color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #1a1a1a;
+}
+
+// フラッシュ通知内のリンク（通知背景は _flash.scss の #e8e8e8 のまま。
+// body.dark-theme a:hover の teal #7cc3b6 は #e8e8e8 上で 1.66:1 だったため、
+// dark teal + 下線で 4.5:1 以上を確保）
+body.dark-theme .flash-notice a,
+body.dark-theme .ajax-notice a,
+body.dark-theme .flash-warning a,
+body.dark-theme .ajax-warning a {
+  color: #1f6f60;
+  text-decoration: underline;
+}
+
+body.dark-theme .flash-notice a:hover,
+body.dark-theme .ajax-notice a:hover,
+body.dark-theme .flash-warning a:hover,
+body.dark-theme .ajax-warning a:hover {
+  color: #17554a;
+}
+
+// 通知内リンク（success / error。#8 の点検で追加）。
+// success は明色背景 #b2d9ab のため本文と同じ #333333 + 下線で識別する
+// （dark teal #1f6f60 でも 3.8:1 しか出ないため）。
+// error は赤背景 #c81f1f のため白 + 下線（body.dark-theme a の teal
+// #59b3a2 は赤背景上で 2.3:1 に落ちる）。
+body.dark-theme .flash-success a,
+body.dark-theme .ajax-success a {
+  color: #333333;
+  text-decoration: underline;
+}
+
+body.dark-theme .flash-error a,
+body.dark-theme .ajax-error a {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+// 送信/ログインボタンの hover/active（mixins/_forms.scss の汎用 button:hover の
+// #3483de + white = 3.86:1 は不足。Gold hover + dark text = 6.4:1）
+.send_button:hover,
+.send_button:active,
+button.button:hover,
+button.button:active {
+  background-color: var(--accent-gold-hover);
+  border-color: var(--accent-gold-hover);
+  color: #1a1a1a;
+}
+
+// 設定画面の保存ボタン（account: #email_submit / #password_submit、
+// notifications: .send_button_notifications）。Sharetribe 既定の青
+// （main.scss は #email_submit のみ #2f6fc4 へ上書き）を、DESIGN.md §10 の
+// Primary = Gold + dark text に統一する（プロフィール設定の .send_button と
+// 同配色）。#email_submit は main.scss が ID セレクタで上書きするため、
+// 同じスコープ + ID で詳細度を揃え、後勝ち（components は最後に読込）で
+// 上書きする。
+body.dark-theme #email_submit,
+body.dark-theme #password_submit,
+body.dark-theme .send_button_notifications {
+  background-color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #1a1a1a;
+}
+
+body.dark-theme #email_submit:hover,
+body.dark-theme #email_submit:active,
+body.dark-theme #password_submit:hover,
+body.dark-theme #password_submit:active,
+body.dark-theme .send_button_notifications:hover,
+body.dark-theme .send_button_notifications:active {
+  background-color: var(--accent-gold-hover);
+  border-color: var(--accent-gold-hover);
+  color: #1a1a1a;
+}
+
+// すべてのフォーム送信ボタン（input[type="submit"].button）を Gold に統一
+// （Issue #22）。main.scss の青 (#2f6fc4) 上書きは撤去済み。ID 指定のない
+// ボタン（devise 系のログイン・登録・パスワード再設定など）も同じ見た目に
+// する。破壊的操作（アカウント削除）は上書きで Red を維持する。
+body.dark-theme input[type="submit"].button {
+  background-color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #1a1a1a;
+}
+
+body.dark-theme input[type="submit"].button:hover,
+body.dark-theme input[type="submit"].button:active {
+  background-color: var(--accent-gold-hover);
+  border-color: var(--accent-gold-hover);
+  color: #1a1a1a;
+}
+
+// アカウント削除ボタン（破壊的操作）。DESIGN.md §10 Destructive = Red。
+// --accent-red + 白文字 = 5.8:1（hover は --accent-red-hover で 7.4:1）。
+// 無効時（.disabled-button）はグレーを維持するため :not() で除外する
+// （ID セレクタは .disabled-button より詳細度が高く、除外しないと
+// 無効状態まで Red に上書きしてしまう）。
+body.dark-theme #delete_account_button:not(.disabled-button) {
+  background-color: var(--accent-red);
+  border-color: var(--accent-red);
+  color: #ffffff;
+}
+
+body.dark-theme #delete_account_button:not(.disabled-button):hover,
+body.dark-theme #delete_account_button:not(.disabled-button):active {
+  background-color: var(--accent-red-hover);
+  border-color: var(--accent-red-hover);
+  color: #ffffff;
+}
+
+// マイページのトレンド指標（--down: #f44336 on #242424 = 4.21:1 だった部分）。
+// _monthly_summary.scss は body.dark-theme スコープのため、同スコープ+後勝ちで上書き
+.raku-summary__trend--down,
+body.dark-theme .raku-summary__trend--down {
+  color: #ff6b6b;
+}

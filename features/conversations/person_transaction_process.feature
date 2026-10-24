@@ -12,11 +12,13 @@ Feature: Transaction process between two users
     And there is a free listing with title "Hammer" from "kassi_testperson1" with category "Items" and with listing shape "Requesting"
     And I am logged in as "kassi_testperson2"
 
-    # Starting the conversation
-    When I follow "Hammer"
-    And I press "Offer"
-    And I fill in "message" with "I can lend this item"
-    And I press "Send"
+    # Starting the conversation (raku: free conversations go through the
+    # Contact button on the listing page; the old "Offer" preauthorize UI
+    # only appears for paid listings)
+    When I follow the first "Hammer"
+    And I follow "💬 Contact the seller"
+    And I fill in "Message" with "I can lend this item"
+    And I press "Send message"
     And the system processes jobs
     And "kassi_testperson1@example.com" should receive an email
     And I log out

@@ -78,24 +78,31 @@ module ListingIndexService::Search
           custom_checkbox_field_options: (grouped_by_operator[:and] || []).flat_map { |v| v[:value] }
         }
 
-        models = Listing.search(
-          Riddle::Query.escape(search[:keywords] || ""),
-          sql: {
-            include: included_models
-          },
-          page: search[:page],
-          per_page: search[:per_page],
-          star: true,
-          with: with,
-          with_all: with_all,
-          order: 'sort_date DESC',
-          max_query_time: 1000 # Timeout and fail after 1s
-        )
-
         begin
-          DatabaseSearchHelper.success_result(models.total_entries, models, includes)
-        rescue ThinkingSphinx::SphinxError => e
-          Result::Error.new(e)
+          models = Listing.search(
+            Riddle::Query.escape(search[:keywords] || ""),
+            sql: {
+              include: included_models
+            },
+            page: search[:page],
+            per_page: search[:per_page],
+            star: true,
+            with: with,
+            with_all: with_all,
+            order: 'sort_date DESC',
+            max_query_time: 1000 # Timeout and fail after 1s
+          )
+
+          # Force evaluation of the lazy search result
+          total = models.total_entries
+          DatabaseSearchHelper.success_result(total, models, includes)
+        rescue => e
+          # Any Sphinx/connection error — fall back to database search
+          Rails.logger.warn("[SphinxAdapter] Sphinx unavailable (#{e.class}: #{e.message}), falling back to DB search")
+          DatabaseSearchHelper.fetch_from_db(community_id: community_id,
+                                             search: search,
+                                             included_models: included_models,
+                                             includes: includes)
         end
       end
 

@@ -2,13 +2,15 @@ module ListingIndexService::Search::Converters
   module_function
 
   def listing_hash(l, includes, meta={})
-    {
+    base = {
       id: l.id,
       title: l.title,
       description: l.description,
       updated_at: l.updated_at,
       created_at: l.created_at,
-      category_id: l.category_id,
+      # category_id が nil の listing が存在する場合に備え、デフォルト値 0 を設定。
+      # EntityUtils::EntityBuilder が必須値として検証するため、nil のまま放置すると 500 エラーになる。
+      category_id: l.category_id || 0,
       comment_count: l.comments_count,
       price: l.price,
       unit_tr_key: l.unit_tr_key,
@@ -16,10 +18,18 @@ module ListingIndexService::Search::Converters
       quantity: l.quantity,
       shape_name_tr_key: l.shape_name_tr_key,
       listing_shape_id: l.listing_shape_id
-    }.merge(meta)
-      .merge(location_hash(l, includes))
-      .merge(author_hash(l, includes))
-      .merge(listing_images_hash(l, includes))
+    }
+
+    # Include persona card when the listing has a default_run_mode set,
+    # indicating it is an AI Persona listing.
+    if l.respond_to?(:default_run_mode) && l.default_run_mode.present?
+      base[:persona_card] = l.persona_card
+    end
+
+    base.merge(meta)
+        .merge(location_hash(l, includes))
+        .merge(author_hash(l, includes))
+        .merge(listing_images_hash(l, includes))
   end
 
   def location_hash(l, includes)
