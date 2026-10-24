@@ -25,6 +25,21 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
   # Prevents making expensive API calls when the user can't afford it.
   MIN_BALANCE_CENTS = 10
 
+  # Provider error codes that keep failing until an operator fixes billing
+  # or spend limits. Retrying or asking the user to resend cannot help.
+  PROVIDER_BILLING_ERROR_CODES = %w[
+    credit_balance_exhausted
+    insufficient_quota
+    quota_exceeded
+    billing_hard_limit_reached
+    billing_not_active
+    organization_spend_limit_exceeded
+    project_spend_limit_exceeded
+  ].freeze
+
+  # HTTP statuses that mean the provider rejected our credentials.
+  PROVIDER_AUTH_ERROR_STATUSES = [401, 403].freeze
+
   # Required by Delayed::Job when using Struct-based jobs.
   # Sets the community service name for I8n in the job thread.
   def before(job)
@@ -32,8 +47,9 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     ApplicationHelper.store_community_service_name_to_thread_from_community_id(nil) if chat_session
   end
 
-  # rubocop:disable Metrics/MethodLength -- pre-existing long method (109 lines
-  # before this change); refactoring the streaming/billing flow is out of scope.
+  # rubocop:disable Metrics/MethodLength, Metrics/AbcSize -- pre-existing long method
+  # (109 lines before this change) plus one multiline rescue; refactoring the
+  # streaming/billing flow is out of scope.
   def perform
     Rails.logger.info(
       "[PersonaExecutorJob] Processing message #{message_id} " \
@@ -171,9 +187,15 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
   rescue Ai::ProviderFactory::ProviderNotConfiguredError => e
     Rails.logger.error("[PersonaExecutorJob] Provider not configured: #{e.message}")
     broadcast_error("このペルソナのAIプロバイダーが設定されていません。")
-  rescue Ai::OpenAiAdapter::ApiError, Ai::AnthropicAdapter::ApiError => e
-    Rails.logger.error("[PersonaExecutorJob] AI API error: #{e.message}")
-    broadcast_error("リクエストの処理中にエラーが発生しました。もう一度お試しください。")
+  rescue Ai::ProviderError => e
+    Rails.logger.error(
+      "[PersonaExecutorJob] AI provider error status=#{e.status.inspect} " \
+      "code=#{e.code.inspect}: #{e.message}"
+    )
+    broadcast_error(
+      provider_error_message(e),
+      error_type: provider_error_type(e)
+    )
   rescue Wallet::InsufficientBalanceError => e
     Rails.logger.warn("[PersonaExecutorJob] Insufficient balance: #{e.message}")
     broadcast_error(
@@ -184,7 +206,7 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     Rails.logger.error("[PersonaExecutorJob] Unexpected error: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
     broadcast_error("予期しないエラーが発生しました。しばらくしてからもう一度お試しください。")
   end
-  # rubocop:enable Metrics/MethodLength
+  # rubocop:enable Metrics/MethodLength, Metrics/AbcSize
 
   private
 
@@ -202,10 +224,16 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
 
   # Broadcasts an error message to the chat session stream.
   #
+  # The message is also stored as a system message: errors used to live only
+  # on the websocket, so after a reload the history showed an unanswered user
+  # message with no explanation of what went wrong.
+  #
   # @param message [String] the error message to display to the user
   # @param error_type [String, nil] optional error type code (e.g. "insufficient_balance")
   # @param current_balance [Integer, nil] optional current wallet balance in cents
   def broadcast_error(message, error_type: nil, current_balance: nil)
+    store_error_message(message, error_type)
+
     payload = {
       type: "stream_error",
       error: message
@@ -217,6 +245,62 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
       "persona_chat_#{chat_session_id}",
       payload
     )
+  end
+
+  # Stores the error as a system message so it survives a page reload.
+  # ChatCompletionsBuilder only sends user/assistant messages to the model,
+  # so this never leaks into the AI context.
+  #
+  # @param message [String] the message text the user saw
+  # @param error_type [String, nil] optional error type code
+  def store_error_message(message, error_type)
+    session = ChatSession.find_by(id: chat_session_id)
+    return unless session
+
+    metadata = { "is_error" => true }
+    metadata["error_type"] = error_type if error_type
+
+    session.chat_messages.create!(
+      role: "system",
+      content: message,
+      seq: session.chat_messages.maximum(:seq)&.next || 1,
+      metadata: metadata
+    )
+  rescue StandardError => e
+    # Never let bookkeeping hide the original failure from the user.
+    Rails.logger.warn(
+      "[PersonaExecutorJob] Failed to store error message for session " \
+      "#{chat_session_id}: #{e.message}"
+    )
+  end
+
+  # Chooses the message shown to the user for a provider failure.
+  #
+  # End users cannot act on an exhausted API balance or a credential
+  # problem, so those point at the operator; only unknown failures keep the
+  # generic "try again" text.
+  #
+  # @param error [Ai::ProviderError]
+  # @return [String]
+  def provider_error_message(error)
+    if PROVIDER_BILLING_ERROR_CODES.include?(error.code)
+      "AIの利用枠が不足しているため応答できません。運営にお問い合わせください。"
+    elsif PROVIDER_AUTH_ERROR_STATUSES.include?(error.status)
+      "AIの接続設定に問題があるため応答できません。運営にお問い合わせください。"
+    else
+      "リクエストの処理中にエラーが発生しました。もう一度お試しください。"
+    end
+  end
+
+  # @param error [Ai::ProviderError]
+  # @return [String, nil] "provider_billing_error"/"provider_auth_error",
+  #   or nil for transient failures
+  def provider_error_type(error)
+    if PROVIDER_BILLING_ERROR_CODES.include?(error.code)
+      "provider_billing_error"
+    elsif PROVIDER_AUTH_ERROR_STATUSES.include?(error.status)
+      "provider_auth_error"
+    end
   end
 
 end

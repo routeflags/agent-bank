@@ -21,7 +21,9 @@ module Ai
     Usage = Struct.new(:input_tokens, :output_tokens, keyword_init: true)
 
     # Raised when the OpenAI API returns an error response.
-    class ApiError < StandardError; end
+    # Same type as the Anthropic adapter so PersonaExecutorJob classifies
+    # provider failures in one place.
+    ApiError = Ai::ProviderError
 
     DEFAULT_BASE_URL = "https://api.openai.com/v1"
 
@@ -102,7 +104,11 @@ module Ai
 
       @last_usage
     rescue Ai::StreamingClient::StreamingError => e
-      raise ApiError, "OpenAI streaming error: #{e.message}"
+      raise ApiError.new(
+        "OpenAI streaming error: #{e.message}",
+        status: e.status,
+        code: provider_error_code(e.body)
+      )
     end
 
     # Sends a synchronous (non-streaming) chat completion request.
@@ -123,7 +129,11 @@ module Ai
 
       unless response.success?
         Rails.logger.debug("[OpenAI] Full error response: #{response.body}") if Rails.logger.debug?
-        raise ApiError, "OpenAI API error (#{response.status})"
+        raise ApiError.new(
+          "OpenAI API error (#{response.status})",
+          status: response.status,
+          code: provider_error_code(response.body)
+        )
       end
 
       body = JSON.parse(response.body)

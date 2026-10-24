@@ -109,6 +109,92 @@ RSpec.describe PersonaExecutorJob, type: :model do
     end
   end
 
+  # ── AI プロバイダーのエラー分類 ──────────────────────
+
+  describe "AI プロバイダーのエラー" do
+    let!(:wallet) { FactoryBot.create(:wallet, person: person, community: community, balance_cents: 1000) }
+
+    before do
+      allow_any_instance_of(Person).to receive(:wallet).and_return(wallet)
+    end
+
+    context "利用枠の枯渇（429 / credit_balance_exhausted）" do
+      before do
+        allow(adapter).to receive(:stream).and_raise(
+          Ai::OpenAiAdapter::ApiError.new(
+            "OpenAI streaming error: HTTP 429: Too Many Requests",
+            status: 429,
+            code: "credit_balance_exhausted"
+          )
+        )
+      end
+
+      it "運営への連絡を促すメッセージを provider_billing_error として broadcast する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(
+            type: "stream_error",
+            error_type: "provider_billing_error",
+            error: "AIの利用枠が不足しているため応答できません。運営にお問い合わせください。"
+          )
+        )
+
+        PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello").perform
+      end
+
+      it "エラーをシステムメッセージとして履歴に残す" do
+        allow(ActionCable.server).to receive(:broadcast)
+
+        expect {
+          PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello").perform
+        }.to change { chat_session.chat_messages.where(role: "system").count }.by(1)
+      end
+    end
+
+    context "認証エラー（401）" do
+      before do
+        allow(adapter).to receive(:stream).and_raise(
+          Ai::OpenAiAdapter::ApiError.new("OpenAI API error (401)", status: 401)
+        )
+      end
+
+      it "接続設定の問題として provider_auth_error を broadcast する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(
+            type: "stream_error",
+            error_type: "provider_auth_error",
+            error: "AIの接続設定に問題があるため応答できません。運営にお問い合わせください。"
+          )
+        )
+
+        PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello").perform
+      end
+    end
+
+    context "分類できないエラー" do
+      before do
+        allow(adapter).to receive(:stream).and_raise(
+          Ai::OpenAiAdapter::ApiError.new("OpenAI streaming error: HTTP 500")
+        )
+      end
+
+      it "汎用メッセージを error_type なしで broadcast する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(
+            type: "stream_error",
+            error: "リクエストの処理中にエラーが発生しました。もう一度お試しください。"
+          )
+        ).and_wrap_original do |_method, *args|
+          expect(args.last).not_to have_key(:error_type)
+        end
+
+        PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello").perform
+      end
+    end
+  end
+
   # ── is_result auto-detection (Result panel) ──────────────────────
 
   describe "成果物判定 (is_result)" do

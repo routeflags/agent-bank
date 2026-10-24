@@ -23,7 +23,9 @@ module Ai
     Usage = Struct.new(:input_tokens, :output_tokens, keyword_init: true)
 
     # Raised when the Anthropic API returns an error response.
-    class ApiError < StandardError; end
+    # Same type as the OpenAI adapter so PersonaExecutorJob classifies
+    # provider failures in one place.
+    ApiError = Ai::ProviderError
 
     DEFAULT_BASE_URL = "https://api.anthropic.com"
     API_VERSION = "2023-06-01"
@@ -104,7 +106,11 @@ module Ai
 
       @last_usage
     rescue Ai::StreamingClient::StreamingError => e
-      raise ApiError, "Anthropic streaming error: #{e.message}"
+      raise ApiError.new(
+        "Anthropic streaming error: #{e.message}",
+        status: e.status,
+        code: provider_error_code(e.body)
+      )
     end
 
     # Sends a synchronous (non-streaming) messages request.
@@ -128,7 +134,11 @@ module Ai
 
       unless response.success?
         Rails.logger.debug("[Anthropic] Full error response: #{response.body}") if Rails.logger.debug?
-        raise ApiError, "Anthropic API error (#{response.status})"
+        raise ApiError.new(
+          "Anthropic API error (#{response.status})",
+          status: response.status,
+          code: provider_error_code(response.body)
+        )
       end
 
       body = JSON.parse(response.body)

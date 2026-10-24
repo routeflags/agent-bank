@@ -201,6 +201,35 @@ RSpec.describe Ai::StreamingClient do
       end
     end
 
+    context "when the provider returns an error status" do
+      let(:error_body) do
+        '{"error":{"message":"You have no credits remaining.",' \
+          '"type":"insufficient_quota","code":"credit_balance_exhausted"}}'
+      end
+      let(:error_response) do
+        response = instance_double(
+          Net::HTTPTooManyRequests,
+          code: "429",
+          message: "Too Many Requests",
+          body: error_body
+        )
+        allow(response).to receive(:is_a?).and_return(false)
+        allow(response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(false)
+        response
+      end
+
+      before { allow(mock_http).to receive(:request).and_yield(error_response) }
+
+      it "raises StreamingError carrying the status and body" do
+        expect {
+          client.post(headers: headers, body: body)
+        }.to raise_error(Ai::StreamingClient::StreamingError, /HTTP 429/) { |error|
+          expect(error.status).to eq(429)
+          expect(error.body).to eq(error_body)
+        }
+      end
+    end
+
     context "when IOError occurs" do
       it "raises StreamingError" do
         allow(mock_http).to receive(:request).and_raise(IOError, "stream closed in another thread")
