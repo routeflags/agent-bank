@@ -116,7 +116,14 @@ class FreemiusWebhooksController < ApplicationController
       # Fallback for double-encoded or unexpected shapes: dig manually.
       return raw.to_s.strip
     end
-    raw.to_s.strip
+
+    return raw.to_s.strip if raw.to_s.strip.present?
+
+    # 実際の Freemius 配信は `event.type` ではなく **トップレベルの `type`**
+    # （例: `{"type":"payment.created","objects":{...}}`）。
+    # 実決済で受けた payload に合わせてここで拾う（event が無いと
+    # イベント判定に失敗し、DB アクセスなしの 200 で黙って無視される）。
+    params[:type].to_s.strip
   end
 
   # Dispatches a created payment by its checkout metadata type or plan mapping.
