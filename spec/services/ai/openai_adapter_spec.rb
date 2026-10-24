@@ -40,6 +40,42 @@ RSpec.describe Ai::OpenAiAdapter do
     end
   end
 
+  describe "#stream の system ロール転送" do
+    # Issue #57: スキルは system ロールで渡す。user 先頭埋め込みは不採用。
+    let(:sent_bodies) { [] }
+    let(:capturing_client_class) do
+      bodies = sent_bodies
+      Class.new do
+        define_method(:initialize) { |**| }
+        define_method(:post) do |headers:, body:, &_block|
+          bodies << JSON.parse(body)
+        end
+      end
+    end
+    let(:messages) do
+      [
+        { role: "system", content: "## 傾聴スキル\n- 相手の感情を言語化して返す" },
+        { role: "user", content: "こんにちは" }
+      ]
+    end
+
+    it "messages の先頭を system ロールとしてそのまま送る" do
+      adapter = described_class.new(ai_model, streaming_client: capturing_client_class)
+      adapter.stream(messages) { |_| }
+
+      sent = sent_bodies.first["messages"]
+      expect(sent[0]).to eq({ "role" => "system", "content" => "## 傾聴スキル\n- 相手の感情を言語化して返す" })
+    end
+
+    it "user メッセージの先頭に指示を埋め込まない" do
+      adapter = described_class.new(ai_model, streaming_client: capturing_client_class)
+      adapter.stream(messages) { |_| }
+
+      sent = sent_bodies.first["messages"]
+      expect(sent[1]).to eq({ "role" => "user", "content" => "こんにちは" })
+    end
+  end
+
   describe "#stream のエラー" do
     let(:error_body) do
       '{"error":{"message":"You have no credits remaining.",' \

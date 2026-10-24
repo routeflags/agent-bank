@@ -219,6 +219,9 @@ bin/rails server -b 0.0.0.0 -p 3000
 | `chat_sessions` | `ChatSession` | ユーザー ↔ ペルソナのチャットセッション |
 | `chat_messages` | `ChatMessage` | チャットメッセージ（user/assistant/system） |
 
+> ペルソナのスキル（`listings.skill_markdown`）は system ロールで渡す。user 先頭埋め込みは不採用。
+> 詳細は `documents/guides/persona_skill_system_prompt.md`（Issue #57）。
+
 ### 決済関連
 
 | テーブル | モデル | 説明 |

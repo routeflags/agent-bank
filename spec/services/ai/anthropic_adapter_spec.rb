@@ -33,6 +33,41 @@ RSpec.describe Ai::AnthropicAdapter do
     end
   end
 
+  describe "#stream の system パラメータ転送" do
+    # Issue #57: Anthropic は system をメッセージ配列ではなくトップレベルで渡す。
+    let(:sent_bodies) { [] }
+    let(:capturing_client_class) do
+      bodies = sent_bodies
+      Class.new do
+        define_method(:initialize) { |**| }
+        define_method(:post) do |headers:, body:, &_block|
+          bodies << JSON.parse(body)
+        end
+      end
+    end
+    let(:messages) do
+      [
+        { role: "system", content: "## 傾聴スキル\n- 相手の感情を言語化して返す" },
+        { role: "user", content: "こんにちは" }
+      ]
+    end
+
+    it "system ロールをトップレベルの system パラメータとして送る" do
+      adapter = described_class.new(ai_model, streaming_client: capturing_client_class)
+      adapter.stream(messages) { |_| }
+
+      expect(sent_bodies.first["system"]).to eq("## 傾聴スキル\n- 相手の感情を言語化して返す")
+    end
+
+    it "メッセージ配列から system ロールを除去する" do
+      adapter = described_class.new(ai_model, streaming_client: capturing_client_class)
+      adapter.stream(messages) { |_| }
+
+      sent = sent_bodies.first["messages"]
+      expect(sent).to eq([{ "role" => "user", "content" => "こんにちは" }])
+    end
+  end
+
   describe "#accumulated_content" do
     it "is empty string after initialization" do
       adapter = described_class.new(ai_model)
