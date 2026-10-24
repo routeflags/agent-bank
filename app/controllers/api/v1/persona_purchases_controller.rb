@@ -1,19 +1,21 @@
 # frozen_string_literal: true
 
-# 本番のペルソナ購入 API（Issue #23）。
+# 本番のペルソナ購入 API（Issue #23、Issue #43 で Freemius 一本化）。
 #
 # POST /api/v1/persona_purchases
 #
-# Freemius Checkout（Merchant of Record）のセッションを作成し、checkout_url を返す。
-# 金額・通貨・購入者はサーバー側で決定し、クライアントは listing_id しか指定できない
-#（クライアント値を信用しない）。
+# Freemius ホスト型 Checkout（Merchant of Record、plan 単位）への URL を返す。
+# サーバーは課金セッションを API で作らない（Freemius に任意金額の Checkout 作成
+# API は存在しないため。Issue #43 調査を参照）。金額・通貨・購入者はサーバー側で
+# 決定し、クライアントは listing_id しか指定できない（クライアント値を信用しない）。
 #
-# 決済完了は Webhook（FreemiusWebhooksController#handle_payment_completed の
-# persona_purchase 経路）で UserPlanSubscriptionService.create_for により
-# 購入権利として付与される。本 API 自体は購入権利を作成しない。
+# 決済完了は Webhook（FreemiusWebhooksController の persona_purchase 経路）で
+# UserPlanSubscriptionService.create_for により購入権利として付与される。
+# 本 API 自体は購入権利を作成しない。
 #
-# Freemius 未設定時（FREEMIUS_API_KEY 未投入）は 503 +
-# error_type: "purchase_not_configured" を返す（500 や無言の失敗にしない）。
+# Freemius 未設定時（FREEMIUS_PRODUCT_ID / API_BEARER_AUTHORIZATION_TOKEN /
+# plan 解決のいずれか缺け）は 503 + error_type: "purchase_not_configured" を返す
+#（500 や無言の失敗にしない。既存挙動の回帰維持）。
 class API::V1::PersonaPurchasesController < ApplicationController
   # API controller — CSRF token not needed (authenticated via Devise session/cookie)
   skip_before_action :verify_authenticity_token
@@ -49,7 +51,7 @@ class API::V1::PersonaPurchasesController < ApplicationController
   # params:
   #   listing_id - 購入するペルソナ（Listing）の ID（これ以外は受け付けない）
   #
-  # 200: { checkout_url:, payment_id:, listing_id:, amount_cents:, provider: "freemius" }
+  # 200: { checkout_url:, listing_id:, plan_id:, amount_cents:, provider: "freemius" }
   # 200: { status: "already_purchased" }（active な購入権利がある場合は Checkout を作らない）
   # 401 / 404 / 422 / 503 / 502: 下記コメント参照
   def create
@@ -78,7 +80,7 @@ class API::V1::PersonaPurchasesController < ApplicationController
       }
     end
 
-    # 決済未設定（FREEMIUS_API_KEY 未投入など）は 503 で明示する。
+    # 決済未設定（product/Bearer 缺け）は 503 で明示する（既存回帰維持）。
     unless FreemiusClient.configured?
       return render json: {
         error: "決済が未設定のため、購入機能は現在準備中です",
@@ -86,28 +88,33 @@ class API::V1::PersonaPurchasesController < ApplicationController
       }, status: :service_unavailable
     end
 
-    # 金額・通貨・購入者はサーバー側で決定する（クライアント値は無視）。
-    session = FreemiusClient.create_persona_purchase_checkout(
-      amount_cents: listing.price_cents.to_i,
-      currency: (listing.currency || BillingConfig.currency).upcase,
-      user_id: current_user.id,
-      listing_id: listing.id
-    )
-
-    unless session["checkout_url"].present?
-      raise FreemiusClient::ApiError, "Freemius checkout response missing checkout_url"
+    # plan 解決ができない間は課金リンクを作れない。金額の自由指定は
+    # Freemius に存在しないため、plan 未解決を 500 にせず 503 で明示する。
+    plan_id = FreemiusClient.plan_id_for_listing(listing)
+    if plan_id.blank?
+      return render json: {
+        error: "決済が未設定のため、購入機能は現在準備中です",
+        error_type: "purchase_not_configured"
+      }, status: :service_unavailable
     end
 
+    # 金額・購入者はサーバー側で決定する（クライアント値は無視）。
+    # checkout_url は local で組み立てる（Freemius への network 呼び出しなし）。
+    checkout_url = FreemiusClient.build_hosted_checkout_url(
+      plan_id: plan_id,
+      user_email: buyer_email_for_checkout
+    )
+
     render json: {
-      checkout_url: session["checkout_url"],
-      payment_id: session["payment_id"],
+      checkout_url: checkout_url,
       listing_id: listing.id,
+      plan_id: plan_id,
       amount_cents: listing.price_cents.to_i,
       provider: "freemius"
     }
   rescue FreemiusClient::ApiError => e
-    # Freemius 側の障害はクライアント入力の問題ではないため 502（422 ではない）。
-    Rails.logger.error("[PersonaPurchases] Freemius error creating checkout: #{e.message}")
+    # 設定不備・URL 組み立て失敗はクライアント入力の問題ではないため 502（422 ではない）。
+    Rails.logger.error("[PersonaPurchases] Freemius error building checkout: #{e.message}")
     render json: {
       error: "決済ページの作成に失敗しました",
       error_type: "checkout_failed"
@@ -115,6 +122,18 @@ class API::V1::PersonaPurchasesController < ApplicationController
   end
 
   private
+
+  # Hosted checkout の user_email prefill 用。Sharetribe の Person は
+  # emails テーブル経由（confirmed 優先）のため valid_email を使う。
+  # 取得できなくても checkout 自体は継続できるので nil を許容する。
+  def buyer_email_for_checkout
+    return nil unless current_user.respond_to?(:valid_email)
+
+    email = current_user.valid_email
+    email.to_s.strip.presence
+  rescue StandardError
+    nil
+  end
 
   def ensure_authenticated
     unless current_user

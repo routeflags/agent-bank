@@ -60,58 +60,27 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
   # POST /api/v1/wallet_topup
   # ===================================================================
   describe "POST /api/v1/wallet_topup" do
-    context "認証済みユーザーが有効な金額でトップアップをリクエスト" do
-      before do
-        sign_in_as(person)
-        # Stub the Stripe key configuration to avoid needing a real API key
-        allow_any_instance_of(API::V1::WalletTopupController).to receive(:configure_stripe_api!).and_yield
-      end
+    # Stripe 経路は Issue #43 で除去した（Freemius 一本）。非 dev 環境では
+    # 任意額チャージ自体が 503 になる。Stripe モック前提の例は意図的に削除。
+    context "非 dev 環境では任意額チャージを提供しない（Stripe 不使用）" do
+      before { sign_in_as(person) }
 
-      it "returns 200 with client_secret" do
-        # Stub Stripe::PaymentIntent.create to avoid real API call
-        intent_double = double(
-          id: "pi_test_123",
-          client_secret: "cs_test_secret",
-          amount: 1000
-        )
-        allow(Stripe::PaymentIntent).to receive(:create).and_return(intent_double)
-
+      it "returns 503 with payment_unconfigured (Freemius 任意額は不可)" do
         post "/api/v1/wallet_topup", params: { amount_cents: 1000 }
 
-        expect(response).to have_http_status(200)
+        expect(response).to have_http_status(503)
         json = JSON.parse(response.body)
-        expect(json["client_secret"]).to eq("cs_test_secret")
-        expect(json["payment_intent_id"]).to eq("pi_test_123")
-        expect(json["amount_cents"]).to eq(1000)
+        expect(json["error_type"]).to eq("payment_unconfigured")
+        expect(json["reason"]).to eq("freemius_arbitrary_amount_unsupported")
       end
 
-      it "creates or finds a wallet for the user" do
-        intent_double = double(
-          id: "pi_test_123",
-          client_secret: "cs_test_secret",
-          amount: 1000
-        )
-        allow(Stripe::PaymentIntent).to receive(:create).and_return(intent_double)
-
+      it "creates a wallet but does not credit (awaiting dev confirm only)" do
         expect { post "/api/v1/wallet_topup", params: { amount_cents: 1000 } }
           .to change(Wallet, :count).by(1)
 
         wallet = person.reload.wallet
         expect(wallet).to be_present
-        expect(wallet.balance_cents).to eq(0)  # Not yet credited (awaiting confirm)
-      end
-
-      it "sends correct metadata to Stripe" do
-        intent_double = double(
-          id: "pi_test_123",
-          client_secret: "cs_test_secret",
-          amount: 1500
-        )
-        # Stub the Stripe API configuration to avoid needing a real key
-        allow(Stripe::PaymentIntent).to receive(:create).and_return(intent_double)
-
-        post "/api/v1/wallet_topup", params: { amount_cents: 1500 }
-        expect(response).to have_http_status(200)
+        expect(wallet.balance_cents).to eq(0)
       end
     end
 
@@ -126,9 +95,9 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
         expect(json["error"]).to be_present
       end
 
-      it "does not create a Stripe PaymentIntent" do
-        expect(Stripe::PaymentIntent).not_to receive(:create)
-        post "/api/v1/wallet_topup", params: { amount_cents: 50 }
+      it "does not create any payment intent" do
+        expect { post "/api/v1/wallet_topup", params: { amount_cents: 50 } }
+          .not_to change(Wallet, :count)
       end
     end
 
@@ -160,53 +129,9 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
       end
     end
 
-    context "Stripe エラーが発生した場合" do
-      before do
-        sign_in_as(person)
-        # Stub the Stripe key configuration to avoid needing a real API key
-        allow_any_instance_of(API::V1::WalletTopupController).to receive(:configure_stripe_api!).and_yield
-        allow(Stripe::PaymentIntent).to receive(:create)
-          .and_raise(Stripe::InvalidRequestError.new("Invalid amount", nil))
-      end
-
-      it "returns 422 with Stripe error" do
-        post "/api/v1/wallet_topup", params: { amount_cents: 1000 }
-        expect(response).to have_http_status(422)
-        json = JSON.parse(response.body)
-        expect(json["error"]).to include("決済の作成に失敗")
-      end
-    end
-
-    context "Freemius が設定されている場合" do
-      before { sign_in_as(person) }
-
-      it "returns 200 with checkout_url and provider freemius" do
-        allow(FreemiusClient).to receive(:configured?).and_return(true)
-        allow(FreemiusClient).to receive(:create_checkout).and_return(
-          { "checkout_url" => "https://checkout.freemius.test/c/abc", "payment_id" => "pay_1" }
-        )
-
-        post "/api/v1/wallet_topup", params: { amount_cents: 3000 }
-
-        expect(response).to have_http_status(200)
-        json = JSON.parse(response.body)
-        expect(json["checkout_url"]).to eq("https://checkout.freemius.test/c/abc")
-        expect(json["provider"]).to eq("freemius")
-        expect(json["amount_cents"]).to eq(3000)
-      end
-
-      it "returns 422 when Freemius checkout creation fails" do
-        allow(FreemiusClient).to receive(:configured?).and_return(true)
-        allow(FreemiusClient).to receive(:create_checkout)
-          .and_raise(FreemiusClient::ApiError.new("invalid amount"))
-
-        post "/api/v1/wallet_topup", params: { amount_cents: 3000 }
-
-        expect(response).to have_http_status(422)
-        json = JSON.parse(response.body)
-        expect(json["error"]).to include("決済の作成に失敗")
-      end
-    end
+    # Stripe エラー分岐は Issue #43 で除去（Freemius 一本）。Stripe モック例は廃止。
+    # Freemius 任意額 checkout 分岐も廃止（Issue #43 で実現不可と確定）。
+    # 非 dev の POST は上記 503 例でカバーする。
   end
 
   # ===================================================================
@@ -215,75 +140,23 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
   describe "POST /api/v1/wallet_topup/confirm" do
     let(:wallet) {         FactoryBot.create(:wallet, person: person, community: community, balance_cents: 0) }
 
-    context "PaymentIntent succeeded の場合" do
-      before do
-        sign_in_as(person)
-      end
-
-      it "Wallet にトークンを追加する" do
-        intent_double = double(
-          id: "pi_test_success",
-          status: "succeeded",
-          amount: 2000,
-          metadata: {
-            "user_id" => person.id,
-            "wallet_id" => wallet.id.to_s,
-            "type" => "wallet_topup"
-          }
-        )
-        allow(Stripe::PaymentIntent).to receive(:retrieve).and_return(intent_double)
-
-        expect { post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: "pi_test_success" } }
-          .to change { wallet.reload.balance_cents }.by(2000)
-
-        json = JSON.parse(response.body)
-        expect(json["status"]).to eq("ok")
-        expect(json["balance_cents"]).to eq(2000)
-      end
-
-      it "CreditTransaction (topup) を作成する" do
-        intent_double = double(
-          id: "pi_test_success",
-          status: "succeeded",
-          amount: 3000,
-          metadata: {
-            "user_id" => person.id,
-            "wallet_id" => wallet.id.to_s,
-            "type" => "wallet_topup"
-          }
-        )
-        allow(Stripe::PaymentIntent).to receive(:retrieve).and_return(intent_double)
-
-        expect {
-          post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: "pi_test_success" }
-        }.to change(CreditTransaction, :count).by(1)
-
-        tx = CreditTransaction.last
-        expect(tx.transaction_type).to eq("topup")
-        expect(tx.amount_cents).to eq(3000)
-      end
-    end
-
-    context "PaymentIntent がまだ succeeded でない場合" do
+    # Stripe PaymentIntent 確定経路は Issue #43 で除去。非 dev の intent は
+    # confirm_unsupported になる。dev 冪等は後段の開発環境ブロックで検証。
+    context "非 dev の payment_intent では確定できない" do
       before { sign_in_as(person) }
 
-      it "returns 422" do
-        intent_double = double(
-          id: "pi_test_pending",
-          status: "requires_payment_method",
-          amount: 1000,
-          metadata: {
-            "user_id" => person.id,
-            "wallet_id" => wallet.id.to_s
-          }
-        )
-        allow(Stripe::PaymentIntent).to receive(:retrieve).and_return(intent_double)
-
-        post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: "pi_test_pending" }
+      it "returns 422 with confirm_unsupported" do
+        post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: "pi_test_success" }
 
         expect(response).to have_http_status(422)
         json = JSON.parse(response.body)
-        expect(json["error"]).to include("決済が完了していません")
+        expect(json["error_type"]).to eq("confirm_unsupported")
+      end
+
+      it "does not credit the wallet" do
+        expect {
+          post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: "pi_test_success" }
+        }.not_to change { wallet.reload.balance_cents }
       end
     end
 
@@ -303,23 +176,12 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
       end
     end
 
-    context "他人の PaymentIntent を確認しようとする場合" do
+    context "非 dev intent の他人の指定でも 422（Stripe 参照なし）" do
       before { sign_in_as(person) }
 
-      it "returns 403" do
-        intent_double = double(
-          id: "pi_other_user",
-          status: "succeeded",
-          amount: 1000,
-          metadata: {
-            "user_id" => "other_user_id",
-            "wallet_id" => wallet.id.to_s
-          }
-        )
-        allow(Stripe::PaymentIntent).to receive(:retrieve).and_return(intent_double)
-
+      it "returns 422" do
         post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: "pi_other_user" }
-        expect(response).to have_http_status(403)
+        expect(response).to have_http_status(422)
       end
     end
   end
@@ -338,12 +200,8 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
     context "認証済みの場合" do
       before { sign_in_as(person) }
 
+      # Freemius 任意額は不可・Stripe 不使用のため、非 dev は常に無効（Issue #43）。
       context "決済手段が未設定の場合" do
-        before do
-          allow(FreemiusClient).to receive(:configured?).and_return(false)
-          allow_any_instance_of(API::V1::WalletTopupController).to receive(:stripe_key_configured?).and_return(false)
-        end
-
         it "returns topup_enabled false with reason" do
           get "/api/v1/wallet_topup/status"
           expect(response).to have_http_status(200)
@@ -354,40 +212,24 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
         end
       end
 
-      context "Freemius が設定されている場合" do
+      context "Freemius が設定されていても wallet は無効のまま（任意額不可）" do
         before do
           allow(FreemiusClient).to receive(:configured?).and_return(true)
         end
 
-        it "returns topup_enabled true with provider freemius" do
+        it "returns topup_enabled false" do
           get "/api/v1/wallet_topup/status"
           expect(response).to have_http_status(200)
           json = JSON.parse(response.body)
-          expect(json["topup_enabled"]).to eq(true)
-          expect(json["provider"]).to eq("freemius")
-          expect(json["dev_mode"]).to eq(false)
-        end
-      end
-
-      context "Stripe キーが設定されている場合" do
-        before do
-          allow(FreemiusClient).to receive(:configured?).and_return(false)
-          allow_any_instance_of(API::V1::WalletTopupController).to receive(:stripe_key_configured?).and_return(true)
-        end
-
-        it "returns topup_enabled true with provider stripe" do
-          get "/api/v1/wallet_topup/status"
-          expect(response).to have_http_status(200)
-          json = JSON.parse(response.body)
-          expect(json["topup_enabled"]).to eq(true)
-          expect(json["provider"]).to eq("stripe")
+          expect(json["topup_enabled"]).to eq(false)
+          expect(json["provider"]).to be_nil
+          expect(json["reason"]).to eq("payment_unconfigured")
         end
       end
 
       context "開発環境の擬似決済が有効な場合" do
         before do
           allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("development"))
-          allow_any_instance_of(API::V1::WalletTopupController).to receive(:stripe_key_configured?).and_return(false)
         end
 
         it "returns topup_enabled true with dev_mode" do
@@ -409,7 +251,6 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
     before do
       sign_in_as(person)
       allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("development"))
-      allow_any_instance_of(API::V1::WalletTopupController).to receive(:stripe_key_configured?).and_return(false)
     end
 
     it "POST create は dev_pi_* の擬似 PaymentIntent を返す" do

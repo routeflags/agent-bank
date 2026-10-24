@@ -21,17 +21,33 @@ RSpec.describe "FreemiusWebhooks", type: :request do
 
   before do
     allow(ENV).to receive(:[]).and_call_original
-    allow(ENV).to receive(:[]).with("FREEMIUS_WEBHOOK_SECRET").and_return(secret)
+    allow(ENV).to receive(:[]).with("PRODUCT_SECRET_KEY").and_return(secret)
+    allow(ENV).to receive(:[]).with("FREEMIUS_WEBHOOK_SECRET").and_return(nil)
   end
 
-  describe "POST /webhooks/freemius payment.completed" do
+  describe "POST /webhooks/freemius payment.created (real event)" do
     let(:payload) do
       {
-        event: "payment.completed",
+        event: "payment.created",
         objects: {
           payment: {
             id: "fs_pay_1",
-            amount_cents: 3000,
+            gross: 30.0,
+            currency: "usd",
+            metadata: { user_id: person.id, wallet_id: wallet.id }
+          }
+        }
+      }
+    end
+
+    let(:payload_created) do
+      {
+        event: { type: "payment.created" },
+        objects: {
+          payment: {
+            id: "fs_pay_1",
+            gross: 30.0,
+            currency: "usd",
             metadata: { user_id: person.id, wallet_id: wallet.id }
           }
         }
@@ -39,10 +55,16 @@ RSpec.describe "FreemiusWebhooks", type: :request do
     end
 
     before do
-      # Server-side verification fetches the payment from Freemius.
+      # Server-side verification fetches the payment from Freemius (real schema: gross).
       allow(FreemiusClient).to receive(:get_payment).with("fs_pay_1").and_return(
-        { "id" => "fs_pay_1", "status" => "completed", "amount_cents" => 3000 }
+        { "id" => "fs_pay_1", "gross" => 30.0, "currency" => "usd" }
       )
+    end
+
+    it "accepts the object-form event type" do
+      expect { signed_post(payload_created) }
+        .to change { wallet.reload.balance_cents }.from(0).to(3000)
+      expect(response).to have_http_status(200)
     end
 
     it "credits the wallet" do
@@ -80,7 +102,7 @@ RSpec.describe "FreemiusWebhooks", type: :request do
     end
   end
 
-  describe "POST /webhooks/freemius payment.completed (persona_purchase)" do
+  describe "POST /webhooks/freemius payment.created (persona_purchase, real event)" do
     let(:author) { FactoryBot.create(:person, community_id: community.id) }
     let(:listing) { FactoryBot.create(:listing, community_id: community.id, author: author) }
     let(:initial_grant_cents) do
@@ -88,11 +110,12 @@ RSpec.describe "FreemiusWebhooks", type: :request do
     end
     let(:payload) do
       {
-        event: "payment.completed",
+        event: "payment.created",
         objects: {
           payment: {
             id: "fs_pay_p1",
-            amount_cents: 3000,
+            gross: 30.0,
+            currency: "usd",
             metadata: { type: "persona_purchase", user_id: person.id, listing_id: listing.id }
           }
         }
@@ -101,7 +124,7 @@ RSpec.describe "FreemiusWebhooks", type: :request do
 
     before do
       allow(FreemiusClient).to receive(:get_payment).with("fs_pay_p1").and_return(
-        { "id" => "fs_pay_p1", "status" => "completed", "amount_cents" => 3000 }
+        { "id" => "fs_pay_p1", "gross" => 30.0, "currency" => "usd" }
       )
     end
 
@@ -141,9 +164,26 @@ RSpec.describe "FreemiusWebhooks", type: :request do
       expect(person.reload.wallet.balance_cents).to eq(initial_grant_cents)
     end
 
+    it "旧名 payment.completed でも受理する（後方互換）" do
+      legacy = {
+        event: "payment.completed",
+        objects: {
+          payment: {
+            id: "fs_pay_p1",
+            gross: 30.0,
+            metadata: { type: "persona_purchase", user_id: person.id, listing_id: listing.id }
+          }
+        }
+      }
+
+      expect { signed_post(legacy) }
+        .to change(UserPlanSubscription, :count).by(1)
+      expect(response).to have_http_status(200)
+    end
+
     it "リモートで completed でなければ購入権利を作成しない" do
       allow(FreemiusClient).to receive(:get_payment).with("fs_pay_p1").and_return(
-        { "id" => "fs_pay_p1", "status" => "pending", "amount_cents" => 3000 }
+        { "id" => "fs_pay_p1", "status" => "pending", "gross" => 30.0 }
       )
 
       expect { signed_post(payload) }
@@ -186,14 +226,14 @@ RSpec.describe "FreemiusWebhooks", type: :request do
     end
   end
 
-  describe "POST /webhooks/freemius payment.refunded" do
+  describe "POST /webhooks/freemius payment.refund (real event)" do
     before do
       wallet.topup!(3000, freemius_payment_id: "fs_pay_9")
     end
 
     it "records a reversing refund entry and decrements the balance" do
       payload = {
-        event: "payment.refunded",
+        event: "payment.refund",
         objects: { payment: { id: "fs_pay_9" } }
       }
       expect { signed_post(payload) }
@@ -206,7 +246,7 @@ RSpec.describe "FreemiusWebhooks", type: :request do
 
     it "does not double-reverse on duplicate delivery" do
       payload = {
-        event: "payment.refunded",
+        event: "payment.refund",
         objects: { payment: { id: "fs_pay_9" } }
       }
       signed_post(payload)
@@ -214,6 +254,18 @@ RSpec.describe "FreemiusWebhooks", type: :request do
         .not_to(change {
           wallet.credit_transactions.where(transaction_type: "refund").count
         })
+    end
+
+    it "accepts legacy payment.refunded (backward compatibility)" do
+      payload = {
+        event: "payment.refunded",
+        objects: { payment: { id: "fs_pay_9" } }
+      }
+      expect { signed_post(payload) }
+        .to change {
+          wallet.credit_transactions.where(transaction_type: "refund").count
+        }.by(1)
+      expect(response).to have_http_status(200)
     end
   end
 
