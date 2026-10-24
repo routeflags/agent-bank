@@ -394,6 +394,115 @@ RSpec.describe "FreemiusWebhooks", type: :request do
     end
   end
 
+  describe "POST /webhooks/freemius API failure is auxiliary (Issue #43 completion)" do
+    let(:author) { FactoryBot.create(:person, community_id: community.id) }
+    let(:listing) { FactoryBot.create(:listing, community_id: community.id, author: author) }
+
+    it "persona: API failure (401)でも署名正なら購入権利を付与する" do
+      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_aux")
+        .and_raise(FreemiusClient::ApiError.new("Freemius API error (401): unauthorized"))
+      payload = {
+        event: "payment.created",
+        objects: {
+          payment: {
+            id: "fs_pay_aux",
+            gross: 30.0,
+            currency: "usd",
+            metadata: { type: "persona_purchase", user_id: person.id, listing_id: listing.id }
+          }
+        }
+      }
+      expect { signed_post(payload) }.to change(UserPlanSubscription, :count).by(1)
+      expect(response).to have_http_status(200)
+    end
+
+    it "persona: 実在しない payment id＋署名正＋API 404でも付与する（warn 付き継続）" do
+      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_missing")
+        .and_raise(FreemiusClient::ApiError.new("Freemius API error (404): not found"))
+      payload = {
+        event: "payment.created",
+        objects: {
+          payment: {
+            id: "fs_pay_missing",
+            gross: 30.0,
+            currency: "usd",
+            metadata: { type: "persona_purchase", user_id: person.id, listing_id: listing.id }
+          }
+        }
+      }
+      expect { signed_post(payload) }.to change(UserPlanSubscription, :count).by(1)
+      expect(response).to have_http_status(200)
+    end
+
+    it "persona: API が affirmative に pending を返したときは付与しない" do
+      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_aux")
+        .and_return({ "id" => "fs_pay_aux", "status" => "pending", "gross" => 30.0 })
+      payload = {
+        event: "payment.created",
+        objects: {
+          payment: {
+            id: "fs_pay_aux",
+            gross: 30.0,
+            metadata: { type: "persona_purchase", user_id: person.id, listing_id: listing.id }
+          }
+        }
+      }
+      expect { signed_post(payload) }.not_to change(UserPlanSubscription, :count)
+      expect(response).to have_http_status(200)
+    end
+
+    it "fixed prepaid: API failureでも署名正なら map 額を加算する" do
+      allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return({ "5678" => 1000 }.to_json)
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return(nil)
+      allow(ENV).to receive(:[]).with("PLAN_ONETIME_ID").and_return(nil)
+      allow(ENV).to receive(:[]).with("PLAN_MONTHLY_ID").and_return(nil)
+      allow(FreemiusClient).to receive(:get_payment).with("fs_topup_aux")
+        .and_raise(FreemiusClient::ApiError.new("Freemius API error (503): unavailable"))
+      payload = {
+        event: "payment.created",
+        objects: {
+          payment: { id: "fs_topup_aux", plan_id: "5678", gross: 5.0, metadata: { user_id: person.id } }
+        }
+      }
+      expect { signed_post(payload) }.to change { wallet.reload.balance_cents }.from(0).to(1000)
+      expect(response).to have_http_status(200)
+    end
+
+    it "legacy wallet (plan なし): API failureでは金額不明のため加算しない" do
+      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_legacy")
+        .and_raise(FreemiusClient::ApiError.new("Freemius API error (401): unauthorized"))
+      payload = {
+        event: "payment.created",
+        objects: {
+          payment: { id: "fs_pay_legacy", gross: 30.0, metadata: { user_id: person.id, wallet_id: wallet.id } }
+        }
+      }
+      expect { signed_post(payload) }.not_to(change { wallet.reload.balance_cents })
+      expect(response).to have_http_status(200)
+    end
+  end
+
+  describe "POST /webhooks/freemius subscription.canceled alias" do
+    let!(:subscription) do
+      FactoryBot.create(:user_plan_subscription,
+                        person: person,
+                        listing: FactoryBot.create(:listing, community_id: community.id, author: person),
+                        billing_model: "subscription",
+                        freemius_subscription_id: "fs_sub_2")
+    end
+
+    it "handles subscription.canceled (US spelling) via the state machine" do
+      payload = {
+        event: "subscription.canceled",
+        objects: { subscription: { id: "fs_sub_2" } }
+      }
+      signed_post(payload)
+      expect(response).to have_http_status(200)
+      expect(subscription.reload.current_state).to eq("canceled")
+    end
+  end
+
   describe "signature verification" do
     it "rejects requests with a bad signature" do
       post "/webhooks/freemius",

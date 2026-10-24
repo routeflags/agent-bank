@@ -13,7 +13,7 @@
 | `PRODUCT_SECRET_KEY` | Webhook `x-signature`（HMAC-SHA256(raw_body, secret)）と success redirect `signature`（HMAC-SHA256(clean_url, secret)）の検証鍵 | Dashboard product Settings → API & Keys → Secret Key | 32 文字。`.env` に設定済み。旧名 `FREEMIUS_WEBHOOK_SECRET` も後方互換で読むが、新規は本キーを使うこと。公開・コミット厳禁 |
 | `PRODUCT_PUBLIC_KEY` | フロント公開鍵（Buy Button / checkout.js の公開側）。現行のホスト型リダイレクトのみの運用ではサーバーは使わない。将来の埋め込み Checkout 用に保持 | Dashboard product Settings → API & Keys → Public Key | 32 文字。`.env` に設定済み |
 | `PLAN_ONETIME_ID` | persona 購入の既定 plan_id（一括購入）。listing 個別指定 > `FREEMIUS_PLAN_MAP` > 本キー > `FREEMIUS_PLAN_ID` の順で解決 | Dashboard Plans の one-time plan ID | `.env` に設定済み（5 桁）。実測: この plan で hosted checkout が 200 で開くことを確認 |
-| `PLAN_MONTHLY_ID` | 月次 plan_id。**現行コードでは未参照**（サブスクリプション課金を入れる際に使う予定） | Dashboard Plans の monthly plan ID | `.env` に設定済み。利用する機能を決めてから配線する |
+| `PLAN_MONTHLY_ID` | 月次 plan_id。**現行コードでは課金に未使用**（webhook の `subscription.*` 受信時の突き合わせと `FreemiusTopupPlans` の重複検出でのみ参照） | Dashboard Plans の monthly plan ID | `.env` に設定済み。月次課金の導線を入れる場合は別 Issue で配線する |
 | `STORE_ID` / `STORE_PUBLIC_KEY` / `STORE_SECRET_KEY` | Freemius **store** スコープの識別子と鍵。`GET /v1/stores/{id}.json?public_key=...` は 200 で返ることを実測確認済み。**現行の product スコープ実装では未使用** | Store Settings → API & Keys | 将来 store 単位の集計・商品一覧を扱う場合に使う。値はコミット・報告に書かない |
 | `FREEMIUS_PLAN_ID` | 単一 plan 運用時の既定 plan_id（persona 購入の hosted URL 生成に使用）。`PLAN_ONETIME_ID` が優先 | Dashboard Plans で作成した plan の ID | 未設定時は persona 購入は 503 `purchase_not_configured`。per-listing 運用では `FREEMIUS_PLAN_MAP` が優先 |
 | `FREEMIUS_PLAN_MAP` | listing ごとの plan 対応（JSON）。例: `{"42":"5678"}`（listing 42 → plan 5678） | Dashboard Plans × Listing 対応表を運用で管理 | 任意。単一 plan で足りる間は不要。Webhook の `plan_id → listing_id` 逆引きにも使う |
@@ -31,8 +31,8 @@
 
 1. Developer Dashboard で product を確認し、`FREEMIUS_PRODUCT_ID`・`API_BEARER_AUTHORIZATION_TOKEN`・`PRODUCT_SECRET_KEY`・`PRODUCT_PUBLIC_KEY` を取得して本番 Secrets に投入する。
 2. Plans/Pricing で persona 購入用の plan を作成する（価格・通貨 `USD` 前提。Freemius 通貨は `USD/EUR/GBP` のみで `JPY` 建て不可）。単一価格なら `FREEMIUS_PLAN_ID` に設定し、価格帯が複数ある場合は `FREEMIUS_PLAN_MAP` に listing 対応を記録する。
-3. Webhooks Listener を作成し、URL `https://<本番ドメイン>/webhooks/freemius` を登録する。対象イベントは少なくとも `payment.created`・`payment.refund`・`subscription.created`・`subscription.cancelled`・`subscription.renewal.failed` を含める。署名方式は既定（`x-signature`）でよい。
-4. Plans → Customization で success redirect（Redirect Checkout to a custom URL）を必要に応じて設定する。`user_id`・`plan_id`・`payment_id`・`license_id`・`amount`・`signature` が query に付与される。`signature` は `PRODUCT_SECRET_KEY` で検証できる。
+3. Webhooks Listener を作成し、URL `https://<本番ドメイン>/webhooks/freemius` を登録する。対象イベントは少なくとも `payment.created`・`payment.refund`・`subscription.created`・`subscription.cancelled`・`subscription.renewal.failed` を含める（コードは `subscription.canceled` 綴り・旧名 `payment.completed` / `payment.refunded` も後方互換で受理する）。署名方式は既定（`x-signature`）でよい。
+4. Plans → Customization で success redirect（Redirect Checkout to a custom URL）に `https://<本番ドメイン>/freemius/return?lang=ja` を設定する（日本語表示。英語の場合は `?lang=en` 又は無指定）。成功時は `user_id`・`plan_id`・`email`・`payment_id`・`license_id`・`amount`・`signature` 等が query に付与され、アプリは `signature`（`HMAC-SHA256(signature 除去後の絶対 URL, PRODUCT_SECRET_KEY)`）を検証して購入完了画面を出す。**この URL 自体が redirect すると署名検証が壊れるため、他の URL への転送は設定しないこと**（Freemius 公式の警告）。`cancel_url`（Checkout の戻るボタン）はサーバーが checkout ごとに自動付与する（persona 購入→出品詳細、wallet→サイト基点）ため Dashboard 設定は不要。
 5. 実際のカード決済は行わず、checkout リンク生成（`POST /api/v1/persona_purchases` → `checkout_url`）と Dashboard の Events 一覧、サーバー API 到達性（`GET /products/{id}/payments/{id}.json`）までを確認する。
 
 ## 3. 未設定時の挙動（回帰維持・#46 更新）
@@ -85,6 +85,30 @@
 - (b) 直接購入: 既存 `POST /api/v1/persona_purchases` を維持。残高の有無に依存しない（残高ゼロでも checkout URL を返す）。購入済み `already_purchased` 挙動を維持。UI は「残高がなくても直接買える」導線を明示する（ロケール `purchase_without_balance` / `wallet_insufficient_with_purchase` / `purchase_direct_default`、インライン導線は #33 の Gold 統一に沿う）。
 - 残高不足時の表示: `insufficient_balance` はチャージ導線と購入導線の両方（Gold ボタン2つ＋ `wallet_insufficient_with_purchase` 文言）。`purchase_required` は購入導線のみ（文言に `purchase_without_balance` を付記）。設定パネルの残高表示は現行どおり。
 - Stripe は使わない（参照もしない）。
+
+## 9. Webhook 付与条件の設計（Issue #43 completion）
+
+- 署名（`x-signature` = `HMAC-SHA256(raw body, PRODUCT_SECRET_KEY)`）を真正性の主根拠とし、サーバー API の `get_payment` 再取得は補助とする。API が一時的 (`401` / `404` / `5xx` / timeout) に失敗しても購入権利・残高加算は止めず、警告ログ（`verification unavailable ... granting by signature`）を残して付与を継続する。金額検証が必要な箇所（wallet の legacy gross 加算）は API 取得成功時のみ厳密照合し、API 失敗＋map 額なしの場合は金額確定不能のため付与しない（金額を発明しない）。API が affirmative に未完了 (`status: pending` 等・金額ゼロ) を返した場合は従来どおり付与しない。
+- 理由: 決済済みにもかかわらず API の一時的失敗で購入権利が付与されない経路を残さないため。署名検証済みの webhook は Freemius 正規発行であり、可用性を優先する（判断記録は Issue #43 コメント参照）。
+- 冪等性は維持: 同一 `payment_id` の二重配送は二重付与・二重加算しない。`fs_pay_1` と `fs_pay_10` の混同なし（`Wallet#topup!`・refund 照合の JSON exact 維持、メール照合 exact）。
+
+## 10. 実カード決済でしか確認できない項目（オーナーが 1 回流せば終わる形）
+
+- [ ] 実カードで persona 購入の hosted checkout を最後まで流し、決済完了後に Dashboard で設定した `GET /freemius/return?lang=ja` に戻り、購入完了画面（署名検証正）が出ること
+- [ ] 戻り後の出品ページで購入済み (`already_purchased`) になり、チャットが開始できること（webhook `payment.created` → 購入権利＋初期トークン）
+- [ ] Freemius Dashboard の Events 一覧に `payment.created` が記録され、金額・通貨 (`USD`) が想定どおりであること
+- [ ] Checkout の戻るボタン (`cancel_url`) で出品詳細に戻ること
+- [ ] 返金が必要になった場合、Dashboard で返金→ `payment.refund` webhook で残高が減算されること（任意・テスト返金で可）
+- [ ] 月次 plan (`starter`) を使う場合、`subscription.created` / `subscription.cancelled` / `subscription.renewal.failed` の同期が動くこと（現行コードは受信のみ実装、課金導線は未配線）
+- [ ] 固定額プリペイドの額面 plan（Issue #48、オーナー判断後に Dashboard で作成＋`FREEMIUS_TOPUP_PLAN_MAP` 投入）でチャージ→残高加算されること
+
+## 11. 既知の制約
+
+- Checkout はホスト型・plan 単位。サーバー API に任意額 Checkout 作成は無い。通貨は `USD/EUR/GBP` のみ（`JPY` 建て不可）。
+- 円→USD 換算は `FREEMIUS_JPY_USD_RATE` の固定レート運用。未設定・不正値時は本番課金を `503 payment_unconfigured` で拒否する（既定レートでの黙認課金なし）。為替変動時のレート見直しは運用手作業。
+- 単一 plan 運用では `plan_id` だけでは出品を特定できないため、success 戻り先は汎用完了表示になる（`FREEMIUS_PLAN_MAP` で出品対応がある plan は出品リンク付き）。
+- `FREEMIUS_TOPUP_PLAN_MAP` は未設定（Issue #48 でオーナー判断待ち）。未設定の間、wallet 固定額チャージは `503` のまま。値は勝手に決めない。
+- `STORE_ID` / `STORE_PUBLIC_KEY` / `STORE_SECRET_KEY` / `PRODUCT_PUBLIC_KEY` / `PLAN_MONTHLY_ID`（課金用途）は現行フローで未使用（将来用に保持）。
 
 ## 出典
 

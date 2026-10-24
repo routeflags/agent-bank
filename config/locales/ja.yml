@@ -2391,6 +2391,13 @@ ja:
       a11y_close: "チャットを閉じる"
       a11y_input: "チャットメッセージ入力"
       a11y_send: "メッセージを送信"
+    freemius_return:
+      success_title: "購入が完了しました"
+      success_body: "お支払いを受け付けました。購入内容の反映まで少々お待ちください。"
+      pending_note: "反映に数秒かかる場合があります。反映されない場合は、しばらくしてから再度お試しください。"
+      invalid_signature: "確認情報の検証ができませんでした。決済は完了している可能性があります。反映されない場合はサポートまでお問い合わせください。"
+      back_to_listing: "購入したペルソナのページへ戻る"
+      back_to_top: "トップへ戻る"
     homepage:
       hero_tagline: "新着スキルが毎日追加中"
       hero_title: "AIの力を使いこなせ。"

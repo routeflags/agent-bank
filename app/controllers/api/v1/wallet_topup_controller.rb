@@ -193,15 +193,20 @@ module API
 
         # Hosted checkout is plan-based; the true charge is the Dashboard
         # plan price (USD). The yen credit comes solely from the map.
+        # cancel_url (back button) returns to the site root; success redirect
+        # is the Dashboard global (`GET /freemius/return`).
         amounts = FreemiusPricing.amounts_for_jpy(credit_jpy)
         FreemiusPricing.check_plan_price(plan_id, amounts[:amount_usd_cents])
+        cancel_url = checkout_cancel_url_for_topup
         checkout_url = FreemiusClient.build_hosted_checkout_url(
           plan_id: plan_id,
-          user_email: buyer_email_for_checkout
+          user_email: buyer_email_for_checkout,
+          cancel_url: cancel_url
         )
 
         render json: {
           checkout_url: checkout_url,
+          cancel_url: cancel_url,
           plan_id: plan_id,
           amount_cents: credit_jpy,
           credit_jpy: credit_jpy,
@@ -289,6 +294,16 @@ module API
             fx_rate: fx_rate
           }
         end
+      end
+
+      # Hosted checkout の back ボタン（`cancel_url`）はサイト基点に戻す
+      # （wallet は出品に紐付かないため）。
+      #
+      # @return [String] absolute URL
+      def checkout_cancel_url_for_topup
+        "#{request.base_url}/"
+      rescue StandardError
+        request.base_url.to_s
       end
 
       # Hosted checkout の user_email prefill 用。Person は emails テーブル

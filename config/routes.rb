@@ -39,6 +39,10 @@ Rails.application.routes.draw do
   # Some non-RESTful mappings
   post '/webhooks/paypal_ipn' => 'paypal_ipn#ipn_hook', as: :paypal_ipn_hook
   post '/webhooks/freemius' => 'freemius_webhooks#receive', as: :freemius_webhook
+  # Freemius hosted checkout success redirect (Dashboard Plans → Customization).
+  # Global per-plan URL; signature (`PRODUCT_SECRET_KEY` HMAC) is verified
+  # in FreemiusReturnController#success. See Issue #43 completion.
+  get '/freemius/return' => 'freemius_return#success', as: :freemius_return
   post '/webhooks/plans' => 'plans#create'
   get '/webhooks/trials' => 'plans#get_trials'
 
