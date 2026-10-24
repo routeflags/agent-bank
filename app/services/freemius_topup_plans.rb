@@ -198,8 +198,6 @@ module FreemiusTopupPlans
         return nil unless s.match?(/\A\d+\z/)
 
         s.to_i
-      else
-        nil
       end
     rescue StandardError
       nil
