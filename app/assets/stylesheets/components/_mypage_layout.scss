@@ -52,6 +52,45 @@ body.dark-theme {
       margin-bottom: 0;
     }
   }
+
+  // ウォレット残高枠（Issue #58）: 本人のマイページのみ表示。
+  // 金額は SSR、チャージボタンは MypageWalletApp（React）が描画する。
+  .raku-summary__action {
+    margin-top: 10px;
+  }
+
+  .mypage-wallet-charge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background-color: transparent;
+    border: 1px solid var(--accent-gold);
+    border-radius: var(--radius-md);
+    color: var(--accent-gold);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+
+    &:hover:not(:disabled) {
+      background-color: var(--accent-gold);
+      color: #1a1a1a;
+    }
+
+    &:disabled {
+      border-color: var(--border-color);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+  }
+
+  .mypage-wallet-unavailable {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
 }
 
 // ── Mobile ────────────────────────────────────────────

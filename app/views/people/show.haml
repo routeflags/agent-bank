@@ -1,4 +1,5 @@
 - person = @service.person
+- provide_react_app :mypage_wallet
 -# 「出品管理」タブ（?show_closed=true）かどうか。サイドバーの活性表示、
 -# 見出し、空状態の文言を切り替える（Issue #14）。
 - closed_view = params[:show_closed].present? && current_user?(person)
@@ -84,6 +85,18 @@
             = t('lamprey.mypage.summary_avg_rating')
           .raku-summary__value
             %span.raku-link-gold= "★ #{@raku_stats[:avg_rating]}"
+
+      -# ウォレット残高（Issue #58）: 本人のみ。読み取り専用で参照し、
+      -# ウォレット行が無くても作成しない（nil → 0円表示）。
+      - if current_user?(person)
+        - wallet_balance_cents = person.wallet_for_community(@current_community.id)&.balance_cents || 0
+        .raku-summary__item.raku-summary__item--wallet
+          .raku-summary__label
+            %span.raku-summary__icon 💰
+            = t('lamprey.mypage.wallet_balance_label')
+          .raku-summary__value= "¥#{number_with_delimiter(wallet_balance_cents)}"
+          .raku-summary__action
+            = raw(react_component("MypageWalletApp", props: { i18n: mypage_wallet_i18n, balance_cents: wallet_balance_cents }, prerender: false).to_s.gsub(/^[ \t]+\n/, ""))
 
     -# ── About（自己紹介がある場合のみ）──────────────
     - if person.description.present?

@@ -35,6 +35,12 @@ class FreemiusReturnController < ApplicationController
 
   layout false
 
+  # The return page is reachable without a community context (skipped
+  # above), but when the buyer returns in the same browser their Devise
+  # session is still present. Expose it read-only so the view can offer
+  # a "back to mypage" link (Issue #58). Never redirects or 401s here.
+  before_action :fetch_return_viewer, only: [:success]
+
   # GET /freemius/return
   #
   # Always 200 (500 にしない): invalid signature shows a warning, valid shows
@@ -57,6 +63,14 @@ class FreemiusReturnController < ApplicationController
   end
 
   private
+
+  # Best-effort viewer lookup for the mypage link. Devise session only;
+  # no community load, no redirect, no failure modes (always 200).
+  def fetch_return_viewer
+    @current_user = current_person if person_signed_in?
+  rescue StandardError
+    @current_user = nil
+  end
 
   # Verifies the Freemius success-redirect `signature` query param.
   # Algorithm: HMAC-SHA256(clean_url, PRODUCT_SECRET_KEY) where clean_url is

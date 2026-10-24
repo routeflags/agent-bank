@@ -1,6 +1,7 @@
 import React from 'react';
 import '../components/ChatPanel/chatPanel.css';
-import '../components/ChatPanel/wallet-topup.css';
+import WalletTopupModal from '../components/WalletTopup/WalletTopupModal';
+import { csrfToken, jsonHeaders, fetchTopupStatus as fetchTopupStatusFromServer } from '../components/WalletTopup/walletTopupApi';
 
 /**
  * ChatPanelApp — AI persona chat panel with 3-column layout.
@@ -19,18 +20,7 @@ import '../components/ChatPanel/wallet-topup.css';
 
 // ─── Utility functions ───────────────────────────────────
 
-function csrfToken() {
-  var metaTag = document.querySelector('meta[name=csrf-token]');
-  return metaTag ? metaTag.getAttribute('content') : '';
-}
-
-function jsonHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'X-CSRF-Token': csrfToken(),
-  };
-}
-
+// ─── HTML sanitization ────────────────────────────────────
 var sharedConsumer = null;
 function getConsumer() {
   if (!sharedConsumer) {
@@ -184,289 +174,9 @@ function tFormat(key, vars) {
   });
   return s;
 }
-function formatJpy(amount) {
-  var n = parseInt(amount, 10);
-  if (isNaN(n)) n = 0;
-  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-function formatUsd(usdCents) {
-  var n = parseInt(usdCents, 10);
-  if (isNaN(n)) n = 0;
-  return (n / 100).toFixed(2);
-}
-
-// ─── Wallet Top-up Modal ──────────────────────────────────
-
-var TOPUP_AMOUNTS = [
-  { cents: 1000, label: '¥1,000' },
-  { cents: 3000, label: '¥3,000' },
-  { cents: 5000, label: '¥5,000' },
-];
-
-class WalletTopupModal extends React.Component {
-  constructor(props) {
-    super(props);
-    var denoms = props.denominations || [];
-    this.state = {
-      selectedCents: 3000,
-      customAmount: '',
-      selectedPlanId: denoms.length > 0 ? denoms[0].plan_id : null,
-      isProcessing: false,
-      error: null,
-      success: false,
-    };
-    this.handleSelectAmount = this.handleSelectAmount.bind(this);
-    this.handleSelectPlan = this.handleSelectPlan.bind(this);
-    this.handleCustomChange = this.handleCustomChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
-    this.handleOverlayClick = this.handleOverlayClick.bind(this);
-  }
-
-  handleSelectAmount(cents) {
-    this.setState({ selectedCents: cents, customAmount: '', selectedPlanId: null, error: null });
-  }
-
-  handleSelectPlan(planId) {
-    this.setState({ selectedPlanId: planId, selectedCents: null, customAmount: '', error: null });
-  }
-
-  handleCustomChange(e) {
-    var raw = e.target.value.replace(/[^0-9]/g, '');
-    this.setState({ customAmount: raw, selectedCents: null, selectedPlanId: null, error: null });
-  }
-
-  getAmountCents() {
-    if (this.state.selectedCents) return this.state.selectedCents;
-    var parsed = parseInt(this.state.customAmount, 10);
-    return isNaN(parsed) ? 0 : parsed;
-  }
-
-  isFixedMode() {
-    var denoms = this.props.denominations || [];
-    return denoms.length > 0;
-  }
-
-  handleSubmit() {
-    var self = this;
-    // Fixed prepaid (Issue #46): plan_id -> hosted checkout URL.
-    // Completion arrives via webhook; poll the balance on return.
-    if (this.isFixedMode() && this.state.selectedPlanId) {
-      self.setState({ isProcessing: true, error: null });
-      fetch('/api/v1/wallet_topup', {
-        method: 'POST',
-        headers: jsonHeaders(),
-        body: JSON.stringify({ plan_id: this.state.selectedPlanId }),
-      })
-        .then(function (response) {
-          return response.json().catch(function () { return {}; }).then(function (body) {
-            if (!response.ok) {
-              var err = new Error(body.error || t('wallet_pay_failed'));
-              err.body = body;
-              throw err;
-            }
-            return body;
-          });
-        })
-        .then(function (data) {
-          if (data.checkout_url) {
-            self.setState({ isProcessing: false, redirecting: true });
-            window.location.href = data.checkout_url;
-            return;
-          }
-          throw new Error(t('wallet_pay_failed'));
-        })
-        .catch(function (err) {
-          var msg = err.message || t('wallet_pay_failed');
-          if (err.body && err.body.error_type === 'invalid_plan') msg = t('topup_invalid_plan');
-          if (err.body && err.body.error_type === 'payment_unconfigured') msg = t('wallet_topup_unavailable_reason');
-          self.setState({ isProcessing: false, error: msg });
-        });
-      return;
-    }
-
-    var amountCents = this.getAmountCents();
-
-    if (amountCents < 100 || amountCents > 10000) {
-      self.setState({ error: t('wallet_invalid_amount') });
-      return;
-    }
-
-    self.setState({ isProcessing: true, error: null });
-
-    // Step 1: Create a top-up intent (dev pseudo-payment; Freemius/Stripe not used per Issue #43)
-    fetch('/api/v1/wallet_topup', {
-      method: 'POST',
-      headers: jsonHeaders(),
-      body: JSON.stringify({ amount_cents: amountCents }),
-    })
-      .then(function (response) {
-        if (!response.ok) {
-          return response.json().catch(function () { return {}; }).then(function (body) {
-            throw new Error(body.error || 'Checkout creation failed');
-          });
-        }
-        return response.json();
-      })
-      .then(function (data) {
-        // Hosted checkout redirect (fixed prepaid plans, Issue #46).
-        // Completion arrives via webhook; poll the balance on return.
-        if (data.provider === 'freemius' && data.checkout_url) {
-          self.setState({ isProcessing: false, redirecting: true });
-          window.location.href = data.checkout_url;
-          return null;
-        }
-        // Dev mode: confirm the pseudo payment directly.
-        return fetch('/api/v1/wallet_topup/confirm', {
-          method: 'POST',
-          headers: jsonHeaders(),
-          body: JSON.stringify({ payment_intent_id: data.payment_intent_id }),
-        });
-      })
-      .then(function (response) {
-        // Hosted redirect path returns null above; skip confirm in that case.
-        if (!response) return null;
-        if (!response.ok) {
-          return response.json().catch(function () { return {}; }).then(function (body) {
-            throw new Error(body.error || 'Payment confirmation failed');
-          });
-        }
-        return response.json();
-      })
-      .then(function (data) {
-        // Null means the hosted redirect already happened; nothing more to do.
-        if (!data) return;
-        self.setState({ isProcessing: false, success: true });
-        if (self.props.onSuccess) self.props.onSuccess(data.balance_cents);
-        setTimeout(function () { self.props.onClose(); }, 1200);
-      })
-      .catch(function (err) {
-        self.setState({ isProcessing: false, error: err.message || t('wallet_pay_failed') });
-      });
-  }
-
-  handleOverlayClick(e) {
-    if (e.target === e.currentTarget) this.props.onClose();
-  }
-
-  render() {
-    var state = this.state;
-    var self = this;
-
-    return React.createElement('div', {
-      className: 'wallet-topup-modal__overlay',
-      onClick: this.handleOverlayClick,
-    },
-      React.createElement('div', { className: 'wallet-topup-modal', role: 'dialog', 'aria-label': t('wallet_topup_title') },
-        // Header
-        React.createElement('div', { className: 'wallet-topup-modal__header' },
-          React.createElement('h3', { className: 'wallet-topup-modal__title' }, '💰 ' + t('wallet_topup_title')),
-          React.createElement('button', {
-            className: 'wallet-topup-modal__closeBtn',
-            onClick: this.props.onClose,
-            'aria-label': t('wallet_topup_close'),
-            type: 'button',
-          },
-            React.createElement('svg', { width: '18', height: '18', viewBox: '0 0 20 20', fill: 'none' },
-              React.createElement('path', {
-                d: 'M15 5L5 15M5 5l10 10',
-                stroke: 'currentColor', strokeWidth: '2',
-                strokeLinecap: 'round', strokeLinejoin: 'round',
-              })
-            )
-          )
-        ),
-
-        // Current balance
-        React.createElement('div', {
-          style: { fontSize: '13px', color: '#999', marginBottom: '16px' }
-        }, t('wallet_current_balance') + (this.props.balance || 0).toLocaleString()),
-
-        // Fixed prepaid plans (Issue #46): plan_id list with JPY + USD estimate.
-        // Currency note: JPY display is an estimate; the true charge is USD.
-        (function () {
-          var denoms = self.props.denominations || [];
-          if (denoms.length === 0) return null;
-          return React.createElement('div', null,
-            React.createElement('div', {
-              style: { fontSize: '13px', color: '#ccc', marginBottom: '8px' }
-            }, t('topup_select_plan')),
-            React.createElement('div', { className: 'wallet-topup-modal__amounts' },
-              denoms.map(function (d) {
-                var label = '¥' + formatJpy(d.credit_jpy);
-                var sub = d.estimated_usd_cents != null ? tFormat('topup_usd_estimate', { usd: formatUsd(d.estimated_usd_cents) }) : null;
-                return React.createElement('button', {
-                  key: d.plan_id,
-                  className: 'wallet-topup-modal__amountBtn' + (state.selectedPlanId === d.plan_id ? ' is-selected' : ''),
-                  onClick: function () { self.handleSelectPlan(d.plan_id); },
-                  type: 'button',
-                  title: sub || label,
-                }, label + (sub ? '\n' + sub : ''));
-              })
-            ),
-            React.createElement('div', {
-              style: { fontSize: '11px', color: '#888', marginBottom: '12px' }
-            }, t('topup_fx_note'))
-          );
-        })(),
-
-        // Legacy dev amounts (shown only when no fixed plans are available).
-        // Dev pseudo top-up is kept for local verification (Issue #46).
-        (function () {
-          var denoms = self.props.denominations || [];
-          if (denoms.length > 0 && !self.props.devMode) return null;
-          if (denoms.length > 0 && self.props.devMode) {
-            return React.createElement('div', {
-              style: { fontSize: '11px', color: '#666', margin: '8px 0' }
-            }, '--- dev: ' + t('wallet_custom_label') + ' ---');
-          }
-          return React.createElement('div', null,
-            React.createElement('div', { className: 'wallet-topup-modal__amounts' },
-              TOPUP_AMOUNTS.map(function (opt) {
-                return React.createElement('button', {
-                  key: opt.cents,
-                  className: 'wallet-topup-modal__amountBtn' + (state.selectedCents === opt.cents ? ' is-selected' : ''),
-                  onClick: function () { self.handleSelectAmount(opt.cents); },
-                  type: 'button',
-                }, opt.label);
-              })
-            ),
-            React.createElement('div', { className: 'wallet-topup-modal__customAmount' },
-              React.createElement('span', { className: 'wallet-topup-modal__customLabel' }, t('wallet_custom_label')),
-              React.createElement('input', {
-                className: 'wallet-topup-modal__customInput',
-                type: 'text',
-                inputMode: 'numeric',
-                placeholder: t('wallet_amount_placeholder'),
-                value: state.customAmount,
-                onChange: self.handleCustomChange,
-              })
-            )
-          );
-        })(),
-
-        // Status messages
-        state.error && React.createElement('div', { className: 'wallet-topup-modal__error' }, state.error),
-        state.success && React.createElement('div', { className: 'wallet-topup-modal__success' }, t('wallet_success')),
-        state.redirecting && React.createElement('div', { className: 'wallet-topup-modal__success' }, t('wallet_redirecting')),
-
-        // Submit
-        React.createElement('button', {
-          className: 'wallet-topup-modal__submitBtn',
-          onClick: this.handleSubmit,
-          disabled: state.isProcessing || state.success || (this.isFixedMode() ? !state.selectedPlanId : this.getAmountCents() < 100),
-          type: 'button',
-        },
-          state.isProcessing
-            ? React.createElement('span', null,
-                React.createElement('span', { className: 'wallet-topup-modal__spinner' }),
-                t('wallet_processing')
-              )
-            : t('wallet_submit')
-        )
-      )
-    );
-  }
-}
+// ─── Wallet Top-up Modal (Issue #58: 共通化) ───────────────
+// WalletTopupModal / TOPUP_AMOUNTS / formatJpy / formatUsd は
+// client/app/components/WalletTopup/ に移動。ChatPanel とマイページで共用。
 
 // ─── Message Bubble ──────────────────────────────────────
 
@@ -587,7 +297,6 @@ class ChatPanelApp extends React.Component {
       topupEnabled: true,
       topupDevMode: false,
       topupDenominations: [],
-      topupFixedAvailable: false,
       // Attachment (composer 📎)
       pendingAttachment: null,
     };
@@ -1185,30 +894,20 @@ class ChatPanelApp extends React.Component {
   // Top-up availability (Issue #34, #46): keeps the settings button label in
   // sync with the server payment configuration. Called when the panel opens.
   // Fixed prepaid denominations (plan_id / USD / JPY) are stored for the modal.
+  // Shared helper (Issue #58) — same status object as MypageWalletApp.
   fetchTopupStatus() {
     var self = this;
 
-    fetch('/api/v1/wallet_topup/status', {
-      method: 'GET',
-      headers: jsonHeaders(),
-    })
-      .then(function (response) {
-        if (!response.ok) return null;
-        return response.json();
-      })
-      .then(function (data) {
-        if (data && typeof data.topup_enabled !== 'undefined') {
-          self.setState({
-            topupEnabled: !!data.topup_enabled,
-            topupDevMode: !!data.dev_mode,
-            topupDenominations: data.denominations || [],
-            topupFixedAvailable: !!(data.fixed_prepaid_available || (data.denominations && data.denominations.length > 0)),
-          });
-        }
-      })
-      .catch(function () {
-        // Keep the optimistic default (enabled); the server validates on submit.
-      });
+    fetchTopupStatusFromServer().then(function (status) {
+      if (status) {
+        self.setState({
+          topupEnabled: status.topupEnabled,
+          topupDevMode: status.devMode,
+          topupDenominations: status.denominations,
+        });
+      }
+      // null: keep the optimistic default (enabled); the server validates on submit.
+    });
   }
 
   handleCloseTopup() {
@@ -1622,12 +1321,12 @@ class ChatPanelApp extends React.Component {
         )
       ),
 
-      // ── Wallet Top-up Modal (Issue #46 fixed prepaid) ───────
+      // ── Wallet Top-up Modal (Issue #46 fixed prepaid; Issue #58 共通化) ──
       state.showTopupModal && React.createElement(WalletTopupModal, {
+        i18n: this.props.i18n,
         balance: state.walletBalance,
         denominations: state.topupDenominations,
         devMode: state.topupDevMode,
-        fixedAvailable: state.topupFixedAvailable,
         onSuccess: this.handleTopupSuccess,
         onClose: this.handleCloseTopup,
       })

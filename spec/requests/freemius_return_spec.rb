@@ -48,4 +48,32 @@ RSpec.describe "FreemiusReturn", type: :request do
     expect(response).to have_http_status(200)
     expect(response.body).to include(I18n.t("lamprey.freemius_return.invalid_signature"))
   end
+
+  it "残高反映の遅延メモを常に表示する（Issue #58）" do
+    get_return([["payment_id", "111"], ["plan_id", "74358"]])
+    expect(response).to have_http_status(200)
+    expect(response.body).to include(I18n.t("lamprey.freemius_return.wallet_delay_note"))
+  end
+
+  # マイページ導線（Issue #58）: ログイン中のみ本人ページへのリンクを出す。
+  context "マイページへのリンク" do
+    include Devise::Test::IntegrationHelpers
+
+    let(:community) { FactoryBot.create(:community) }
+    let(:person) { FactoryBot.create(:person, community_id: community.id) }
+
+    it "ログイン中はマイページへ戻るリンクを表示する" do
+      sign_in(person)
+      get_return([["payment_id", "111"], ["plan_id", "74358"]])
+      expect(response).to have_http_status(200)
+      expect(response.body).to include(I18n.t("lamprey.freemius_return.back_to_mypage"))
+      expect(response.body).to include(person.username)
+    end
+
+    it "未ログインではマイページへ戻るリンクを出さない（500にもしない）" do
+      get_return([["payment_id", "111"], ["plan_id", "74358"]])
+      expect(response).to have_http_status(200)
+      expect(response.body).not_to include(I18n.t("lamprey.freemius_return.back_to_mypage"))
+    end
+  end
 end

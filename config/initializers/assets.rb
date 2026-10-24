@@ -35,6 +35,7 @@ Rails.application.config.assets.precompile += %w(
   sections-bundle.css
   topbar-bundle.js
   chat_panel-bundle.js
+  mypage_wallet-bundle.js
   onboarding-bundle.js
   search_page-bundle.js
   availability-bundle.js

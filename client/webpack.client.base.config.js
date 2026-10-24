@@ -20,6 +20,7 @@ module.exports = {
     common: ['./app/startup/commonRuntime'],
     topbar: ['./app/startup/entries/topbar'],
     chat_panel: ['./app/startup/entries/chatPanel'],
+    mypage_wallet: ['./app/startup/entries/mypageWallet'],
     onboarding: ['./app/startup/entries/onboarding'],
     search_page: ['./app/startup/entries/searchPage'],
     availability: ['./app/startup/entries/availability'],

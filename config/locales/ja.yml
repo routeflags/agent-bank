@@ -2385,6 +2385,8 @@ ja:
       pending_note: "反映に数秒かかる場合があります。反映されない場合は、しばらくしてから再度お試しください。"
       invalid_signature: "確認情報の検証ができませんでした。決済は完了している可能性があります。反映されない場合はサポートまでお問い合わせください。"
       back_to_top: "トップへ戻る"
+      back_to_mypage: "マイページへ戻る"
+      wallet_delay_note: "残高の反映まで数秒かかることがあります。"
     homepage:
       hero_tagline: "新着スキルが毎日追加中"
       hero_title: "AIの力を使いこなせ。"
@@ -2472,6 +2474,8 @@ ja:
       summary_total_sold: "総販売数"
       summary_total_views: "総閲覧数"
       summary_avg_rating: "平均評価"
+      wallet_balance_label: "ウォレット残高"
+      wallet_charge: "チャージする"
       new_listing: "新規出品"
       about_title: "自己紹介"
       table_title: "出品中スキル"
