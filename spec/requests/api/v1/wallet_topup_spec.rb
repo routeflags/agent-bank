@@ -105,6 +105,8 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
         expect(response).to have_http_status(200)
         json = JSON.parse(response.body)
         expect(json["checkout_url"]).to include("/product/1234/plan/5678/")
+        expect(json["checkout_url"]).to include("cancel_url=")
+        expect(json["cancel_url"]).to be_present
         expect(json["plan_id"]).to eq("5678")
         expect(json["credit_jpy"]).to eq(1000)
         expect(json["amount_cents"]).to eq(1000)

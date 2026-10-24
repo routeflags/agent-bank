@@ -60,6 +60,20 @@ RSpec.describe FreemiusTopupPlans do
       expect(described_class.configured?).to be false
     end
 
+    it "rejects overlap with PLAN_ONETIME_ID (Issue #43 completion)" do
+      stub_topup_map({ "74358" => 1000 }.to_json)
+      allow(ENV).to receive(:[]).with("PLAN_ONETIME_ID").and_return("74358")
+      expect(described_class.configured?).to be false
+      expect(described_class.validation_errors.join).to match(/overlaps a persona plan/)
+    end
+
+    it "rejects overlap with PLAN_MONTHLY_ID (Issue #43 completion)" do
+      stub_topup_map({ "74360" => 1000 }.to_json)
+      allow(ENV).to receive(:[]).with("PLAN_MONTHLY_ID").and_return("74360")
+      expect(described_class.configured?).to be false
+      expect(described_class.validation_errors.join).to match(/overlaps a persona plan/)
+    end
+
     it "is configured for a valid map" do
       stub_topup_map({ "5678" => 1000, "5679" => 3000 }.to_json)
       expect(described_class.configured?).to be true

@@ -210,11 +210,16 @@ module FreemiusTopupPlans
       keys.tally.select { |_k, v| v > 1 }.keys
     end
 
-    # Persona plan IDs from env (values of FREEMIUS_PLAN_MAP + FREEMIUS_PLAN_ID).
+    # Persona plan IDs from env (values of FREEMIUS_PLAN_MAP + single-plan IDs).
+    # Includes PLAN_ONETIME_ID / PLAN_MONTHLY_ID / FREEMIUS_PLAN_ID so a top-up
+    # denomination can never silently overlap the persona purchase plan
+    # (webhook dispatches persona first — an overlap would never credit).
     def persona_plan_ids
       ids = []
-      single = ENV["FREEMIUS_PLAN_ID"].to_s.strip
-      ids << single unless single.empty?
+      %w[PLAN_ONETIME_ID PLAN_MONTHLY_ID FREEMIUS_PLAN_ID].each do |key|
+        value = ENV[key].to_s.strip
+        ids << value unless value.empty?
+      end
       begin
         raw = ENV["FREEMIUS_PLAN_MAP"].to_s.strip
         unless raw.empty?

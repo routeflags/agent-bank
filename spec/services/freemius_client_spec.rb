@@ -96,6 +96,32 @@ RSpec.describe FreemiusClient do
       expect(described_class.plan_id_for_listing(listing)).to eq("5678")
     end
 
+    it "prefers PLAN_ONETIME_ID（一括購入の既定 plan）over FREEMIUS_PLAN_ID" do
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
+      allow(ENV).to receive(:[]).with("PLAN_ONETIME_ID").and_return("74358")
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return("5678")
+      listing = double(id: 42)
+
+      expect(described_class.plan_id_for_listing(listing)).to eq("74358")
+    end
+
+    it "prefers FREEMIUS_PLAN_MAP over PLAN_ONETIME_ID" do
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return({ "42" => "9999" }.to_json)
+      allow(ENV).to receive(:[]).with("PLAN_ONETIME_ID").and_return("74358")
+      listing = double(id: 42)
+
+      expect(described_class.plan_id_for_listing(listing)).to eq("9999")
+    end
+
+    it "falls back to FREEMIUS_PLAN_ID when PLAN_ONETIME_ID is absent" do
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
+      allow(ENV).to receive(:[]).with("PLAN_ONETIME_ID").and_return(nil)
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return("5678")
+      listing = double(id: 42)
+
+      expect(described_class.plan_id_for_listing(listing)).to eq("5678")
+    end
+
     it "prefers FREEMIUS_PLAN_MAP over the single plan" do
       allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return({ "42" => "9999" }.to_json)
       allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return("5678")

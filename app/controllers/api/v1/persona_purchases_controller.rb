@@ -120,14 +120,18 @@ class API::V1::PersonaPurchasesController < ApplicationController
     FreemiusPricing.check_plan_price(plan_id, amounts[:amount_usd_cents])
 
     # checkout_url は local で組み立てる（Freemius への network 呼び出しなし）。
+    # cancel_url（back ボタン）は出品詳細に戻す。success redirect は Dashboard の
+    # global 設定（`GET /freemius/return`）のため per-checkout では送らない。
     checkout_url = FreemiusClient.build_hosted_checkout_url(
       plan_id: plan_id,
-      user_email: buyer_email_for_checkout
+      user_email: buyer_email_for_checkout,
+      cancel_url: checkout_cancel_url_for_listing(listing)
     )
 
     render json: {
       checkout_url: checkout_url,
       listing_id: listing.id,
+      cancel_url: checkout_cancel_url_for_listing(listing),
       plan_id: plan_id,
       amount_cents: listing.price_cents.to_i,
       amount_jpy: amounts[:amount_jpy],
@@ -165,6 +169,17 @@ class API::V1::PersonaPurchasesController < ApplicationController
     email.to_s.strip.presence
   rescue StandardError
     nil
+  end
+
+  # Hosted checkout の back ボタン（`cancel_url`）は出品詳細に戻す。
+  # キャンセル時は購入権利を作らず元ページに留める（Issue #43 completion）。
+  #
+  # @param listing [Listing]
+  # @return [String] absolute URL
+  def checkout_cancel_url_for_listing(listing)
+    "#{request.base_url}#{listing_path(listing)}"
+  rescue StandardError
+    request.base_url.to_s
   end
 
   def ensure_authenticated

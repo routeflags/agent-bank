@@ -102,6 +102,18 @@ RSpec.describe "Api::V1::PersonaPurchases", type: :request do
         end
       end
 
+      it "checkout_url に cancel_url（出品詳細）を含める（Issue #43 completion）" do
+        stub_hosted_url
+
+        post_purchase
+
+        expect(response).to have_http_status(200)
+        expect(FreemiusClient).to have_received(:build_hosted_checkout_url)
+          .with(hash_including(plan_id: "5678", cancel_url: kind_of(String)))
+        json = JSON.parse(response.body)
+        expect(json["cancel_url"]).to include("/listings/#{listing.id}")
+      end
+
       it "残高ゼロでも購入できる（残高に依存しない・Issue #46）" do
         stub_hosted_url
         FactoryBot.create(:wallet, person: person, community: community, balance_cents: 0)

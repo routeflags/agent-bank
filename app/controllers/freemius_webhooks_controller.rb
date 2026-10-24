@@ -29,7 +29,8 @@ class FreemiusWebhooksController < ApplicationController
                      :check_http_auth
 
   # Supported inbound event types (real names first, legacy aliases after).
-  # Real: payment.created (successful payment), payment.refund.
+  # Real (https://freemius.com/help/documentation/marketing-automation/events-webhooks/):
+  #   payment.created (successful payment), payment.refund.
   PAYMENT_CREATED = %w[payment.created payment.completed].freeze
   PAYMENT_REFUND = %w[payment.refund payment.refunded].freeze
   # Checkout metadata type for persona purchases (listing unit).
@@ -38,9 +39,14 @@ class FreemiusWebhooksController < ApplicationController
   # existing wallet credit path (dormant for arbitrary-amount top-ups,
   # kept for fixed prepaid plans — see Issue #43).
   PERSONA_PURCHASE = "persona_purchase"
+  # Real subscription events: created / cancelled / renewal.failed.
+  # `subscription.canceled` (US spelling) is accepted as an alias.
+  # `subscription.renewed` / `subscription.expired` are not real Freemius
+  # events; they are kept as legacy aliases for backward compatibility.
   SUBSCRIPTION_EVENTS = %w[
     subscription.created
     subscription.cancelled
+    subscription.canceled
     subscription.renewal.failed
     subscription.renewed
     subscription.expired
@@ -145,8 +151,15 @@ class FreemiusWebhooksController < ApplicationController
   end
 
   # Credits the buyer's wallet for a completed wallet top-up payment.
-  # Verifies the payment server-side before crediting: the webhook payload
-  # alone is not trusted for amount.
+  #
+  # Design (Issue #43 completion): the webhook signature (`x-signature` =
+  # HMAC-SHA256(raw body, PRODUCT_SECRET_KEY)) is the primary authenticity
+  # proof. The server-side `get_payment` re-fetch is auxiliary: it is used
+  # for strict amount checks only when it succeeds. When the API is
+  # temporarily unavailable (401/404/5xx/timeout), crediting continues with a
+  # warning log instead of silently dropping a paid top-up. Legacy payments
+  # without plan_id have no map amount, so an unavailable API means the
+  # amount cannot be determined and the event is skipped (no invented amount).
   #
   # Fixed prepaid (Issue #46): `plan_id -> credit (yen)` is resolved solely
   # from `FREEMIUS_TOPUP_PLAN_MAP` (FreemiusTopupPlans). The verified gross
@@ -174,23 +187,32 @@ class FreemiusWebhooksController < ApplicationController
       return
     end
 
-    # Server-side verification: fetch the payment from Freemius.
+    # Auxiliary verification: strict only when the API answers.
     # Never trust amount from the webhook body.
-    verified = verify_payment_completed(payment_id)
-    unless verified
-      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} not verified, skipping")
+    aux = verify_payment_auxiliary(payment_id)
+    case aux[:state]
+    when :invalid
+      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} not completed (#{aux[:reason]}), skipping")
       return
+    when :unavailable
+      if topup_credit.nil?
+        Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} verification unavailable (#{aux[:reason]}), amount unknown, skipping")
+        return
+      end
+      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} verification unavailable (#{aux[:reason]}), crediting by signature (plan #{plan_id.inspect})")
     end
+    verified_amount = aux[:amount_cents]
 
-    credit_cents = topup_credit || verified[:amount_cents]
-    if topup_credit
+    credit_cents = topup_credit || verified_amount
+    if topup_credit && verified_amount
       # Drift check only (warn, never block): hosted page shows the true
       # charge; warn when the verified USD gross diverges from the yen
       # credit converted at the current rate (operational drift signal).
+      # Skipped when the API was unavailable (no verified amount to compare).
       begin
         converted = FreemiusPricing.configured? ? FreemiusPricing.usd_cents_for_jpy(topup_credit) : nil
-        if converted && !FreemiusPricing.within_tolerance?(verified[:amount_cents], converted)
-          Rails.logger.warn("[FreemiusWebhook] Topup drift: plan=#{plan_id} verified=#{verified[:amount_cents]}c converted=#{converted}c (credit #{topup_credit} yen)")
+        if converted && !FreemiusPricing.within_tolerance?(verified_amount, converted)
+          Rails.logger.warn("[FreemiusWebhook] Topup drift: plan=#{plan_id} verified=#{verified_amount}c converted=#{converted}c (credit #{topup_credit} yen)")
         end
       rescue FreemiusPricing::RateMissingError
         nil
@@ -212,8 +234,14 @@ class FreemiusWebhooksController < ApplicationController
 
   # Grants the purchase entitlement for a completed persona purchase.
   #
-  # サーバー側検証（verify_payment_completed）のあと、購入権利の単一経路である
-  # UserPlanSubscriptionService.create_for を呼ぶ。冪等性は二段で担保される:
+  # Design (Issue #43 completion): signature is primary, `get_payment` is
+  # auxiliary. API failure (`ApiError`) does not block the grant; a warning
+  # is logged and `create_for` proceeds. Affirmative non-completion
+  # (status pending etc. / zero amount) still blocks. Amount is not strictly
+  # checked here (entitlement is plan-based, not amount-based); the verified
+  # amount is logged for audit when available.
+  #
+  # 購入権利の単一経路である UserPlanSubscriptionService.create_for を呼ぶ。冪等性は二段で担保される:
   #   1. create_for: 同一 person+listing の active 購入権利があれば duplicate として返す
   #      （同じ payment の再送は購入権利・初期トークンを二重に付与しない）
   #   2. Wallet#topup!: payment_reference "freemius:<payment_id>" の厳密一致で
@@ -240,12 +268,16 @@ class FreemiusWebhooksController < ApplicationController
       return
     end
 
-    # Server-side verification: same as the wallet path — the webhook body
-    # alone is not trusted for amount.
-    verified = verify_payment_completed(payment_id)
-    unless verified
-      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} not verified, skipping persona purchase")
+    # Auxiliary verification: strict only when the API answers.
+    aux = verify_payment_auxiliary(payment_id)
+    case aux[:state]
+    when :invalid
+      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} not completed (#{aux[:reason]}), skipping persona purchase")
       return
+    when :unavailable
+      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} verification unavailable (#{aux[:reason]}), granting by signature")
+    else
+      Rails.logger.info("[FreemiusWebhook] Payment #{payment_id} verified (#{aux[:amount_cents]}c), granting persona purchase")
     end
 
     result = UserPlanSubscriptionService.create_for(
@@ -261,28 +293,33 @@ class FreemiusWebhooksController < ApplicationController
     end
   end
 
-  # Fetches the payment from Freemius and verifies its existence/amount.
+  # Auxiliary server-side check for a payment (Issue #43 completion).
   # Real Freemius payments have no `status` field (only successful payments
   # exist); legacy stubs use `status: completed/pending`. When a status is
   # present it must be completed-like, otherwise existence + positive amount
   # (gross → cents) is sufficient. Never trust the webhook body amount.
   #
-  # @return [Hash, nil] { amount_cents: Integer } when verified, nil otherwise
-  def verify_payment_completed(payment_id)
+  # The webhook signature is the primary proof; this check only refines it:
+  #   * :verified — API answered and the payment looks completed (+amount).
+  #   * :invalid — API affirmatively says not completed / zero amount (block).
+  #   * :unavailable — API raised `ApiError` (grant by signature with a warn).
+  #
+  # @return [Hash] { state: Symbol, amount_cents: Integer/nil, reason: String/nil }
+  def verify_payment_auxiliary(payment_id)
     remote = FreemiusClient.get_payment(payment_id)
     status = remote["status"] || remote[:status]
     if status.present? && !%w[completed complete success successful paid active].include?(status.to_s.downcase)
-      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} status=#{status.inspect}, not completed")
-      return nil
+      return { state: :invalid, amount_cents: nil, reason: "status=#{status.inspect}" }
     end
 
     amount = FreemiusClient.payment_amount_cents(remote)
-    return nil unless amount.positive?
+    unless amount.positive?
+      return { state: :invalid, amount_cents: nil, reason: "zero_amount" }
+    end
 
-    { amount_cents: amount }
+    { state: :verified, amount_cents: amount, reason: nil }
   rescue FreemiusClient::ApiError => e
-    Rails.logger.error("[FreemiusWebhook] Payment verification failed for #{payment_id}: #{e.message}")
-    nil
+    { state: :unavailable, amount_cents: nil, reason: e.message.to_s[0, 200] }
   end
 
   # Resolves listing_id from plan mapping when metadata lacks it.
@@ -436,7 +473,7 @@ class FreemiusWebhooksController < ApplicationController
     case event
     when "subscription.created", "subscription.renewed"
       sync_status(record, "active")
-    when "subscription.cancelled"
+    when "subscription.cancelled", "subscription.canceled"
       sync_status(record, "canceled")
     when "subscription.expired"
       # No "expired" state in the machine; treat as canceled.

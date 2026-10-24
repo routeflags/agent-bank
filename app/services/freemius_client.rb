@@ -68,7 +68,7 @@ module FreemiusClient
     #
     # Priority: listing.freemius_plan_id (if the column/method exists) →
     # FREEMIUS_PLAN_MAP (JSON: { "<listing_id>": "<plan_id>" }) →
-    # FREEMIUS_PLAN_ID (single-plan fallback).
+    # PLAN_ONETIME_ID（一括購入の既定 plan）→ FREEMIUS_PLAN_ID（旧名）。
     #
     # @param listing [Listing]
     # @return [String, nil] plan ID or nil when unresolvable
@@ -80,6 +80,9 @@ module FreemiusClient
       map = plan_map
       key = listing.id.to_s
       return map[key].to_s.strip if map[key].to_s.strip.present?
+
+      onetime = ENV["PLAN_ONETIME_ID"].to_s.strip
+      return onetime if onetime.present?
 
       single = ENV["FREEMIUS_PLAN_ID"].to_s.strip
       single.presence
