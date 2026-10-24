@@ -78,11 +78,13 @@ class API::V1::ChatSessionsController < ApplicationController
       return render json: { error: "ペルソナが見つかりません" }, status: :not_found
     end
 
-    # Purchase verification — only subscribed users can chat
+    # 残高ゲート（Issue #51）。不足時はチャージ導線を出すため、実行時と同じ
+    # `insufficient_balance` を返す。
     unless purchased?(current_user, listing)
       return render json: {
-        error: "このペルソナを購入してください",
-        error_type: "purchase_required"
+        error: "残高が不足しています。チャージしてください",
+        error_type: "insufficient_balance",
+        current_balance: current_user.wallet&.balance_cents.to_i
       }, status: :forbidden
     end
 
@@ -149,8 +151,11 @@ class API::V1::ChatSessionsController < ApplicationController
 
   # Checks whether the person may start a chat for the listing.
   #
-  # 無料ペルソナ（価格 0 / 無料実行モード）は購入不要で利用できる。
-  # 有料ペルソナは active な購入（UserPlanSubscription）が必要。
+  # 課金は残高（ウォレット）一本（Issue #51）。チャットの開始条件は
+  # `PersonaExecutorJob` と同じ「残高が最低額以上あること」で、出品ごとの
+  # 購入権利（UserPlanSubscription）は見ない。
+  #
+  # 無料ペルソナ（`free_to_use?`）は残高不要で利用できる（Issue #52 で撤去予定）。
   #
   # @param person [Person]
   # @param listing [Listing]
@@ -158,11 +163,10 @@ class API::V1::ChatSessionsController < ApplicationController
   def purchased?(person, listing)
     return true if listing.free_to_use?
 
-    UserPlanSubscription.exists?(
-      person: person,
-      listing: listing,
-      status: "active"
-    )
+    wallet = person.wallet
+    return false if wallet.nil?
+
+    wallet.balance_cents.to_i >= PersonaExecutorJob::MIN_BALANCE_CENTS
   end
 
   # Determines the billing model server-side based on subscription status.

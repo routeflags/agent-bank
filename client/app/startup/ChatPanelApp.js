@@ -889,18 +889,17 @@ class ChatPanelApp extends React.Component {
       if (typeof data.current_balance === 'number') {
         this.setState({ walletBalance: data.current_balance });
       }
-      // 併用ルール (Issue #46): 既定は直接購入、残高は任意の前払い。
-      // 残高不足時はチャージ導線と購入導線の両方を出す（残高がなくても買える旨を明示）。
+      // 課金は残高一本（Issue #51）。残高不足時はチャージ導線のみを出す。
       this.setState(function (prev) {
         return {
           messages: prev.messages.concat([{
             id: 'sys-err-' + Date.now(),
             role: 'system',
-            content: t('wallet_insufficient_with_purchase'),
+            content: t('wallet_insufficient'),
             isStreaming: false,
             created_at: new Date().toISOString(),
             showTopupButton: true,
-            showPurchaseButton: true,
+            showPurchaseButton: false,
           }]),
         };
       });
