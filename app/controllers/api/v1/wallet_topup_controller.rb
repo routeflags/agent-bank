@@ -324,10 +324,21 @@ module API
       # 発行し、confirm 時に Wallet#topup! で直接チャージする。
       # これにより決済アカウントなしでもチャージ動作を検証できる。
 
-      # 擬似決済を有効にするか（開発環境のみ）。
-      # テスト環境では dev モードにしない（spec が明示的に development を stub した場合のみ dev）。
+      # 擬似決済を有効にするか。
+      #
+      # 実際の Freemius 設定（product / Bearer / レート / 額面 MAP）が揃っている場合は、
+      # 開発環境でも本物の hosted Checkout を使う。揃っていないときだけ擬似決済に落ちる。
+      #
+      # 以前は `Rails.env.development?` だけで判定していたため、キーを投入しても
+      # ローカルでは必ず擬似決済になり、実決済のデバッグができなかった。
+      # テスト環境では常に false（spec が明示的に stub した場合のみ本物の経路を検証できる）。
       def dev_mode_topup?
-        Rails.env.development?
+        return false unless Rails.env.development?
+        return false if FreemiusClient.configured? &&
+                        FreemiusPricing.configured? &&
+                        FreemiusTopupPlans.configured?
+
+        true
       end
 
       # 擬似 PaymentIntent ID を生成（金額・ウォレット・ランダムトークンを埋め込む）
