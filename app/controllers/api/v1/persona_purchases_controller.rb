@@ -16,6 +16,8 @@
 # Freemius 未設定時（FREEMIUS_PRODUCT_ID / API_BEARER_AUTHORIZATION_TOKEN /
 # plan 解決のいずれか欠け）は 503 + error_type: "purchase_not_configured" を返す
 #（500 や無言の失敗にしない。既存挙動の回帰維持）。
+# 換算レート（FREEMIUS_JPY_USD_RATE）欠けは 503 + error_type:
+# "payment_unconfigured"（既定レートでの無断課金はしない。オーナー決定）。
 class API::V1::PersonaPurchasesController < ApplicationController
   # API controller — CSRF token not needed (authenticated via Devise session/cookie)
   skip_before_action :verify_authenticity_token
@@ -51,7 +53,9 @@ class API::V1::PersonaPurchasesController < ApplicationController
   # params:
   #   listing_id - 購入するペルソナ（Listing）の ID（これ以外は受け付けない）
   #
-  # 200: { checkout_url:, listing_id:, plan_id:, amount_cents:, provider: "freemius" }
+  # 200: { checkout_url:, listing_id:, plan_id:, amount_cents:, provider: "freemius",
+  #        amount_jpy:, amount_usd_cents:, currency: "usd", fx_rate: }
+  #   amount_cents は既存互換の JPY 額。換算値は FreemiusPricing が算出する。
   # 200: { status: "already_purchased" }（active な購入権利がある場合は Checkout を作らない）
   # 401 / 404 / 422 / 503 / 502: 下記コメント参照
   def create
@@ -98,7 +102,23 @@ class API::V1::PersonaPurchasesController < ApplicationController
       }, status: :service_unavailable
     end
 
+    # JPY→USD 換算レートが無ければ本番課金は作らない（既定レートで黙って
+    # 課金しない。dev 擬似決済は別経路のため影響なし）。
+    unless FreemiusPricing.configured?
+      Rails.logger.warn("[PersonaPurchases] FX rate unconfigured (#{FreemiusPricing::RATE_ENV_VAR} missing)")
+      return render json: {
+        error: "決済設定が不足しているため、現在購入できません",
+        error_type: "payment_unconfigured",
+        reason: "fx_rate_unconfigured"
+      }, status: :service_unavailable
+    end
+
     # 金額・購入者はサーバー側で決定する（クライアント値は無視）。
+    # 換算値は plan 選択と表示の目安。真の請求額は Dashboard の plan 価格で、
+    # hosted checkout 画面が購入者に示す。乖離は warn に留め遮断しない。
+    amounts = FreemiusPricing.amounts_for_jpy(listing.price_cents.to_i)
+    FreemiusPricing.check_plan_price(plan_id, amounts[:amount_usd_cents])
+
     # checkout_url は local で組み立てる（Freemius への network 呼び出しなし）。
     checkout_url = FreemiusClient.build_hosted_checkout_url(
       plan_id: plan_id,
@@ -110,8 +130,20 @@ class API::V1::PersonaPurchasesController < ApplicationController
       listing_id: listing.id,
       plan_id: plan_id,
       amount_cents: listing.price_cents.to_i,
+      amount_jpy: amounts[:amount_jpy],
+      amount_usd_cents: amounts[:amount_usd_cents],
+      currency: amounts[:currency],
+      fx_rate: amounts[:fx_rate],
       provider: "freemius"
     }
+  rescue FreemiusPricing::RateMissingError => e
+    # configured? との競合時の保険。レート欠けは課金不能として 503。
+    Rails.logger.error("[PersonaPurchases] FX rate missing: #{e.message}")
+    render json: {
+      error: "決済設定が不足しているため、現在購入できません",
+      error_type: "payment_unconfigured",
+      reason: "fx_rate_unconfigured"
+    }, status: :service_unavailable
   rescue FreemiusClient::ApiError => e
     # 設定不備・URL 組み立て失敗はクライアント入力の問題ではないため 502（422 ではない）。
     Rails.logger.error("[PersonaPurchases] Freemius error building checkout: #{e.message}")

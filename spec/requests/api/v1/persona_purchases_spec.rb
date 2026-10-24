@@ -69,6 +69,10 @@ RSpec.describe "Api::V1::PersonaPurchases", type: :request do
         sign_in(person)
         allow(FreemiusClient).to receive(:configured?).and_return(true)
         allow(FreemiusClient).to receive(:plan_id_for_listing).and_return("5678")
+        # 換算レートは実ロジックで検証する（0.0067 固定）。plan 価格 map は
+        # 未設定のため check_plan_price は :unknown（warn なし・200 継続）。
+        allow(ENV).to receive(:[]).and_call_original
+        allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return("0.0067")
       end
 
       def stub_hosted_url(url = "https://checkout.freemius.com/product/1234/plan/5678/")
@@ -87,6 +91,11 @@ RSpec.describe "Api::V1::PersonaPurchases", type: :request do
         expect(json["listing_id"]).to eq(listing.id)
         expect(json["provider"]).to eq("freemius")
         expect(json["amount_cents"]).to eq(3000)
+        # JPY→USD 換算値（既存 field は維持しつつ追加）
+        expect(json["amount_jpy"]).to eq(3000)
+        expect(json["amount_usd_cents"]).to eq(2010)
+        expect(json["currency"]).to eq("usd")
+        expect(json["fx_rate"]).to eq(0.0067)
 
         expect(FreemiusClient).to have_received(:plan_id_for_listing) do |arg|
           expect(arg.id).to eq(listing.id)
@@ -138,6 +147,32 @@ RSpec.describe "Api::V1::PersonaPurchases", type: :request do
         json = JSON.parse(response.body)
         expect(json["status"]).to eq("already_purchased")
         expect(FreemiusClient).not_to have_received(:build_hosted_checkout_url)
+      end
+
+      it "換算レート未設定なら 503 payment_unconfigured（checkout を作らない）" do
+        allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return(nil)
+        allow(FreemiusClient).to receive(:build_hosted_checkout_url)
+
+        expect { post_purchase }.not_to change(UserPlanSubscription, :count)
+
+        expect(response).to have_http_status(503)
+        json = JSON.parse(response.body)
+        expect(json["error_type"]).to eq("payment_unconfigured")
+        expect(json["reason"]).to eq("fx_rate_unconfigured")
+        expect(FreemiusClient).not_to have_received(:build_hosted_checkout_url)
+      end
+
+      it "plan 価格と乖離しても warn に留め 200 を返す（遮断しない）" do
+        stub_hosted_url
+        allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP")
+          .and_return({ "5678" => 999 }.to_json)
+        allow(Rails.logger).to receive(:warn)
+
+        post_purchase
+
+        expect(response).to have_http_status(200)
+        expect(JSON.parse(response.body)["amount_usd_cents"]).to eq(2010)
+        expect(Rails.logger).to have_received(:warn).with(/plan price drift/)
       end
 
       it "URL 組み立て失敗は 502 と error_type: checkout_failed" do

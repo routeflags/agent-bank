@@ -210,6 +210,9 @@
       - else
         .raku-price-box__amount= t('lamprey.listings.free')
       .raku-price-box__note= t('lamprey.listings.price_note')
+      -# Freemius は USD 建て請求のため、円価格の近くに USD 目安を示す（レート設定時のみ）
+      - if @listing.price && @listing.price_cents.to_i.positive? && FreemiusPricing.configured?
+        .raku-price-box__note= t('lamprey.listings.usd_billing_note', usd: FreemiusPricing.format_usd(FreemiusPricing.usd_cents_for_jpy(@listing.price_cents.to_i)), jpy: number_with_delimiter(@listing.price_cents.to_i))
 
       .raku-price-box__rating
         - if @listing.respond_to?(:average_rating) && @listing.average_rating.present?

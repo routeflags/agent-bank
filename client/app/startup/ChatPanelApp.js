@@ -126,6 +126,8 @@ var DEFAULT_I18N = {
   purchase_preparing_body: 'このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。',
   purchase_not_configured: '購入機能は現在準備中です（決済が未設定）。しばらくしてから再度お試しください。',
   purchase_checkout_failed: '購入ページの作成に失敗しました。時間をおいて再度お試しください。',
+  purchase_payment_unconfigured: '決済設定が不足しているため、現在購入できません。しばらくしてから再度お試しください。',
+  purchase_usd_charge: 'お支払い: ¥%{jpy}（約 $%{usd} USDで請求されます）',
   new_chat_title: '新しいチャット',
   insufficient_tokens: 'トークンが不足しています。',
   purchase_required: 'このペルソナを利用するには購入が必要です。',
@@ -182,6 +184,16 @@ function tFormat(key, vars) {
     s = s.split('%{' + k + '}').join(String(vars[k]));
   });
   return s;
+}
+function formatJpy(amount) {
+  var n = parseInt(amount, 10);
+  if (isNaN(n)) n = 0;
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function formatUsd(usdCents) {
+  var n = parseInt(usdCents, 10);
+  if (isNaN(n)) n = 0;
+  return (n / 100).toFixed(2);
 }
 
 // ─── Wallet Top-up Modal ──────────────────────────────────
@@ -1198,9 +1210,10 @@ class ChatPanelApp extends React.Component {
     })
       .then(function (response) {
         return response.json().catch(function () { return {}; }).then(function (body) {
-          if (response.status === 503 && body.error_type === 'purchase_not_configured') {
-            // 決済が未設定（FREEMIUS_API_KEY 未投入など）
-            self.addMessage('sys-purchase-' + Date.now(), 'system', t('purchase_not_configured'), false);
+          if (response.status === 503 && (body.error_type === 'purchase_not_configured' || body.error_type === 'payment_unconfigured')) {
+            // 決済が未設定（product/Bearer/plan 缺け、又は JPY→USD 換算レート未設定）
+            var key = body.error_type === 'payment_unconfigured' ? 'purchase_payment_unconfigured' : 'purchase_not_configured';
+            self.addMessage('sys-purchase-' + Date.now(), 'system', t(key), false);
             return null;
           }
           if (!response.ok) {
@@ -1220,8 +1233,15 @@ class ChatPanelApp extends React.Component {
           });
         }
         if (body.checkout_url) {
-          self.addMessage('sys-purchase-' + Date.now(), 'system', t('wallet_redirecting'), false);
-          window.location.assign(body.checkout_url);
+          if (body.amount_usd_cents != null && body.amount_jpy != null) {
+            // USD 請求額（目安）を見せてから遷移する。真の請求額は hosted checkout 画面の表示。
+            self.addMessage('sys-purchase-' + Date.now(), 'system',
+              tFormat('purchase_usd_charge', { jpy: formatJpy(body.amount_jpy), usd: formatUsd(body.amount_usd_cents) }), false);
+            window.setTimeout(function () { window.location.assign(body.checkout_url); }, 1200);
+          } else {
+            self.addMessage('sys-purchase-' + Date.now(), 'system', t('wallet_redirecting'), false);
+            window.location.assign(body.checkout_url);
+          }
         }
       })
       .catch(function () {

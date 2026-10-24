@@ -15,6 +15,9 @@
 | `FREEMIUS_PLAN_ID` | 単一 plan 運用時の既定 plan_id（persona 購入の hosted URL 生成に使用） | Dashboard Plans で作成した plan の ID | 未設定時は persona 購入は 503 `purchase_not_configured`。per-listing 運用では `FREEMIUS_PLAN_MAP` が優先 |
 | `FREEMIUS_PLAN_MAP` | listing ごとの plan 対応（JSON）。例: `{"42":"5678"}`（listing 42 → plan 5678） | Dashboard Plans × Listing 対応表を運用で管理 | 任意。単一 plan で足りる間は不要。Webhook の `plan_id → listing_id` 逆引きにも使う |
 | `FREEMIUS_API_BASE_URL` | サーバー API 基底 URL（既定 `https://api.freemius.com/v1`）。テストのスタブ用 | 既定値で可 | 旧 `FreemiusClient` の `/v1/checkouts` 前提は廃止済み |
+| `FREEMIUS_JPY_USD_RATE` | JPY→USD 換算レート（1 JPY = 何 USD か。例 `0.0067`）。`FreemiusPricing` が読み、`POST /api/v1/persona_purchases` の換算と出品ページの USD 目安表示に使用 | オーナーが投入（値はコミット・報告に書かない） | **未設定・不正値時は本番課金を 503 `payment_unconfigured` で拒否**。既定レートでの黙認課金はしない。dev 擬似決済はレート不要 |
+| `FREEMIUS_PLAN_PRICE_MAP`（任意） | plan 価格の対応表（JSON。例 `{"5678":1999}` = plan 5678 は 1999 USD cents）。換算値との乖離チェックに使用 | 価格帯が複数ある場合に運用で管理 | 未設定時はチェックなし（`:unknown`）。壊れた JSON も `{}` 扱い |
+| `FREEMIUS_PRICE_TOLERANCE_PCT`（任意） | 乖離チェックの許容差（%、既定 `20`） | 既定で可 | 数値以外は既定値にフォールバック |
 | `FREEMIUS_API_KEY`（旧） | `API_BEARER_AUTHORIZATION_TOKEN` の旧名。後方互換で読むのみ | — | 新規設定は `API_BEARER_AUTHORIZATION_TOKEN` を使うこと |
 | `FREEMIUS_WEBHOOK_SECRET`（旧） | `PRODUCT_SECRET_KEY` の旧名。後方互換で読むのみ | — | 新規設定は `PRODUCT_SECRET_KEY` を使うこと |
 
@@ -31,7 +34,8 @@
 ## 3. 未設定時の挙動（回帰維持）
 
 - `FREEMIUS_PRODUCT_ID` 又は Bearer 欠け、又は plan 未解決 → `POST /api/v1/persona_purchases` は 503 `purchase_not_configured`（購入権利は作らない）。
-- 非開発環境の `POST /api/v1/wallet_topup` は 503 `payment_unconfigured`（理由 `freemius_arbitrary_amount_unsupported` 付き）。`GET status` は `topup_enabled: false`。開発環境では擬似決済（`dev_pi_*`）が従来どおり動作する。
+- 換算レート（`FREEMIUS_JPY_USD_RATE`）欠け・不正値 → `POST /api/v1/persona_purchases` は 503 `payment_unconfigured`（`reason: "fx_rate_unconfigured"` 付き、checkout URL は作らない）。既定レートでの無断課金はしない。
+- 非開発環境の `POST /api/v1/wallet_topup` は 503 `payment_unconfigured`（理由 `freemius_arbitrary_amount_unsupported` 付き）。`GET status` は `topup_enabled: false`。開発環境では擬似決済（`dev_pi_*`）が従来どおり動作する（換算レート不要）。
 
 ## 4. ウォレット任意額チャージを Freemius で実現しない理由と代替案
 
@@ -49,10 +53,20 @@
 
 ## 6. 通貨・残件（オーナー判断が必要なもの）
 
-- `config/billing.yml` の既定通貨は `USD` のまま（Freemius 通貨に合わせるため）。UI の円表示との不整合（Issue #43 補足）は本 Issue では直していない。JPY 建て課金は Freemius で不可のため、価格表示・請求通貨の方針決定が必要。
-- plan 設計: persona ごとの価格（`listing.price_cents`）をどの plan/pricing に対応させるか。単一 plan（`FREEMIUS_PLAN_ID`）で始めるか、価格帯ごとに plan を作り `FREEMIUS_PLAN_MAP` で管理するかを決定すること。
+- ~~`config/billing.yml` の既定通貨は `USD` のまま（Freemius 通貨に合わせるため）。UI の円表示との不整合（Issue #43 補足）は本 Issue では直していない。JPY 建て課金は Freemius で不可のため、価格表示・請求通貨の方針決定が必要。~~ → **決定済み（オーナー）: 円価格を USD に換算して請求する。換算レートは `FREEMIUS_JPY_USD_RATE`。** 詳細は下記 §7。`config/billing.yml` の既定通貨は `USD` のまま。
+- ~~plan 設計: persona ごとの価格（`listing.price_cents`）をどの plan/pricing に対応させるか。単一 plan（`FREEMIUS_PLAN_ID`）で始めるか、価格帯ごとに plan を作り `FREEMIUS_PLAN_MAP` で管理するかを決定すること。~~ → **維持: `listing.freemius_plan_id` → `FREEMIUS_PLAN_MAP` → `FREEMIUS_PLAN_ID` の優先順位。** Dashboard の plan 価格と換算値の対応方法は下記 §7。
 - 固定額プリペイド（ウォレット）の採否: 上記 4 の代替案 1 を採用するかどうか。
 - 本番キー投入手順: `FREEMIUS_PRODUCT_ID` の取得と Secrets 投入、Webhook Listener 登録、success redirect 設定、サンドボックスでの checkout 到達確認。実際のカード決済は本 Issue の検証範囲外。
+
+## 7. JPY→USD 換算（`FREEMIUS_JPY_USD_RATE`）
+
+- 換算の単一入り口: `FreemiusPricing`（`app/services/freemius_pricing.rb`）。#46（固定額プリペイド）もここを再利用する。
+- 換算式: `usd_cents = ceil(円 × rate × 100)`（BigDecimal で計算）。`1 USD = 100 cents`。`listing.price_cents` は円額として扱う（JPY に補助通貨なし）。例: rate `0.0067` のとき 3000円 → 2010 cents（$20.10）。
+- 丸め: 最小通貨単位（1 cent）で**切り上げ**。理由は表示円額に対して不足徴収にしないため。境界値: 0円 → 0、1円 × 0.0067 = 0.67 → 1、端数（100円 × 0.00673 = 67.3）→ 68、巨大額（9,999,999円）→ 6,700,000、負数 → 0。spec（`spec/services/freemius_pricing_spec.rb`）で固定。
+- 未設定時の挙動: 欠け・空・非数値・0・負・NaN/Infinity はすべて「未設定」扱い。本番の persona 購入は 503 `payment_unconfigured`（`reason: fx_rate_unconfigured`）で checkout を作らない。既定値で黙って課金しない。開発の dev 擬似決済は従来どおり（レート不要）。
+- API の返却値（`POST /api/v1/persona_purchases` の 200）: 既存 `checkout_url/plan_id/listing_id/amount_cents（JPY・互換維持）/provider` に加え、`amount_jpy`・`amount_usd_cents`・`currency: "usd"`・`fx_rate` を返す。フロントは USD 額（目安）を表示してから checkout へ遷移する。出品ページの価格ボックスにも USD 目安行を出す（レート設定時のみ）。
+- plan との対応方法: Freemius plan の価格は Dashboard 側で固定 USD。換算値は「どの plan を選ぶか」「購入者にいくらと表示するか」の目安に使う。運用の目安式: `plan価格(USD) ÷ rate ≒ 円価格`。例: rate `0.0067` で 3000円の persona には約 $20.10 → Dashboard で $19.99 等の tier plan を作り `FREEMIUS_PLAN_MAP` で対応付ける。
+- 乖離時の扱い: 任意 env `FREEMIUS_PLAN_PRICE_MAP`（`{"<plan_id>": <usd_cents>}`）がある場合のみ、`FREEMIUS_PRICE_TOLERANCE_PCT`（既定 20%）で照合する。超過は警告ログ（`[FreemiusPricing] plan price drift`）に留め、200 を継続して遮断しない。理由: 真の請求額は hosted checkout 画面が購入者に示すため、為替変動・tier 価格での誤遮断を避ける。map 未設定時は運用目視（Dashboard 価格 × レート逆算の対応表）で確認する。
 
 ## 出典
 

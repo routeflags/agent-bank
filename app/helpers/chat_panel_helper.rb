@@ -26,6 +26,8 @@ module ChatPanelHelper
       purchase_preparing_body: chat[:purchase_preparing_body],
       purchase_not_configured: chat[:purchase_not_configured],
       purchase_checkout_failed: chat[:purchase_checkout_failed],
+      purchase_payment_unconfigured: chat[:purchase_payment_unconfigured],
+      purchase_usd_charge: chat[:purchase_usd_charge],
       dev_purchase_success: chat[:dev_purchase_success],
       dev_purchase_failed: chat[:dev_purchase_failed],
       new_chat_title: chat[:new_chat_title],
