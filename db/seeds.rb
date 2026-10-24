@@ -121,6 +121,18 @@ created_categories.each_value do |category|
 end
 puts "    Linked shape to #{created_categories.size} categories"
 
+# レガシーなデフォルトカテゴリ（例: ID 22）が旧 shape 12・13 の複数紐付けを
+# 残している場合、単一 shape 方針に合わせて order_type に統一する（Issue #28）。
+# 冪等・非破壊（shape 自体の削除や既存出品の shape_id には触れない）。
+community.categories.find_each do |category|
+  shape_ids = CategoryListingShape.where(category_id: category.id).pluck(:listing_shape_id)
+  next if shape_ids.size <= 1
+
+  CategoryListingShape.find_or_create_by!(category_id: category.id, listing_shape_id: shape.id)
+  CategoryListingShape.where(category_id: category.id).where.not(listing_shape_id: shape.id).delete_all
+  puts "    Unified multi-shape category #{category.id} to order_type"
+end
+
 # --- 3. AI Providers ---
 
 providers_data = [
