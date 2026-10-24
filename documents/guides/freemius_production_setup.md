@@ -30,7 +30,7 @@
 
 ## 3. 未設定時の挙動（回帰維持）
 
-- `FREEMIUS_PRODUCT_ID` 又は Bearer 缺け、又は plan 未解決 → `POST /api/v1/persona_purchases` は 503 `purchase_not_configured`（購入権利は作らない）。
+- `FREEMIUS_PRODUCT_ID` 又は Bearer 欠け、又は plan 未解決 → `POST /api/v1/persona_purchases` は 503 `purchase_not_configured`（購入権利は作らない）。
 - 非開発環境の `POST /api/v1/wallet_topup` は 503 `payment_unconfigured`（理由 `freemius_arbitrary_amount_unsupported` 付き）。`GET status` は `topup_enabled: false`。開発環境では擬似決済（`dev_pi_*`）が従来どおり動作する。
 
 ## 4. ウォレット任意額チャージを Freemius で実現しない理由と代替案

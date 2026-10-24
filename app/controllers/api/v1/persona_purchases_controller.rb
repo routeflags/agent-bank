@@ -14,7 +14,7 @@
 # 本 API 自体は購入権利を作成しない。
 #
 # Freemius 未設定時（FREEMIUS_PRODUCT_ID / API_BEARER_AUTHORIZATION_TOKEN /
-# plan 解決のいずれか缺け）は 503 + error_type: "purchase_not_configured" を返す
+# plan 解決のいずれか欠け）は 503 + error_type: "purchase_not_configured" を返す
 #（500 や無言の失敗にしない。既存挙動の回帰維持）。
 class API::V1::PersonaPurchasesController < ApplicationController
   # API controller — CSRF token not needed (authenticated via Devise session/cookie)
@@ -80,7 +80,7 @@ class API::V1::PersonaPurchasesController < ApplicationController
       }
     end
 
-    # 決済未設定（product/Bearer 缺け）は 503 で明示する（既存回帰維持）。
+    # 決済未設定（product/Bearer 欠け）は 503 で明示する（既存回帰維持）。
     unless FreemiusClient.configured?
       return render json: {
         error: "決済が未設定のため、購入機能は現在準備中です",
