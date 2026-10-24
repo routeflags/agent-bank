@@ -7,8 +7,7 @@
 
 /* Design tokens (DESIGN.md §4/§24) — chat-scoped */
 .chatPanel,
-.chatPanel__overlay,
-.chatPanel__trigger {
+.chatPanel__overlay {
   --chat-brand-gold: #d7a43b;
   --chat-brand-gold-light: #efc66c;
   --chat-surface-user: #2a2a2a;
@@ -613,8 +612,7 @@
 
 /* ── Focus-visible rings (keyboard accessibility) ──────────── */
 .chatPanel__closeBtn:focus-visible,
-.chatPanel__sendBtn:focus-visible,
-.chatPanel__trigger:focus-visible {
+.chatPanel__sendBtn:focus-visible {
   outline: 2px solid #c41e3a;
   outline-offset: 2px;
 }

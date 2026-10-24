@@ -31,6 +31,7 @@ class PersonaChatChannel < ApplicationCable::Channel
   # Handle incoming messages from the client.
   # Persists the user message and queues the AI response job.
   def receive(data)
+    Rails.logger.info("[PersonaChatChannel] receive session=#{data['chat_session_id']} user=#{current_user&.id}")
     chat_session = ChatSession.find_by(id: data['chat_session_id'])
 
     unless chat_session
@@ -85,6 +86,7 @@ class PersonaChatChannel < ApplicationCable::Channel
       PersonaExecutorJob.new(chat_session.id, message.id, data['content']),
       priority: 0
     )
+    Rails.logger.info("[PersonaChatChannel] enqueued session=#{chat_session.id} message=#{message.id}")
   rescue ActiveRecord::RecordInvalid => e
     Rails.logger.error("[PersonaChatChannel] Failed to create message: #{e.message}")
   end

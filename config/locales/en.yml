@@ -1592,6 +1592,7 @@ en:
       price:
         price: Price
         per: per
+        per_million_tokens: JPY / 1M tokens
         per_day: per day
         mass: piece, kg, l, m2, ...
         time: hour, day, month, ...
