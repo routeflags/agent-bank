@@ -65,6 +65,17 @@
   %button.raku-tabs__item{type: "button", role: "tab", "aria-selected": "false", "data-raku-tab": "related", onclick: "RakuTabs.show('related')"}= t('lamprey.listings.related_skills')
 
 -# ── Hero layout ────────────────────────────────────────
+%script{type: "text/template", class: "template", id: "image-frame-template"}
+  .listing-image-frame
+    #listing-image-link.listing-image-frame-content
+      .listing-image-vertical-centering{:class => "${aspectRatioClass}"}
+        %img{:src => "${url}", :alt => @listing.title, :class => "listing-image ${aspectRatioClass}"}
+
+%script{type: "text/template", class: "template", id: "image-thumbnail-template"}
+  .listing-image-thumbnail-container
+    %img.listing-image-thumbnail{src: "${url}"}
+    .fade
+
 .raku-listing-hero
   -# ── Left: Image + Description ──────────────────────────
   .raku-listing-hero__content
@@ -210,6 +221,9 @@
     -# CTA buttons
     - chat_enabled = @listing.default_run_mode.present? && @listing.default_run_mode == 'run_online'
     .raku-cta-group
+      - if logged_in? && @listing.author == @current_user
+        = link_to edit_listing_path(@listing), class: "raku-cta-btn raku-cta-btn--ghost" do
+          = t('listings.edit_links.edit_listing')
       - if logged_in?
         - if chat_enabled
           %button.raku-cta-btn.raku-cta-btn--primary{type: "button", onclick: "window.LampreyChat && window.LampreyChat.open()"}

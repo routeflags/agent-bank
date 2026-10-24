@@ -323,4 +323,140 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
       end
     end
   end
+
+  # ===================================================================
+  # GET /api/v1/wallet_topup/status（Issue #34）
+  # ===================================================================
+  describe "GET /api/v1/wallet_topup/status" do
+    context "未認証の場合" do
+      it "returns 401" do
+        get "/api/v1/wallet_topup/status"
+        expect(response).to have_http_status(401)
+      end
+    end
+
+    context "認証済みの場合" do
+      before { sign_in_as(person) }
+
+      context "決済手段が未設定の場合" do
+        before do
+          allow(FreemiusClient).to receive(:configured?).and_return(false)
+          allow_any_instance_of(API::V1::WalletTopupController).to receive(:stripe_key_configured?).and_return(false)
+        end
+
+        it "returns topup_enabled false with reason" do
+          get "/api/v1/wallet_topup/status"
+          expect(response).to have_http_status(200)
+          json = JSON.parse(response.body)
+          expect(json["topup_enabled"]).to eq(false)
+          expect(json["provider"]).to be_nil
+          expect(json["reason"]).to eq("payment_unconfigured")
+        end
+      end
+
+      context "Freemius が設定されている場合" do
+        before do
+          allow(FreemiusClient).to receive(:configured?).and_return(true)
+        end
+
+        it "returns topup_enabled true with provider freemius" do
+          get "/api/v1/wallet_topup/status"
+          expect(response).to have_http_status(200)
+          json = JSON.parse(response.body)
+          expect(json["topup_enabled"]).to eq(true)
+          expect(json["provider"]).to eq("freemius")
+          expect(json["dev_mode"]).to eq(false)
+        end
+      end
+
+      context "Stripe キーが設定されている場合" do
+        before do
+          allow(FreemiusClient).to receive(:configured?).and_return(false)
+          allow_any_instance_of(API::V1::WalletTopupController).to receive(:stripe_key_configured?).and_return(true)
+        end
+
+        it "returns topup_enabled true with provider stripe" do
+          get "/api/v1/wallet_topup/status"
+          expect(response).to have_http_status(200)
+          json = JSON.parse(response.body)
+          expect(json["topup_enabled"]).to eq(true)
+          expect(json["provider"]).to eq("stripe")
+        end
+      end
+
+      context "開発環境の擬似決済が有効な場合" do
+        before do
+          allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("development"))
+          allow_any_instance_of(API::V1::WalletTopupController).to receive(:stripe_key_configured?).and_return(false)
+        end
+
+        it "returns topup_enabled true with dev_mode" do
+          get "/api/v1/wallet_topup/status"
+          expect(response).to have_http_status(200)
+          json = JSON.parse(response.body)
+          expect(json["topup_enabled"]).to eq(true)
+          expect(json["dev_mode"]).to eq(true)
+          expect(json["provider"]).to eq("dev")
+        end
+      end
+    end
+  end
+
+  # ===================================================================
+  # 開発環境の擬似決済（Issue #34: dev_mode_topup? 経路）
+  # ===================================================================
+  describe "開発環境の擬似決済" do
+    before do
+      sign_in_as(person)
+      allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("development"))
+      allow_any_instance_of(API::V1::WalletTopupController).to receive(:stripe_key_configured?).and_return(false)
+    end
+
+    it "POST create は dev_pi_* の擬似 PaymentIntent を返す" do
+      post "/api/v1/wallet_topup", params: { amount_cents: 3000 }
+      expect(response).to have_http_status(200)
+      json = JSON.parse(response.body)
+      expect(json["payment_intent_id"]).to start_with("dev_pi_")
+      expect(json["dev_mode"]).to eq(true)
+      expect(json["amount_cents"]).to eq(3000)
+    end
+
+    it "POST confirm でウォレットにチャージされ二重確定は冪等" do
+      post "/api/v1/wallet_topup", params: { amount_cents: 3000 }
+      intent_id = JSON.parse(response.body)["payment_intent_id"]
+      wallet = person.reload.wallet
+      expect(wallet).to be_present
+
+      expect { post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: intent_id } }
+        .to change { wallet.reload.balance_cents }.by(3000)
+      json = JSON.parse(response.body)
+      expect(json["status"]).to eq("ok")
+      expect(json["dev_mode"]).to eq(true)
+
+      expect { post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: intent_id } }
+        .not_to change { wallet.reload.balance_cents }
+      json = JSON.parse(response.body)
+      expect(json["amount_credited"]).to eq(0)
+    end
+
+    it "開発環境では Freemius 設定より擬似決済が優先される" do
+      allow(FreemiusClient).to receive(:configured?).and_return(true)
+      post "/api/v1/wallet_topup", params: { amount_cents: 1000 }
+      json = JSON.parse(response.body)
+      expect(json["dev_mode"]).to eq(true)
+    end
+
+    it "他人 uid の擬似 intent は 403" do
+      wallet = FactoryBot.create(:wallet, person: person, community: community, balance_cents: 0)
+      payload = { "uid" => "someone_else", "wid" => wallet.id, "amt" => 1000, "rnd" => "abcdef" }
+      intent_id = "dev_pi_#{Base64.urlsafe_encode64(payload.to_json, padding: false)}"
+      post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: intent_id }
+      expect(response).to have_http_status(403)
+    end
+
+    it "不正な擬似 intent は 422" do
+      post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: "dev_pi_not-base64!!!" }
+      expect(response).to have_http_status(422)
+    end
+  end
 end

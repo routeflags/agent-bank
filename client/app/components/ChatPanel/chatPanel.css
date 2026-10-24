@@ -120,8 +120,9 @@
 }
 
 .chatPanel__historyItem.is-active {
-  background: rgba(196, 30, 58, 0.15);
-  color: #c41e3a;
+  background: rgba(215, 164, 59, 0.15);
+  color: #f5e6b8;
+  box-shadow: inset 2px 0 0 var(--chat-brand-gold);
 }
 
 .chatPanel__historyItemIcon {
@@ -600,9 +601,9 @@
 }
 
 .chatPanel__toneBtn.is-active {
-  background: rgba(196, 30, 58, 0.15);
-  border-color: #c41e3a;
-  color: #c41e3a;
+  background: rgba(215, 164, 59, 0.15);
+  border-color: var(--chat-brand-gold);
+  color: #f5e6b8;
 }
 
 .chatPanel__toneBtn:hover:not(.is-active) {

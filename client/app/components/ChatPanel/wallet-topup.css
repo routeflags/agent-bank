@@ -78,6 +78,18 @@
   outline-offset: 2px;
 }
 
+.wallet-balance__topupBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Top-up unavailable reason (Issue #34) ─────────────── */
+.wallet-topup-unavailable {
+  font-size: 11px;
+  color: #999;
+  margin-top: 6px;
+}
+
 /* ── Loading skeleton ───────────────────────────────────────── */
 .wallet-balance--loading {
   opacity: 0.5;
@@ -306,8 +318,8 @@
 }
 
 .wallet-topup-prompt__btn {
-  background: var(--wallet-success);
-  color: #fff;
+  background: var(--chat-brand-gold);
+  color: #070707;
   border: none;
   border-radius: 8px;
   padding: 6px 14px;
@@ -319,10 +331,10 @@
 }
 
 .wallet-topup-prompt__btn:hover {
-  background: var(--wallet-success-hover);
+  background: var(--chat-brand-gold-light);
 }
 
 .wallet-topup-prompt__btn:focus-visible {
-  outline: 2px solid var(--wallet-success);
+  outline: 2px solid var(--chat-brand-gold);
   outline-offset: 2px;
 }

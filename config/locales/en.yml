@@ -2904,6 +2904,7 @@ en:
       wallet_buy: "Buy"
       wallet_add_preparing: "Add (coming soon)"
       wallet_add_preparing_body: "Wallet top-up is coming soon. Please wait for the official release."
+      wallet_topup_unavailable_reason: "Top-up is currently unavailable (payments are not configured)."
       purchase_preparing_body: "The purchase page for this persona is coming soon. Please wait for the official release."
       purchase_not_configured: "Purchases are not available yet (payments are not configured). Please try again later."
       purchase_checkout_failed: "Failed to create the checkout page. Please try again later."
