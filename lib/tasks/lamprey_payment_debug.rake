@@ -36,6 +36,27 @@ namespace :lamprey do
         credit = plan_id && FreemiusTopupPlans.credit_for_plan(plan_id.to_s)
         puts "  MAP の付与額 = #{credit.inspect} 円"
         puts "  ※ MAP 未登録の plan の場合、webhook は何も加算しません" if plan_id && credit.nil?
+        # Issue #53: 付与円×レートと plan 価格の比較（逆ザヤ判定用）。
+        # 正常マージン例: plan 74358 = $5.00 (500c) / 付与 600円 (rate 0.0065 -> 390c)。
+        if plan_id && credit
+          begin
+            converted = FreemiusPricing.configured? ? FreemiusPricing.usd_cents_for_jpy(credit) : nil
+            expected = FreemiusPricing.plan_price_map[plan_id.to_s]
+            puts "  付与額のUSD換算 = #{converted.inspect}c (rate=#{FreemiusPricing.rate.inspect})"
+            puts "  期待plan価格 = #{expected.inspect}c (FREEMIUS_PLAN_PRICE_MAP)"
+            if converted && expected
+              if converted >= expected.to_i
+                puts "  逆ザヤ判定 = NG（付与額の換算 >= plan価格。赤字のため MAP/価格を見直す）"
+              else
+                puts "  逆ザヤ判定 = OK（顧客負担 >= 付与額。マージン #{expected.to_i - converted}c）"
+              end
+            else
+              puts "  逆ザヤ判定 = 不明（レートまたは価格マップ未設定）"
+            end
+          rescue FreemiusPricing::RateMissingError
+            puts "  逆ザヤ判定 = 不明（レート未設定）"
+          end
+        end
       rescue FreemiusClient::ApiError => e
         puts "  取得失敗: #{e.message[0, 160]}"
         puts "  ※ API 失敗でも webhook は署名を正として付与します（額面 MAP がある場合）"

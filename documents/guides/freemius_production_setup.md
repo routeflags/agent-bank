@@ -19,7 +19,7 @@
 > **Issue #51 で廃止**: `PLAN_ONETIME_ID` / `FREEMIUS_PLAN_ID` / `FREEMIUS_PLAN_MAP`（ペルソナ購入用の plan 解決）はコードから削除済み。`.env` に残っていても読みに行かない。整理時に削除してよい。
 | `FREEMIUS_API_BASE_URL` | サーバー API 基底 URL（既定 `https://api.freemius.com/v1`）。テストのスタブ用 | 既定値で可 | 旧 `FreemiusClient` の `/v1/checkouts` 前提は廃止済み |
 | `FREEMIUS_JPY_USD_RATE` | JPY→USD 換算レート（1 JPY = 何 USD か。例 `0.0067`）。`FreemiusPricing` が読み、wallet チャージ額の換算と USD 目安表示に使用 | オーナーが投入（値はコミット・報告に書かない） | **未設定・不正値時は本番課金を 503 `payment_unconfigured` で拒否**。既定レートでの黙認課金はしない。dev 擬似決済はレート不要 |
-| `FREEMIUS_PLAN_PRICE_MAP`（任意） | plan 価格の対応表（JSON。例 `{"5678":1999}` = plan 5678 は 1999 USD cents）。換算値との乖離チェックに使用 | 価格帯が複数ある場合に運用で管理 | 未設定時はチェックなし（`:unknown`）。壊れた JSON も `{}` 扱い |
+| `FREEMIUS_PLAN_PRICE_MAP` | plan 価格の対応表（JSON。例 `{"5678":1999}` = plan 5678 は 1999 USD cents）。逆ザヤチェック（付与換算 vs 期待価格）と検証済み gross の乖離チェックに使用。**現行運用は plan 74358 = $5.00（500 cents）を投入する（Issue #53。投入はオーナー作業）** | 価格帯が複数ある場合に運用で管理 | 未設定時はチェックなし（`:unknown`）。壊れた JSON も `{}` 扱い |
 | `FREEMIUS_TOPUP_PLAN_MAP` | 固定額チャージの額面対応表（JSON）。`GET status` の額面一覧・`POST` の plan 解決・webhook の付与額の唯一の正。**現行運用は `credit_topup`（plan 74358）単独** | Dashboard の plan_id と付与円額を対応付けて投入。付与額は plan 実価格（USD）に対する逆ザヤが出ない値をオーナーが決定する | 未設定・空・壊れた JSON・空オブジェクト・不正値（非正整数・100〜100,000円範囲外）・重複キーはすべて「未設定」扱いで本番チャージは 503。値はコミット・報告に書かない |
 | `FREEMIUS_PRICE_TOLERANCE_PCT`（任意） | 乖離チェックの許容差（%、既定 `20`） | 既定で可 | 数値以外は既定値にフォールバック |
 | `FREEMIUS_API_KEY`（旧） | `API_BEARER_AUTHORIZATION_TOKEN` の旧名。後方互換で読むのみ | — | 新規設定は `API_BEARER_AUTHORIZATION_TOKEN` を使うこと |
@@ -31,7 +31,7 @@
 
 1. Developer Dashboard で product を確認し、`PRODUCT_ID`・`API_BEARER_AUTHORIZATION_TOKEN`・`PRODUCT_SECRET_KEY`・`PRODUCT_PUBLIC_KEY` を取得して本番 Secrets に投入する。
 2. Plans/Pricing でチャージ用の固定額 plan を確認する（価格・通貨 `USD` 前提。Freemius 通貨は `USD/EUR/GBP` のみで `JPY` 建て不可）。**現行運用は `credit_topup`（plan 74358）単独。persona 購入用の plan は作らない**（Issue #51）。
-3. `.env`（本番 Secrets）に `FREEMIUS_TOPUP_PLAN_MAP` を 1 行で投入する（例: チャージ plan 1 本の場合）。付与額（円）は plan 実価格（USD）に対する逆ザヤが出ない値をオーナーが決定する（Issue #53）。**値自体はコミット・Issue 記載とも禁止。投入手順のみをここに残す。**
+3. `.env`（本番 Secrets）に `FREEMIUS_TOPUP_PLAN_MAP` と `FREEMIUS_PLAN_PRICE_MAP` を各 1 行で投入する（チャージ plan 1 本の場合。各キー・値は §7.1 の現行組み合わせに従う）。付与額（円）は plan 実価格（USD）に対する逆ザヤが出ない値をオーナーが決定する（Issue #53）。**`.env` ファイル自体はコミットしない。秘密鍵類（Bearer / Secret Key）は Issue・コミット・報告のいずれにも書かない。投入手順と plan・価格・付与額の組み合わせのみをここに残す。**
 4. Webhooks Listener を作成し、URL `https://<本番ドメイン>/webhooks/freemius` を登録する。対象イベントは少なくとも `payment.created`・`payment.refund`・`subscription.created`・`subscription.cancelled`・`subscription.renewal.failed` を含める（コードは `subscription.canceled` 綴り・旧名 `payment.completed` / `payment.refunded` も後方互換で受理する）。署名方式は既定（`x-signature`）でよい。
 5. Plans → Customization で success redirect（Redirect Checkout to a custom URL）に `https://<本番ドメイン>/freemius/return?lang=ja` を設定する（日本語表示。英語の場合は `?lang=en` 又は無指定）。成功時は `user_id`・`plan_id`・`email`・`payment_id`・`license_id`・`amount`・`signature` 等が query に付与され、アプリは `signature`（`HMAC-SHA256(signature 除去後の絶対 URL, PRODUCT_SECRET_KEY)`）を検証してチャージ完了画面（汎用表示）を出す。**この URL 自体が redirect すると署名検証が壊れるため、他の URL への転送は設定しないこと**（Freemius 公式の警告）。`cancel_url`（Checkout の戻るボタン）はサーバーが checkout ごとに自動付与する（wallet はサイト基点）のため Dashboard 設定は不要。
 6. 実際のカード決済は行わず、checkout リンク生成（`POST /api/v1/wallet_topup` に `plan_id` → `checkout_url`）と Dashboard の Events 一覧、サーバー API 到達性（`GET /products/{id}/payments/{id}.json`）までを確認する。
@@ -68,8 +68,17 @@
 - 丸め: 最小通貨単位（1 cent）で**切り上げ**。理由は表示円額に対して不足徴収にしないため。境界値: 0円 → 0、1円 × 0.0067 = 0.67 → 1、端数（100円 × 0.00673 = 67.3）→ 68、巨大額（9,999,999円）→ 6,700,000、負数 → 0。spec（`spec/services/freemius_pricing_spec.rb`）で固定。
 - 未設定時の挙動: 欠け・空・非数値・0・負・NaN/Infinity はすべて「未設定」扱い。本番の wallet チャージは 503 `payment_unconfigured`（`reason: fx_rate_unconfigured`）で checkout を作らない。既定値で黙って課金しない。開発の dev 擬似決済は従来どおり（レート不要）。
 - API の返却値（`POST /api/v1/wallet_topup` の 200）: `checkout_url/plan_id/credit_jpy（付与円額）/amount_usd_cents/currency: "usd"/fx_rate/provider` を返す。フロントは USD 額（目安）を表示してから checkout へ遷移する。
-- plan との対応方法: Freemius plan の価格は Dashboard 側で固定 USD。換算値は「購入者にいくらと表示するか」の目安に使う。付与額（円）は `FREEMIUS_TOPUP_PLAN_MAP` の値が正で、plan 実価格（USD）に対する逆ザヤが出ないよう運用で決定する（Issue #53）。
-- 乖離時の扱い: 任意 env `FREEMIUS_PLAN_PRICE_MAP`（`{"<plan_id>": <usd_cents>}`）がある場合のみ、`FREEMIUS_PRICE_TOLERANCE_PCT`（既定 20%）で照合する。超過は警告ログ（`[FreemiusPricing] plan price drift`）に留め、200 を継続して遮断しない。理由: 真の請求額は hosted checkout 画面が購入者に示すため、為替変動・tier 価格での誤遮断を避ける。map 未設定時は運用目視（Dashboard 価格 × レート逆算の対応表）で確認する。
+- plan との対応方法: Freemius plan の価格は Dashboard 側で固定 USD。換算値は「購入者にいくらと表示するか」の目安に使う。付与額（円）は `FREEMIUS_TOPUP_PLAN_MAP` の値が正で、plan 実価格（USD）に対する逆ザヤが出ないよう運用で決定する（Issue #53。現行組み合わせは §7.1）。
+- 逆ザヤ警告の意味（Issue #53）: `FreemiusPricing.check_plan_price` は「付与円のUSD換算 >= plan 価格（期待価格）」のときのみ警告ログ（`[FreemiusPricing] reverse margin`）を出し、`:mismatch` を返す。正常なマージン（換算 < 期待価格）は警告なしで `:ok`。旧来の「換算 ≒ plan価格」要求ではないため、意図的なマージンで毎回警告が出ることはない。遮断はしない（hosted checkout 画面が真の請求額を示すため）。
+- 乖離時の扱い: `FREEMIUS_PLAN_PRICE_MAP`（`{"<plan_id>": <usd_cents>}`）がある場合、`FreemiusPricing.check_verified_price` が検証済み gross（Freemius API の `gross`→cents）と期待価格を `FREEMIUS_PRICE_TOLERANCE_PCT`（既定 20%）で照合する。超過は警告ログ（`[FreemiusPricing] plan price drift`）に留め、200 を継続して遮断しない。理由: 真の請求額は hosted checkout 画面が購入者に示すため、為替変動・tier 価格での誤遮断を避ける。map 未設定時はチェックなし（`:unknown`。運用目視で Dashboard 価格 × レート逆算の対応表を確認する）。
+
+### 7.1 現行の組み合わせ（Issue #53 オーナー決定）
+
+- plan 74358（`credit_topup`）: Dashboard 実価格 **$5.00 = 500 US cents**。`FREEMIUS_PLAN_PRICE_MAP` に plan 74358 → 500 を投入する（オーナー作業。`.env` はコミットしない）。
+- 付与額: **600円**。`FREEMIUS_TOPUP_PLAN_MAP` に plan 74358 → 600 を投入する（オーナー作業。`.env` はコミットしない）。
+- 例（レート 0.0065）: 顧客負担は約 769円（500c / 0.0065）に対し付与 600円で約 22% のマージン。旧値 1,000円付与では約 +231円/回の逆ザヤ（赤字）だった（実測 payment 2177342）。
+- 判定: 600円付与（390c < 500c）は警告なし、800円付与（520c >= 500c）は逆ザヤ警告。spec（`spec/services/freemius_pricing_spec.rb` の Issue #53 回帰）で担保する。
+- Dashboard 側で plan 価格を変更した場合は `FREEMIUS_PLAN_PRICE_MAP` を同時に更新する（乖離警告が stale を検知する）。
 
 ## 8. 固定額チャージ（Issue #46・#51 オーナー決定）
 

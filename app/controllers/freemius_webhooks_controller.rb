@@ -189,15 +189,21 @@ class FreemiusWebhooksController < ApplicationController
     verified_amount = aux[:amount_cents]
 
     credit_cents = topup_credit || verified_amount
-    if topup_credit && verified_amount
-      # Drift check only (warn, never block): hosted page shows the true
-      # charge; warn when the verified USD gross diverges from the yen
-      # credit converted at the current rate (operational drift signal).
-      # Skipped when the API was unavailable (no verified amount to compare).
+    # Issue #53: two warn-only checks (never block). Skipped when the API was
+    # unavailable (no verified amount) or the rate/map is unconfigured.
+    #   1. Reverse margin (credit vs expected charge): converted >= expected
+    #      means the payout meets/exceeds the charge (operator loss).
+    #   2. Price drift (actual vs expected): verified gross diverging from
+    #      `FREEMIUS_PLAN_PRICE_MAP` means the Dashboard price changed and
+    #      the map is stale.
+    if topup_credit
       begin
-        converted = FreemiusPricing.configured? ? FreemiusPricing.usd_cents_for_jpy(topup_credit) : nil
-        if converted && !FreemiusPricing.within_tolerance?(verified_amount, converted)
-          Rails.logger.warn("[FreemiusWebhook] Topup drift: plan=#{plan_id} verified=#{verified_amount}c converted=#{converted}c (credit #{topup_credit} yen)")
+        if FreemiusPricing.configured?
+          converted = FreemiusPricing.usd_cents_for_jpy(topup_credit)
+          FreemiusPricing.check_plan_price(plan_id, converted)
+          if verified_amount
+            FreemiusPricing.check_verified_price(plan_id, verified_amount)
+          end
         end
       rescue FreemiusPricing::RateMissingError
         nil
