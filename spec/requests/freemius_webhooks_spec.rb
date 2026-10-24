@@ -503,6 +503,60 @@ RSpec.describe "FreemiusWebhooks", type: :request do
     end
   end
 
+  describe "POST /webhooks/freemius 実配信の payload 形（トップレベル type）" do
+    before do
+      allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return({ "74358" => 1000 }.to_json)
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return(nil)
+      allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return("0.0065")
+    end
+
+    # 実測（2026-10-24 の実決済）の payload は `event.type` ではなく
+    # トップレベルの `type` でイベント種別を送ってくる。ここが拾えないと
+    # 「DB アクセスなしの 200」で黙って無視される。
+    let(:real_payload) do
+      {
+        type: "payment.created",
+        plugin_id: "41567",
+        user_id: "10602734",
+        data: { payment_id: "2177322", license_id: "2079147" },
+        objects: {
+          user: { id: "10602734", email: person.emails.first.address },
+          payment: {
+            id: "2177322",
+            plan_id: "74358",
+            user_id: "10602734",
+            gross: 5,
+            currency: "usd",
+            type: "payment",
+            environment: 0
+          }
+        },
+        is_live: true
+      }
+    end
+
+    it "トップレベル type でもチャージを付与する" do
+      allow(FreemiusClient).to receive(:get_payment).with("2177322").and_return(
+        { "id" => "2177322", "gross" => 5.0, "currency" => "usd" }
+      )
+
+      expect { signed_post(real_payload) }
+        .to change { wallet.reload.balance_cents }.from(0).to(1000)
+      expect(response).to have_http_status(200)
+    end
+
+    it "再送しても二重加算しない" do
+      allow(FreemiusClient).to receive(:get_payment).with("2177322").and_return(
+        { "id" => "2177322", "gross" => 5.0, "currency" => "usd" }
+      )
+
+      signed_post(real_payload)
+      expect { signed_post(real_payload) }
+        .not_to(change { wallet.reload.balance_cents })
+    end
+  end
+
   describe "signature verification" do
     it "rejects requests with a bad signature" do
       post "/webhooks/freemius",
