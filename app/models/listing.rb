@@ -111,7 +111,6 @@ class Listing < ApplicationRecord
 
   # See AiProvider — MariaDB json columns are typed as :text by Rails.
   serialize :supported_run_modes, coder: JSON
-  serialize :external_apis, coder: JSON
 
   monetize :price_cents, :allow_nil => true, with_model_currency: :currency
   monetize :shipping_price_cents, allow_nil: true, with_model_currency: :currency
@@ -476,27 +475,12 @@ class Listing < ApplicationRecord
   # @return [Hash]
   def persona_card
     {
-      short_description: short_description,
       supported_run_modes: available_run_modes,
       default_run_mode: default_run_mode,
-      external_apis: parsed_external_apis,
       version_number: version_number,
       publisher_name: publisher_name,
       total_sold: total_sold,
       avg_rating: avg_rating
     }
-  end
-
-  private
-
-  # Safely parses the external_apis JSON column.
-  #
-  # @return [Hash, nil]
-  def parsed_external_apis
-    return nil if external_apis.blank?
-
-    JSON.parse(external_apis)
-  rescue JSON::ParserError
-    nil
   end
 end

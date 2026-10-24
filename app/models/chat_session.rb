@@ -46,37 +46,17 @@ class ChatSession < ApplicationRecord
   #
   # The seller's skill markdown is what the buyer is paying for, and it is
   # never shown on the public listing. It is therefore sent verbatim as the
-  # system prompt. The listing's description / short_description are the
-  # storefront copy, not the persona definition, so they stay out of the AI
-  # context.
+  # system prompt. The listing's description is the storefront copy, not the
+  # persona definition, so it stays out of the AI context.
   #
   # @return [String, nil] the system prompt, or nil if the seller wrote no skill
   def system_prompt
     listing_obj = listing
     return nil unless listing_obj
 
-    parts = []
+    return nil if listing_obj.skill_markdown.blank?
 
-    if listing_obj.skill_markdown.present?
-      parts << listing_obj.skill_markdown.strip
-    end
-
-    if listing_obj.external_apis.present?
-      begin
-        apis = JSON.parse(listing_obj.external_apis)
-        if apis.is_a?(Hash) && apis.any?
-          api_descriptions = apis.map do |name, config|
-            desc = config.is_a?(Hash) ? config["description"] : nil
-            desc.present? ? "#{name}: #{desc}" : name.to_s
-          end
-          parts << "利用可能な外部 API: #{api_descriptions.join(', ')}。"
-        end
-      rescue JSON::ParserError => e
-        Rails.logger.warn("[ChatSession] Malformed external_apis JSON for session #{id}: #{e.message}")
-      end
-    end
-
-    parts.presence&.join("\n\n")
+    listing_obj.skill_markdown.strip
   end
 
   # Mark this session as closed and record the end time.

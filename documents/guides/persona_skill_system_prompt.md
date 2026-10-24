@@ -24,7 +24,7 @@
 - 道具（function calling）は `tools` パラメータという別枠で渡す
 - スキル本文・人格・口調・禁止事項は**ハーネスが system に合成**する
 - その合成役が `Ai::ChatCompletionsBuilder`（`build_system_prompt`）で、現在は「スキル markdown → 口調指示 → 長さ指示」の順に連結している
-- `ChatSession#system_prompt` はスキル markdown そのものを返す（外部 API の記述がある場合のみ後ろに続ける）。出品の説明文（`short_description` / `description`）は店頭の紹介文であって人格定義ではないため、AI には渡さない
+- `ChatSession#system_prompt` はスキル markdown そのものを返す。出品の説明文（`description`）は店頭の紹介文であって人格定義ではないため、AI には渡さない
 
 ## 4. 禁止事項
 
