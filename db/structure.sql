@@ -140,7 +140,7 @@ CREATE TABLE `auth_tokens` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `index_auth_tokens_on_token` (`token`) USING BTREE,
   KEY `index_on_person_id` (`person_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=111 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=171 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `billing_agreements`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -208,7 +208,7 @@ CREATE TABLE `category_custom_fields` (
   PRIMARY KEY (`id`),
   KEY `index_category_custom_fields_on_category_id_and_custom_field_id` (`category_id`,`custom_field_id`) USING BTREE,
   KEY `index_category_custom_fields_on_custom_field_id` (`custom_field_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `category_listing_shapes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -254,7 +254,7 @@ CREATE TABLE `chat_attachments` (
   KEY `fk_rails_f9af74d956` (`person_id`),
   CONSTRAINT `fk_rails_617d1d368c` FOREIGN KEY (`chat_session_id`) REFERENCES `chat_sessions` (`id`),
   CONSTRAINT `fk_rails_f9af74d956` FOREIGN KEY (`person_id`) REFERENCES `people` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `chat_messages`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -276,7 +276,7 @@ CREATE TABLE `chat_messages` (
   KEY `index_chat_messages_on_chat_session_id_and_created_at` (`chat_session_id`,`created_at`),
   KEY `index_chat_messages_on_sender_type_and_sender_id` (`sender_type`,`sender_id`),
   CONSTRAINT `fk_rails_4ad9cc70bd` FOREIGN KEY (`chat_session_id`) REFERENCES `chat_sessions` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `chat_sessions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -290,14 +290,14 @@ CREATE TABLE `chat_sessions` (
   `started_at` datetime DEFAULT NULL,
   `ended_at` datetime DEFAULT NULL,
   `total_tokens` int(11) NOT NULL DEFAULT 0,
-  `title` varchar(100) DEFAULT NULL,
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
+  `title` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `index_chat_sessions_on_person_id_and_status` (`person_id`,`status`),
   KEY `index_chat_sessions_on_listing_id_and_person_id` (`listing_id`,`person_id`),
   CONSTRAINT `fk_rails_32376f0e7c` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `checkout_accounts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -487,7 +487,7 @@ CREATE TABLE `community_customizations` (
   `profile_meta_description` text DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `index_community_customizations_on_community_id` (`community_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `community_memberships`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -508,7 +508,7 @@ CREATE TABLE `community_memberships` (
   UNIQUE KEY `index_community_memberships_on_person_id` (`person_id`) USING BTREE,
   KEY `index_community_memberships_on_community_id` (`community_id`) USING BTREE,
   KEY `community_person_status` (`community_id`,`person_id`,`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `community_social_logos`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -540,7 +540,7 @@ CREATE TABLE `community_translations` (
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `index_community_translations_on_community_id` (`community_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `contact_requests`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -593,7 +593,7 @@ CREATE TABLE `credit_transactions` (
   KEY `index_credit_transactions_on_reference_type_and_reference_id` (`reference_type`,`reference_id`),
   KEY `index_credit_transactions_on_transaction_type` (`transaction_type`),
   CONSTRAINT `fk_rails_e4ced3a389` FOREIGN KEY (`wallet_id`) REFERENCES `wallets` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `custom_field_names`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -608,7 +608,7 @@ CREATE TABLE `custom_field_names` (
   PRIMARY KEY (`id`),
   KEY `locale_index` (`custom_field_id`,`locale`) USING BTREE,
   KEY `index_custom_field_names_on_custom_field_id` (`custom_field_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=62 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `custom_field_option_selections`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -672,7 +672,7 @@ CREATE TABLE `custom_field_values` (
   KEY `index_custom_field_values_on_listing_id` (`listing_id`) USING BTREE,
   KEY `index_custom_field_values_on_type` (`type`) USING BTREE,
   KEY `index_custom_field_values_on_person_id` (`person_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=108 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=109 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `custom_fields`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -692,11 +692,11 @@ CREATE TABLE `custom_fields` (
   `entity_type` int(11) DEFAULT 0,
   `public` tinyint(1) DEFAULT 0,
   `assignment` int(11) DEFAULT 0,
-  `long_text` tinyint(1) NOT NULL DEFAULT 0,
+  `long_text` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'テキストフィールドを複数行(Markdown)で入力する',
   PRIMARY KEY (`id`),
   KEY `index_custom_fields_on_community_id` (`community_id`) USING BTREE,
   KEY `index_custom_fields_on_search_filter` (`search_filter`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `delayed_jobs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -760,7 +760,7 @@ CREATE TABLE `emails` (
   KEY `index_emails_on_address` (`address`) USING BTREE,
   KEY `index_emails_on_community_id` (`community_id`) USING BTREE,
   KEY `index_emails_on_confirmation_token` (`confirmation_token`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `export_task_results`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -904,7 +904,7 @@ CREATE TABLE `listing_ai_models` (
   KEY `index_listing_ai_models_on_ai_model_id` (`ai_model_id`),
   CONSTRAINT `fk_rails_006d96d6d4` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`),
   CONSTRAINT `fk_rails_11ac4831d0` FOREIGN KEY (`ai_model_id`) REFERENCES `ai_models` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `listing_blocked_dates`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -956,7 +956,7 @@ CREATE TABLE `listing_images` (
   `email_hash` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `index_listing_images_on_listing_id` (`listing_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `listing_shapes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1087,7 +1087,7 @@ CREATE TABLE `listings` (
   KEY `index_listings_on_state` (`state`),
   KEY `listings_homepage_query` (`community_id`,`open`,`state`,`deleted`,`valid_until`,`sort_date`),
   KEY `listings_updates_email` (`community_id`,`open`,`state`,`deleted`,`valid_until`,`updates_email_at`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `locations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1767,7 +1767,7 @@ CREATE TABLE `usage_records` (
   KEY `index_usage_records_on_ai_model_id` (`ai_model_id`),
   KEY `index_usage_records_on_user_plan_subscription_id_and_created_at` (`user_plan_subscription_id`,`created_at`),
   CONSTRAINT `fk_rails_962ab2ed19` FOREIGN KEY (`ai_model_id`) REFERENCES `ai_models` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `user_plan_subscription_transitions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1800,17 +1800,17 @@ CREATE TABLE `user_plan_subscriptions` (
   `period_usage_tokens` int(11) DEFAULT 0,
   `cancel_at_period_end` tinyint(1) DEFAULT 0,
   `stripe_subscription_id` varchar(255) DEFAULT NULL,
-  `freemius_subscription_id` varchar(255) DEFAULT NULL,
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
+  `freemius_subscription_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `index_user_plan_subscriptions_on_status` (`status`),
   KEY `index_user_plan_subscriptions_on_stripe_subscription_id` (`stripe_subscription_id`),
-  KEY `index_user_plan_subscriptions_on_freemius_subscription_id` (`freemius_subscription_id`),
   KEY `index_user_plan_subscriptions_on_person_id_and_status` (`person_id`,`status`),
   KEY `index_user_plan_subscriptions_on_listing_id_and_person_id` (`listing_id`,`person_id`),
+  KEY `index_user_plan_subscriptions_on_freemius_subscription_id` (`freemius_subscription_id`),
   CONSTRAINT `fk_rails_d8c9463137` FOREIGN KEY (`listing_id`) REFERENCES `listings` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `wallets`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1827,7 +1827,7 @@ CREATE TABLE `wallets` (
   UNIQUE KEY `index_wallets_on_person_id_and_community_id` (`person_id`,`community_id`),
   KEY `fk_rails_2063af8558` (`community_id`),
   CONSTRAINT `fk_rails_2063af8558` FOREIGN KEY (`community_id`) REFERENCES `communities` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -1840,6 +1840,7 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261025000000'),
 ('20261024150000'),
 ('20261016000000'),
 ('20261015064307'),
