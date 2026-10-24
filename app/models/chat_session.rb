@@ -44,25 +44,21 @@ class ChatSession < ApplicationRecord
 
   # Builds the system prompt from the associated Listing's persona fields.
   #
-  # Combines the listing's short_description, skill_markdown and
-  # external_apis into a single system prompt string that defines the AI
-  # persona's behavior. skill_markdown carries the persona's skills, so
-  # leaving it out meant personas could be given skills that the AI never
-  # saw.
+  # The seller's skill markdown is what the buyer is paying for, and it is
+  # never shown on the public listing. It is therefore sent verbatim as the
+  # system prompt. The listing's description / short_description are the
+  # storefront copy, not the persona definition, so they stay out of the AI
+  # context.
   #
-  # @return [String, nil] the system prompt, or nil if no persona is configured
+  # @return [String, nil] the system prompt, or nil if the seller wrote no skill
   def system_prompt
     listing_obj = listing
     return nil unless listing_obj
 
     parts = []
 
-    if listing_obj.short_description.present?
-      parts << listing_obj.short_description
-    end
-
     if listing_obj.skill_markdown.present?
-      parts << "スキル:\n#{listing_obj.skill_markdown.strip}"
+      parts << listing_obj.skill_markdown.strip
     end
 
     if listing_obj.external_apis.present?

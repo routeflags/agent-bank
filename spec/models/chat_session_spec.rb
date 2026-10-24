@@ -3,7 +3,7 @@
 require "rails_helper"
 
 # ペルソナの振る舞いを決める system_prompt の組み立てを検証する。
-# 出品に入力したスキルが抜けていたため、スキルを含むことを明示しておく。
+# スキルマークダウンが商品であり、店头の説明文は AI には渡さない。
 RSpec.describe ChatSession, type: :model do
   let(:community) { FactoryBot.create(:community) }
   let(:person) { FactoryBot.create(:person, community_id: community.id) }
@@ -14,6 +14,7 @@ RSpec.describe ChatSession, type: :model do
       community_id: community.id,
       author: person,
       short_description: "あなたは「はるか」という相談相手です。",
+      description: "悩みに寄り添うAIペルソナです。",
       skill_markdown: skill_markdown
     )
   end
@@ -22,20 +23,22 @@ RSpec.describe ChatSession, type: :model do
   end
 
   describe "#system_prompt" do
-    it "出品の説明文に続いてスキルを含める" do
+    it "スキルマークダウンをそのままシステムプロンプトにする" do
+      expect(chat_session.system_prompt).to eq("## 傾聴スキル\n- 相手の感情を言語化して返す")
+    end
+
+    it "出品の説明文（short_description / description）を含めない" do
       prompt = chat_session.system_prompt
 
-      expect(prompt).to include("あなたは「はるか」という相談相手です。")
-      expect(prompt).to include("スキル:")
-      expect(prompt).to include("相手の感情を言語化して返す")
-      expect(prompt.index("あなたは")).to be < prompt.index("スキル:")
+      expect(prompt).not_to include("はるか")
+      expect(prompt).not_to include("悩みに寄り添う")
     end
 
     context "スキルが未入力の場合" do
       let(:skill_markdown) { "" }
 
-      it "スキルの見出しを含めない" do
-        expect(chat_session.system_prompt).not_to include("スキル:")
+      it "説明文があっても nil を返す" do
+        expect(chat_session.system_prompt).to be_nil
       end
     end
 
@@ -44,10 +47,10 @@ RSpec.describe ChatSession, type: :model do
         listing.update!(external_apis: { "search" => { "description" => "商品検索" } }.to_json)
       end
 
-      it "スキルの後に外部APIの説明を含める" do
+      it "スキルの後に外部APIの説明を続ける" do
         prompt = chat_session.system_prompt
 
-        expect(prompt.index("スキル:")).to be < prompt.index("利用可能な外部 API")
+        expect(prompt.index("傾聴スキル")).to be < prompt.index("利用可能な外部 API")
         expect(prompt).to include("search: 商品検索")
       end
     end
