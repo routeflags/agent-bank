@@ -505,6 +505,9 @@ class ChatPanelApp extends React.Component {
     this.pendingMessages = [];
     this.abortController = null;
     this.messagesEndRef = null;
+    // アンマウント後の setState を避けるためのフラグ。
+    // 購読解除は componentWillUnmount からも呼ばれるため必要。
+    this.mounted = false;
 
     this.handleOpen = this.handleOpen.bind(this);
     this.handleClose = this.handleClose.bind(this);
@@ -623,7 +626,12 @@ class ChatPanelApp extends React.Component {
     var self = this;
     // 古い購読が残っていると this.subscription が上書きされ、
     // 送信と購読のペアがずれる（#32）。先に明示的に解除する。
+    // ただし購読確立前に送信された同一セッション宛の待機分は引き継ぐ。
+    var carried = this.pendingMessages.filter(function (payload) {
+      return payload.chat_session_id === sessionId;
+    });
     this.unsubscribeFromChannel();
+    this.pendingMessages = carried;
     var consumer = getConsumer();
     if (!consumer) {
       console.warn('[ActionCable] consumer not available');
@@ -659,14 +667,14 @@ class ChatPanelApp extends React.Component {
       }
       this.subscription = null;
     }
-    this.setState({ isConnected: false });
+    // アンマウント後は setState しない（React 16 の警告を避ける）。
+    if (this.mounted) this.setState({ isConnected: false });
     // セッション切替時の取り違えを防ぐため、旧セッション向け待機列は破棄する。
     this.pendingMessages = [];
   }
 
   // 接続確立前の送信は破棄せず待機列に入れ、connected 時に flush する。
   // perform が false（WebSocket 未接続）を返した場合も同様に待機させる。
-  // 戻り値: 送信を試みた payload（待機含む）、送信不能時は null。
   queuePendingMessage(payload) {
     this.pendingMessages.push(payload);
   }
@@ -691,11 +699,8 @@ class ChatPanelApp extends React.Component {
     }
   }
 
+  // 戻り値: 送信した（または待機列に入れた）payload。セッション ID 未確定時は false。
   sendMessage(content, attachment, sessionIdOverride) {
-    if (!this.subscription) {
-      console.warn('[ActionCable] no subscription, message queued');
-      return false;
-    }
     // setState は非同期のため、作成直後の送信では引数の ID を優先する（#32）。
     var sessionId = sessionIdOverride || this.state.sessionId;
     if (!sessionId) {
@@ -712,6 +717,12 @@ class ChatPanelApp extends React.Component {
       }
     };
     if (attachment && attachment.id) payload.attachment_id = attachment.id;
+    if (!this.subscription) {
+      // 購読確立前の送信も破棄せず待機列へ（connected 時に flush される）。
+      this.queuePendingMessage(payload);
+      console.warn('[ActionCable] no subscription, message queued');
+      return payload;
+    }
     var result = false;
     try {
       result = this.subscription.perform('receive', payload);
@@ -1196,6 +1207,7 @@ class ChatPanelApp extends React.Component {
   }
 
   componentDidMount() {
+    this.mounted = true;
     // Expose a global hook so server-rendered CTAs (e.g. the
     // "このスキルを利用する" button) can open this chat panel.
     var self = this;
@@ -1205,6 +1217,7 @@ class ChatPanelApp extends React.Component {
   }
 
   componentWillUnmount() {
+    this.mounted = false;
     this.disconnect();
     if (window.LampreyChat) delete window.LampreyChat;
   }
