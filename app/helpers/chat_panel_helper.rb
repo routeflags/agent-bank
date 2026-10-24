@@ -22,6 +22,7 @@ module ChatPanelHelper
       wallet_buy: chat[:wallet_buy],
       wallet_add_preparing: chat[:wallet_add_preparing],
       wallet_add_preparing_body: chat[:wallet_add_preparing_body],
+      wallet_topup_unavailable_reason: chat[:wallet_topup_unavailable_reason],
       purchase_preparing_body: chat[:purchase_preparing_body],
       purchase_not_configured: chat[:purchase_not_configured],
       purchase_checkout_failed: chat[:purchase_checkout_failed],

@@ -2328,6 +2328,7 @@ ja:
       wallet_buy: "購入する"
       wallet_add_preparing: "追加する（準備中）"
       wallet_add_preparing_body: "ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。"
+      wallet_topup_unavailable_reason: "決済が未設定のため、現在チャージできません。"
       purchase_preparing_body: "このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。"
       purchase_not_configured: "購入機能は現在準備中です（決済が未設定）。しばらくしてから再度お試しください。"
       purchase_checkout_failed: "購入ページの作成に失敗しました。時間をおいて再度お試しください。"

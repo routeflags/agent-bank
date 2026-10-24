@@ -122,6 +122,7 @@ var DEFAULT_I18N = {
   wallet_buy: '購入する',
   wallet_add_preparing: '追加する（準備中）',
   wallet_add_preparing_body: 'ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。',
+  wallet_topup_unavailable_reason: '決済が未設定のため、現在チャージできません。',
   purchase_preparing_body: 'このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。',
   purchase_not_configured: '購入機能は現在準備中です（決済が未設定）。しばらくしてから再度お試しください。',
   purchase_checkout_failed: '購入ページの作成に失敗しました。時間をおいて再度お試しください。',
@@ -493,6 +494,11 @@ class ChatPanelApp extends React.Component {
       walletBalance: 0,
       walletLoading: false,
       showTopupModal: false,
+      // Top-up availability (Issue #34): fetched from GET /api/v1/wallet_topup/status.
+      // Defaults to enabled so the button never flashes "preparing" when
+      // the status request fails; the server remains the source of truth.
+      topupEnabled: true,
+      topupDevMode: false,
       // Attachment (composer 📎)
       pendingAttachment: null,
     };
@@ -1054,6 +1060,7 @@ class ChatPanelApp extends React.Component {
   handleOpen() {
     this.setState({ isOpen: true });
     this.fetchWalletBalance();
+    this.fetchTopupStatus();
     this.fetchSessionHistory();
     if (!this.state.sessionId) {
       this.createSession();
@@ -1113,6 +1120,29 @@ class ChatPanelApp extends React.Component {
   handleOpenTopup() {
     this.fetchWalletBalance();
     this.setState({ showTopupModal: true });
+  }
+
+  // Top-up availability (Issue #34): keeps the settings button label in
+  // sync with the server payment configuration. Called when the panel opens.
+  fetchTopupStatus() {
+    var self = this;
+
+    fetch('/api/v1/wallet_topup/status', {
+      method: 'GET',
+      headers: jsonHeaders(),
+    })
+      .then(function (response) {
+        if (!response.ok) return null;
+        return response.json();
+      })
+      .then(function (data) {
+        if (data && typeof data.topup_enabled !== 'undefined') {
+          self.setState({ topupEnabled: !!data.topup_enabled, topupDevMode: !!data.dev_mode });
+        }
+      })
+      .catch(function () {
+        // Keep the optimistic default (enabled); the server validates on submit.
+      });
   }
 
   handleCloseTopup() {
@@ -1525,8 +1555,16 @@ class ChatPanelApp extends React.Component {
               className: 'wallet-balance__topupBtn',
               onClick: this.handleOpenTopup,
               type: 'button',
-            }, t('wallet_add_preparing'))
+              disabled: !state.topupEnabled,
+              title: state.topupEnabled ? null : t('wallet_topup_unavailable_reason'),
+            }, state.topupEnabled ? t('wallet_submit') : t('wallet_add_preparing'))
           ),
+
+          // Top-up unavailable reason (Issue #34): visible only when the
+          // server reports that no payment method is configured.
+          !state.topupEnabled && React.createElement('div', {
+            className: 'wallet-topup-unavailable',
+          }, t('wallet_topup_unavailable_reason')),
 
           React.createElement('h4', { className: 'chatPanel__settingsTitle' }, t('settings_title')),
 

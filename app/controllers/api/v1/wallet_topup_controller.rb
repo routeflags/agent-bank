@@ -55,6 +55,20 @@ module API
         }
       end
 
+      # GET /api/v1/wallet_topup/status
+      #
+      # Returns whether wallet top-up is currently available and why.
+      # The frontend uses this to keep the top-up button label in sync
+      # with the actual payment configuration (Issue #34):
+      #   * development without Stripe keys → dev_mode pseudo-payment
+      #   * Freemius configured → Freemius checkout
+      #   * Stripe key configured → Stripe PaymentIntent
+      #   * none of the above → topup_enabled: false with reason
+      # The branching precedence mirrors #create (dev > Freemius > Stripe).
+      def status
+        render json: topup_status_payload
+      end
+
       # POST /api/v1/wallet_topup
       #
       # Creates a checkout session with the configured payment provider.
@@ -185,6 +199,21 @@ module API
       # @return [Wallet]
       def find_or_create_wallet!
         current_user.find_or_create_wallet!(community: current_user.community)
+      end
+
+      # Builds the top-up availability payload (see #status).
+      # Precedence mirrors #create so the button state always matches
+      # what a top-up attempt would do.
+      def topup_status_payload
+        if dev_mode_topup?
+          { topup_enabled: true, dev_mode: true, provider: "dev", reason: nil }
+        elsif FreemiusClient.configured?
+          { topup_enabled: true, dev_mode: false, provider: "freemius", reason: nil }
+        elsif stripe_key_configured?
+          { topup_enabled: true, dev_mode: false, provider: "stripe", reason: nil }
+        else
+          { topup_enabled: false, dev_mode: false, provider: nil, reason: "payment_unconfigured" }
+        end
       end
 
       # Creates a Freemius checkout session for the wallet top-up.
