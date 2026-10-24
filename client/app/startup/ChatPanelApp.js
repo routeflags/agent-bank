@@ -500,6 +500,9 @@ class ChatPanelApp extends React.Component {
     this.streamingId = null;
     this.sending = false;
     this.subscription = null;
+    // 接続確立前に送信されたメッセージの待機列（#32 再発防止）。
+    // connected 確認後に順次 perform し、取りこぼしを無くす。
+    this.pendingMessages = [];
     this.abortController = null;
     this.messagesEndRef = null;
 
@@ -618,6 +621,9 @@ class ChatPanelApp extends React.Component {
 
   subscribeToChannel(sessionId) {
     var self = this;
+    // 古い購読が残っていると this.subscription が上書きされ、
+    // 送信と購読のペアがずれる（#32）。先に明示的に解除する。
+    this.unsubscribeFromChannel();
     var consumer = getConsumer();
     if (!consumer) {
       console.warn('[ActionCable] consumer not available');
@@ -627,7 +633,10 @@ class ChatPanelApp extends React.Component {
     var subscription = consumer.subscriptions.create(
       { channel: 'PersonaChatChannel', chat_session_id: sessionId },
       {
-        connected: function () { self.setState({ isConnected: true }); },
+        connected: function () {
+          self.setState({ isConnected: true });
+          self.flushPendingMessages();
+        },
         disconnected: function () { self.setState({ isConnected: false }); },
         received: function (data) {
           switch (data.type) {
@@ -643,15 +652,58 @@ class ChatPanelApp extends React.Component {
 
   unsubscribeFromChannel() {
     if (this.subscription) {
-      this.subscription.unsubscribe();
+      try {
+        this.subscription.unsubscribe();
+      } catch (e) {
+        console.warn('[ActionCable] unsubscribe failed', e);
+      }
       this.subscription = null;
+    }
+    this.setState({ isConnected: false });
+    // セッション切替時の取り違えを防ぐため、旧セッション向け待機列は破棄する。
+    this.pendingMessages = [];
+  }
+
+  // 接続確立前の送信は破棄せず待機列に入れ、connected 時に flush する。
+  // perform が false（WebSocket 未接続）を返した場合も同様に待機させる。
+  // 戻り値: 送信を試みた payload（待機含む）、送信不能時は null。
+  queuePendingMessage(payload) {
+    this.pendingMessages.push(payload);
+  }
+
+  flushPendingMessages() {
+    if (!this.subscription || this.pendingMessages.length === 0) return;
+    var queued = this.pendingMessages;
+    this.pendingMessages = [];
+    for (var i = 0; i < queued.length; i++) {
+      var sent = false;
+      try {
+        sent = this.subscription.perform('receive', queued[i]);
+      } catch (e) {
+        console.warn('[ActionCable] perform failed, re-queueing', e);
+      }
+      if (sent === false) {
+        // 接続がまだ開いていない — 先頭に戻して次回 connected 時に再送する。
+        this.pendingMessages = queued.slice(i);
+        console.warn('[ActionCable] connection not ready, message queued');
+        return;
+      }
     }
   }
 
-  sendMessage(content, attachment) {
-    if (!this.subscription) return;
+  sendMessage(content, attachment, sessionIdOverride) {
+    if (!this.subscription) {
+      console.warn('[ActionCable] no subscription, message queued');
+      return false;
+    }
+    // setState は非同期のため、作成直後の送信では引数の ID を優先する（#32）。
+    var sessionId = sessionIdOverride || this.state.sessionId;
+    if (!sessionId) {
+      console.warn('[ActionCable] no session id, message not sent');
+      return false;
+    }
     var payload = {
-      chat_session_id: this.state.sessionId,
+      chat_session_id: sessionId,
       content: content,
       settings: {
         token_limit: this.state.tokenLimit,
@@ -660,7 +712,19 @@ class ChatPanelApp extends React.Component {
       }
     };
     if (attachment && attachment.id) payload.attachment_id = attachment.id;
-    this.subscription.perform('receive', payload);
+    var result = false;
+    try {
+      result = this.subscription.perform('receive', payload);
+    } catch (e) {
+      console.warn('[ActionCable] perform threw', e);
+      result = false;
+    }
+    if (result === false) {
+      // WebSocket 未接続時は破棄せず待機列へ（connected 時に flush）。
+      this.queuePendingMessage(payload);
+      console.warn('[ActionCable] perform deferred until connected');
+    }
+    return payload;
   }
 
   disconnect() {
@@ -682,7 +746,9 @@ class ChatPanelApp extends React.Component {
 
   handleDone(data) {
     if (this.streamingId) {
-      this.finalizeMessage(this.streamingId, data.message_id || this.streamingId, data.is_result === true);
+      // サーバーは messageId（camelCase）で送る。旧形式 message_id も受ける（#32）。
+      var finalId = data.message_id || data.messageId || this.streamingId;
+      this.finalizeMessage(this.streamingId, finalId, data.is_result === true);
       this.streamingId = null;
     }
   }
@@ -799,12 +865,13 @@ class ChatPanelApp extends React.Component {
     this.setState({ inputText: '', pendingAttachment: null });
 
     if (this.state.sessionId) {
-      this.sendMessage(text, attachment);
+      this.sendMessage(text, attachment, this.state.sessionId);
       this.sending = false;
     } else {
       this.createSession().then(function (result) {
         if (result && result.id) {
-          self.sendMessage(text, attachment);
+          // setState の反映待ちによる取り違えを避けるため、作成結果の ID を直接渡す（#32）。
+          self.sendMessage(text, attachment, result.id);
         } else {
           // エラータイプに応じて適切なメッセージを表示
           var errorType = result ? result.error_type : null;
