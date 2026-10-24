@@ -974,11 +974,34 @@ class ChatPanelApp extends React.Component {
   }
 
   handleOpen() {
+    var self = this;
     this.setState({ isOpen: true });
     this.fetchWalletBalance();
     this.fetchSessionHistory();
     if (!this.state.sessionId) {
-      this.createSession();
+      this.createSession().then(function (result) {
+        // パネルを開いた直後に未購入で失敗した場合も、メッセージ内に
+        // 購入導線（購入するボタン）を表示する。createSession は
+        // state.error に文言を入れるだけなので、ここで購入メッセージに
+        // 置き換える（送信時と同じ表示にする）。
+        if (result && !result.id && result.error_type === 'purchase_required') {
+          self.setState(function (prev) {
+            var hasPrompt = prev.messages.some(function (m) { return m.showPurchaseButton; });
+            if (hasPrompt) return { error: null };
+            return {
+              error: null,
+              messages: prev.messages.concat([{
+                id: 'sys-purchase-' + Date.now(),
+                role: 'system',
+                content: t('purchase_required'),
+                isStreaming: false,
+                created_at: new Date().toISOString(),
+                showPurchaseButton: true,
+              }]),
+            };
+          });
+        }
+      });
     }
   }
 
