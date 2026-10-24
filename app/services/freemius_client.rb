@@ -114,6 +114,18 @@ module FreemiusClient
       get(product_path("payments/#{encode(payment_id.to_s)}"))
     end
 
+    # Retrieves a user (buyer) by their Freemius user ID (product scope).
+    #
+    # Real path: GET /products/{product_id}/users/{user_id}.json
+    # Useful to resolve the buyer's email from a payment when the webhook
+    # payload is not available (e.g. manual debugging).
+    #
+    # @param user_id [String, Integer]
+    # @return [Hash] user object (email, first, last, ...)
+    def get_user(user_id)
+      get(product_path("users/#{encode(user_id.to_s)}"))
+    end
+
     # Retrieves a subscription by its Freemius subscription ID (product scope).
     #
     # Real path: GET /products/{product_id}/subscriptions/{subscription_id}.json
