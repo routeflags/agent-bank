@@ -5,10 +5,11 @@
 # Provides CRUD operations for chat sessions, scoped to the
 # authenticated user. Sessions link a Person to a Listing (persona).
 #
-# Balance gate (Issue #51):
+# Balance gate (Issues #51, #52):
 #   The `create` action requires a wallet balance of at least
-#   `PersonaExecutorJob::MIN_BALANCE_CENTS` (free personas via `free_to_use?`
-#   are exempt). There is no per-listing purchase entitlement.
+#   `PersonaExecutorJob::MIN_BALANCE_CENTS`. Every listing is charged
+#   against the wallet balance — no exceptions.
+#   There is no per-listing purchase entitlement.
 #   The billing_model is determined server-side — client-provided values are ignored.
 class API::V1::ChatSessionsController < ApplicationController
   # API controller — CSRF token not needed (authenticated via Devise session/cookie)
@@ -152,18 +153,14 @@ class API::V1::ChatSessionsController < ApplicationController
 
   # Checks whether the person may start a chat for the listing.
   #
-  # 課金は残高（ウォレット）一本（Issue #51）。チャットの開始条件は
+  # 課金は残高（ウォレット）一本（Issues #51, #52）。チャットの開始条件は
   # `PersonaExecutorJob` と同じ「残高が最低額以上あること」で、出品ごとの
-  # 購入権利（UserPlanSubscription）は見ない。
-  #
-  # 無料ペルソナ（`free_to_use?`）は残高不要で利用できる（Issue #52 で撤去予定）。
+  # 購入権利（UserPlanSubscription）は見ない。全出品が有料のため例外はない。
   #
   # @param person [Person]
   # @param listing [Listing]
   # @return [Boolean]
   def purchased?(person, listing)
-    return true if listing.free_to_use?
-
     wallet = person.wallet
     return false if wallet.nil?
 

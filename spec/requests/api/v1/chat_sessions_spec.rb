@@ -139,18 +139,20 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
       end
     end
 
-    context "無料ペルソナ（価格 0）は購入なしでセッションを作成できる" do
-      let(:free_listing) do
+    # Issue #52: 全出品は有料。残高さえあればサブスク無しでセッションを
+    # 作成できる（価格による例外なし・残高ゲートのみ）。
+    context "有料ペルソナはサブスクなし・残高ありでセッションを作成できる" do
+      let(:paid_listing) do
         FactoryBot.create(:listing,
                           community_id: community.id,
                           author: other_person,
-                          price: Money.new(0, "USD"),
+                          price: Money.new(2000, "USD"),
                           default_run_mode: "run_online")
       end
 
       before do
         sign_in_as(person)
-        post "/api/v1/chat_sessions", params: { listing_id: free_listing.id }
+        post "/api/v1/chat_sessions", params: { listing_id: paid_listing.id }
       end
 
       it "returns 201" do
@@ -160,7 +162,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
       it "purchase_required を返さない" do
         json = JSON.parse(response.body)
         expect(json["error_type"]).to be_nil
-        expect(json["chat_session"]["listing_id"]).to eq(free_listing.id)
+        expect(json["chat_session"]["listing_id"]).to eq(paid_listing.id)
       end
 
       it "サブスクリプション無しでもセッションを作成する" do

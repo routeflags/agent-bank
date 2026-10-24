@@ -55,11 +55,13 @@ describe "Free transaction and preauthorized flows", type: :request do
     }.not_to change(UserPlanSubscription, :count)
   end
 
-  it "does not grant a purchase subscription on contact (free persona)" do
-    free_listing = FactoryBot.create(:listing,
+  it "does not grant a purchase subscription on contact (legacy priceless listing)" do
+    # Issue #52: 価格 0 の出品は新規作成できない。旧来データ相当としてバリデーションを迂回する。
+    free_listing = FactoryBot.build(:listing,
                                      community_id: @community.id,
                                      author: @author,
                                      price: Money.new(0, "USD"))
+    free_listing.save!(validate: false)
     sign_in(@buyer)
     expect {
       post "http://#{@domain}/ja/listings/#{free_listing.id}/create_contact",

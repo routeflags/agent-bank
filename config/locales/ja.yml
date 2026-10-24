@@ -733,7 +733,7 @@ ja:
       departure_time: 出発時間は、現在から１年後の間にしてください。
       share_type: どれか選択してください。
       valid_until: 日付は、今から半年後の間にしてください。
-      price: 価格は半角数字で記入してください。
+      price: 価格（円 / 100万トークン）は必須です。1以上の半角数字で記入してください。
       minimum_price: "%{minimum_price}%{currency}以上の値段を設定してください。"
     testimonials:
       you_must_explain_not_neutral_feedback: "「普通（1-5の数字のレベルでは3）」以外の回答、すなわち良かった場合、あるいは期待以下だった場合は、その理由のご説明をお願いします。"
@@ -1299,7 +1299,7 @@ ja:
       location:
         location: 場所 （地区、郵便番号、市町区村名...）
       price:
-        price: 価格（半角数字でご入力ください）
+        price: 価格（円 / 100万トークン、半角数字でご入力ください）
         per: につき
         per_million_tokens: 円 / 100万トークン
         per_day: 1日あたり
@@ -2482,8 +2482,10 @@ ja:
       th_price: "価格"
       th_status: "ステータス"
       th_actions: "操作"
-      status_published: "公開中"
-      status_closed: "終了"
+      status_published: 公開中
+      status_closed: 終了
+      price_unset: 価格未設定
+      price_unset_hint: 価格（円 / 100万トークン）を設定してください
       action_edit: "編集"
       action_view: "表示"
       empty_listings: "まだ出品がありません"
@@ -2498,8 +2500,7 @@ ja:
       contact_seller: "💬 出品者に問い合わせ"
       rating_none: "評価なし"
       review_none: "レビューなし"
-      free: "無料"
-      price_note: "※トークン消費に応じて変動する場合があります"
+      price_note: ※円 / 100万トークンの単価です。トークン消費量に応じて課金されます
       usd_billing_note: "USD請求額の目安: 約 $%{usd}（¥%{jpy}換算）"
       login_required: "ログインが必要です"
       skill_detail: "スキル詳細"
@@ -2513,7 +2514,9 @@ ja:
       reviews: "レビュー"
       related_skills: "関連スキル"
       pricing_model: "料金体系"
-      token_price: "トークン単価"
+      token_price: トークン単価
+      price_unset: 価格未設定
+      set_price: 価格を設定する
       estimated_cost: "概算利用料金"
       free_trial: "無料体験"
       privacy: "プライバシー条件"

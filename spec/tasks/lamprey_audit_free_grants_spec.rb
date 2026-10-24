@@ -26,12 +26,13 @@ RSpec.describe "lamprey:audit:free_grants", type: :task do
       title: "有料ペルソナ", price: Money.new(1000, "USD")
     )
   end
+  # Issue #52: 価格 0 の出品は新規作成できない。旧来データ相当としてバリデーションを迂回する。
   let(:free_listing) do
-    FactoryBot.create(
+    FactoryBot.build(
       :listing,
       community_id: community.id, author: author,
-      title: "無料ペルソナ", price: 0
-    )
+      title: "価格0（旧来データ）", price: 0
+    ).tap { |l| l.save!(validate: false) }
   end
 
   def create_free_tx(listing:, buyer:, community:, **attrs)
@@ -144,7 +145,7 @@ RSpec.describe "lamprey:audit:free_grants", type: :task do
   end
 
   context "対象外の取引" do
-    it "無料 listing（価格 0）の free 取引は対象にしない" do
+    it "価格0（旧来データ）の listing の free 取引は対象にしない" do
       free_tx = create_free_tx(listing: free_listing, buyer: buyer, community: community)
 
       output = run_task_output

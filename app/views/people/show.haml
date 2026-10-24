@@ -129,7 +129,15 @@
                     = "★ #{listing.avg_rating.round(1)}"
                   - else
                     = "—"
-              %td= number_to_currency(listing.price_cents.to_i / 100.0, unit: "¥", precision: 0, delimiter: ",")
+              %td
+                -# Issue #52: 価格未設定の出品は非公開になる。編集画面へ誘導する。
+                - if listing.price_cents.to_i.positive?
+                  = number_to_currency(listing.price_cents.to_i / 100.0, unit: "¥", precision: 0, delimiter: ",")
+                - else
+                  .raku-table__status
+                    %span.raku-table__status-dot
+                    = t('lamprey.mypage.price_unset')
+                  %div= link_to t('lamprey.mypage.price_unset_hint'), edit_listing_path(listing), class: "raku-link-gold"
               %td
                 - if listing.open?
                   .raku-table__status.raku-table__status--active

@@ -210,7 +210,11 @@ class Listing < ApplicationRecord
   validates_length_of :description, :maximum => 5000, :allow_nil => true
   validates_presence_of :category
   validates_inclusion_of :valid_until, :allow_nil => true, :in => proc{ DateTime.now..DateTime.now + 7.months }
-  validates_numericality_of :price_cents, :only_integer => true, :greater_than_or_equal_to => 0, :message => "price must be numeric", :allow_nil => true
+  # Issue #52: 全出品は有料。「円 / 100万トークン」の単価として価格必須。
+  # nil/0 では保存できない。
+  validates :price_cents,
+            presence: { message: "価格（円 / 100万トークン）を入力してください" },
+            numericality: { only_integer: true, greater_than: 0, message: "価格（円 / 100万トークン）は1以上の整数を入力してください" }
 
   # sets the time to midnight
   def set_valid_until_time
@@ -452,21 +456,6 @@ class Listing < ApplicationRecord
   # @return [Boolean]
   def supports_run_mode?(mode)
     available_run_modes.include?(mode.to_s)
-  end
-
-  # 購入（UserPlanSubscription）なしで利用できるペルソナか。
-  #
-  # 次のいずれかなら購入不要とみなす:
-  #   * 価格が未設定または 0（無料ペルソナ）
-  #   * 無料実行モード（default_run_mode == "free"）
-  #
-  # チャット開始時の権利判定（API::V1::ChatSessionsController#purchased?）
-  # から参照される。トークン原価は購入価格とは別で、無料ペルソナでも
-  # ウォレットから従量課金される（BillingService の既存仕様）。
-  #
-  # @return [Boolean]
-  def free_to_use?
-    price_cents.to_i.zero? || default_run_mode == "free"
   end
 
   # Returns a hash summarizing all persona-related fields.

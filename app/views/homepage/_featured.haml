@@ -35,10 +35,9 @@
                 - else
                   %span.raku-muted-label= t('lamprey.listings.rating_none')
               .raku-card__price
-                - if listing.price
+                -# Issue #52: 価格未設定の出品は非公開のため一覧に出ない。価格がある場合のみ表示する。
+                - if listing.price && listing.price_cents.to_i.positive?
                   = MoneyViewUtils.to_humanized(listing.price)
-                - else
-                  = t('lamprey.listings.free')
     %button.raku-featured__arrow.raku-featured__arrow--next{type: "button", "aria-label": t('lamprey.homepage.slide_next'), onclick: "RakuFeatured.slide(1)"} ›
 
     - if @listings.empty?

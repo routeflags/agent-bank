@@ -11,7 +11,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| チャット開始条件 | `UserPlanSubscription`（`status: active`）または無料ペルソナ（`Listing#free_to_use?`） |
+| チャット開始条件 | 残高ゲートのみ（Issue #51, #52。無料ペルソナは存在しない） |
 | 購入権利の付与（本番・Freemius） | `payment.completed` Webhook（persona_purchase）→ サーバー側検証 → `UserPlanSubscriptionService.create_for`（[Issue #23](https://github.com/routeflags/agent-bank/issues/23)。**キー投入は未実施**。詳細は §11） |
 | 購入権利の付与（本番・取引） | 取引ステートマシンの `confirmed` 遷移（実決済の完了） |
 | 購入権利の付与（管理者） | 手動付与 Rake（`lamprey:purchases:grant`。**production でも可**。運用手順は [manual_purchase_grant.md](./manual_purchase_grant.md)） |
@@ -156,12 +156,11 @@ Content-Type: application/json
 
 ---
 
-## 7. 無料ペルソナ（価格 0 / 無料実行モード）の扱い
+## 7. 無料ペルソナの撤去（Issue #52）
 
-- 価格が未設定または 0、あるいは `default_run_mode == 'free'` のペルソナは **購入不要**（`Listing#free_to_use?`）。
-  403 `purchase_required` を返さず、`UserPlanSubscription` が無くてもチャットセッションを作成できる。
-- 購入権利が無い場合の `billing_model` は `token_based`（従量課金）。
-- ⚠️ 既知の制約: 無料ペルソナでもトークン原価はウォレットから従量課金される（完全無料化は課金設計の変更であり別 Issue）。
+- 無料ペルソナは存在しない。`Listing#free_to_use?` は撤去済み。
+- チャット開始の可否は残高ゲート（`API::V1::ChatSessionsController#purchased?`）でのみ判定する。`UserPlanSubscription` の有無は見ない。
+- 価格は「円 / 100万トークン」の単価として必須。nil/0 の出品は保存できない。既存の価格未設定出品は非公開（`open=false`）。
 - `run_online` 以外（`download` / `free`）のペルソナはチャットパネルがマウントされず、通常の注文フローになる。
 
 ---
@@ -259,7 +258,7 @@ sequenceDiagram
 | 200 | `{ "status": "already_purchased" }`（active な購入権利があれば Checkout は作らない） |
 | 401 | 未ログイン |
 | 404 | `error_type: "listing_not_found"`（ペルソナ不在） |
-| 422 | `error_type: "free_listing"`（無料ペルソナは購入不要） |
+| 422 | `error_type: "free_listing"` は撤去済み（Issue #51 で購入 API 自体を廃止、#52 で無料分岐を削除） |
 | 503 | `error_type: "purchase_not_configured"`（`FREEMIUS_API_KEY` 未設定） |
 | 502 | `error_type: "checkout_failed"`（Freemius API 側の障害・応答不正） |
 

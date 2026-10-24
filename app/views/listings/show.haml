@@ -200,15 +200,17 @@
 
   -# ── Right sidebar: Price + CTA + Seller ───────────────
   .raku-listing-hero__sidebar
-    -# Price box
+    -# Price box（Issue #52: 全出品は有料。価格は必須）
     .raku-price-box
-      - if @listing.price
+      - if @listing.price && @listing.price_cents.to_i.positive?
         .raku-price-box__amount
           = MoneyViewUtils.to_humanized(@listing.price)
         - with_quantity_text(@current_community, @listing) do |text|
           .raku-price-box__unit= text
       - else
-        .raku-price-box__amount= t('lamprey.listings.free')
+        .raku-price-box__amount= t('lamprey.listings.price_unset')
+        - if logged_in? && @listing.author == @current_user
+          = link_to t('lamprey.listings.set_price'), edit_listing_path(@listing), class: "raku-cta-btn raku-cta-btn--ghost"
       .raku-price-box__note= t('lamprey.listings.price_note')
       -# Freemius は USD 建て請求のため、円価格の近くに USD 目安を示す（レート設定時のみ）
       - if @listing.price && @listing.price_cents.to_i.positive? && FreemiusPricing.configured?
@@ -267,10 +269,10 @@
         .raku-detail-panel__item
           .raku-detail-panel__label= t('lamprey.listings.token_price')
           .raku-detail-panel__value
-            - if @listing.price
+            - if @listing.price && @listing.price_cents.to_i.positive?
               = MoneyViewUtils.to_humanized(@listing.price)
             - else
-              = t('lamprey.listings.free')
+              = t('lamprey.listings.price_unset')
         .raku-detail-panel__item
           .raku-detail-panel__label= t('lamprey.listings.free_trial')
           .raku-detail-panel__value

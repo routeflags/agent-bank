@@ -59,9 +59,11 @@ RSpec.describe "Persona purchase entitlement", type: :model do
       expect(tx.reload.current_state).to eq("free")
     end
 
-    it "無料ペルソナへのコンタクトでも購入権利を付与しない" do
-      free_listing = FactoryBot.create(:listing, community_id: community.id,
-                                                 author: author, price: Money.new(0, "USD"))
+    it "価格0（旧来データ）の出品へのコンタクトでも購入権利を付与しない" do
+      # Issue #52: 価格 0 の出品は新規作成できない。旧来データ相当としてバリデーションを迂回する。
+      free_listing = FactoryBot.build(:listing, community_id: community.id,
+                                                author: author, price: Money.new(0, "USD"))
+      free_listing.save!(validate: false)
       tx = build_transaction("not_started", listing: free_listing, payment_gateway: "none")
 
       expect {
