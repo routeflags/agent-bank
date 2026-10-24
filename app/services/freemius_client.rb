@@ -4,122 +4,205 @@ require "net/http"
 require "uri"
 require "json"
 
-# Thin HTTP client for the Freemius REST API.
+# Thin HTTP client for the Freemius REST API (product scope).
 #
-# Freemius acts as the Merchant of Record: checkout sessions are created
-# here, and payment/subscription completion is delivered back via webhooks
-# (see FreemiusWebhooksController). This client only performs outbound
-# API calls with Bearer token authentication.
+# Freemius acts as the Merchant of Record. Checkout is hosted and plan-based:
+#   https://checkout.freemius.com/product/{product_id}/plan/{plan_id}/
+# There is no server API to create a checkout with an arbitrary amount
+# (see Issue #43 and documents/guides/freemius_production_setup.md).
+# This client therefore:
+#   * builds hosted checkout URLs locally (no network call), and
+#   * performs outbound product-scoped API calls with Bearer authentication
+#     for server-side verification (payments / subscriptions).
+# Completion is delivered back via webhooks (see FreemiusWebhooksController).
 #
-# Reference: https://freemius.com/help/api/
+# Reference: https://freemius.com/help/api/ (Bearer Token Authentication,
+#   product scope: GET /products/{product_id}/payments/{payment_id}.json)
+# OpenAPI: https://api.freemius.com/v1/openapi.json (112 paths, no /checkouts)
+# Checkout: https://freemius.com/help/documentation/checkout/integration/hosted-checkout/
+# Webhooks: https://freemius.com/help/documentation/marketing-automation/events-webhooks/
 #
 # Usage:
-#   client = FreemiusClient.new
-#   session = client.create_checkout(amount_cents: 3000, currency: "USD",
-#                                    user_id: "abc", wallet_id: 1)
-#   # => { "checkout_url" => "https://...", "payment_id" => "..." }
+#   FreemiusClient.configured? # => product_id + Bearer both present
+#   url = FreemiusClient.build_hosted_checkout_url(plan_id: "5678", user_email: "a@x")
+#   payment = FreemiusClient.get_payment("9876")
 module FreemiusClient
   class ApiError < StandardError; end
 
   DEFAULT_BASE_URL = "https://api.freemius.com/v1"
+  HOSTED_CHECKOUT_BASE_URL = "https://checkout.freemius.com"
   OPEN_TIMEOUT = 10
   READ_TIMEOUT = 30
 
   class << self
-    # Creates a checkout session for a wallet top-up.
+    # Builds a hosted checkout URL for a plan (no network call).
     #
-    # @param amount_cents [Integer] charge amount in cents
-    # @param currency [String] ISO currency code (e.g. "USD")
-    # @param user_id [String] local person ID (stored in metadata for webhook matching)
-    # @param wallet_id [Integer] local wallet ID (stored in metadata)
-    # @param success_url [String, nil] redirect target after successful payment
-    # @param cancel_url [String, nil] redirect target after cancellation
-    # @return [Hash] { "checkout_url" => String, "payment_id" => String }
-    # @raise [ApiError] when credentials are missing or the API errors
-    def create_checkout(amount_cents:, currency:, user_id:, wallet_id:,
-                        success_url: nil, cancel_url: nil)
-      body = {
-        amount_cents: amount_cents,
-        currency: currency,
-        metadata: {
-          user_id: user_id,
-          wallet_id: wallet_id,
-          type: "wallet_topup"
-        }
-      }
-      body[:success_url] = success_url if success_url
-      body[:cancel_url] = cancel_url if cancel_url
+    # Freemius Checkout is plan-based; an arbitrary amount_cents cannot be
+    # specified. The caller must resolve a plan_id first (see
+    # plan_id_for_listing). Amounts/currency are defined in the Dashboard
+    # Plans/Pricing (usd|eur|gbp only).
+    #
+    # @param plan_id [String, Integer] Freemius plan ID (required)
+    # @param user_email [String, nil] prefill + webhook correlation hint
+    # @param cancel_url [String, nil] hosted checkout back-button target
+    # @param extra [Hash] additional query params (coupon, title, etc.)
+    # @return [String] hosted checkout URL
+    # @raise [ApiError] when product_id is missing or plan_id is blank
+    def build_hosted_checkout_url(plan_id:, user_email: nil, cancel_url: nil, extra: {})
+      pid = product_id
+      raise ApiError, "FREEMIUS_PRODUCT_ID is not configured" if pid.blank?
+      raise ApiError, "plan_id is required for Freemius hosted checkout" if plan_id.to_s.strip.empty?
 
-      post("/checkouts", body)
+      base = "#{HOSTED_CHECKOUT_BASE_URL}/product/#{encode(pid)}/plan/#{encode(plan_id.to_s.strip)}/"
+      params = {}
+      params.merge!(extra.transform_keys(&:to_s)) if extra
+      params["user_email"] = user_email.to_s.strip if user_email.to_s.strip.present?
+      params["readonly_user"] = "true" if user_email.to_s.strip.present?
+      params["cancel_url"] = cancel_url.to_s.strip if cancel_url.to_s.strip.present?
+      return base if params.empty?
+
+      "#{base}?#{URI.encode_www_form(params)}"
     end
 
-    # Creates a checkout session for a persona purchase (one listing unit).
+    # Resolves the Freemius plan for a listing.
     #
-    # Separate from the wallet top-up checkout: metadata carries
-    # type: "persona_purchase" plus listing_id / user_id so the webhook
-    # (FreemiusWebhooksController) can grant the purchase entitlement
-    # (UserPlanSubscriptionService.create_for) after server-side verification.
+    # Priority: listing.freemius_plan_id (if the column/method exists) →
+    # FREEMIUS_PLAN_MAP (JSON: { "<listing_id>": "<plan_id>" }) →
+    # FREEMIUS_PLAN_ID (single-plan fallback).
     #
-    # @param amount_cents [Integer] listing price in cents (server-side value)
-    # @param currency [String] ISO currency code (e.g. "JPY")
-    # @param user_id [String] local person ID (stored in metadata for webhook matching)
-    # @param listing_id [Integer] local listing ID (stored in metadata)
-    # @param success_url [String, nil] redirect target after successful payment
-    # @param cancel_url [String, nil] redirect target after cancellation
-    # @return [Hash] { "checkout_url" => String, "payment_id" => String }
-    # @raise [ApiError] when credentials are missing or the API errors
-    def create_persona_purchase_checkout(amount_cents:, currency:, user_id:, listing_id:,
-                                         success_url: nil, cancel_url: nil)
-      body = {
-        amount_cents: amount_cents,
-        currency: currency,
-        metadata: {
-          type: "persona_purchase",
-          user_id: user_id,
-          listing_id: listing_id
-        }
-      }
-      body[:success_url] = success_url if success_url
-      body[:cancel_url] = cancel_url if cancel_url
+    # @param listing [Listing]
+    # @return [String, nil] plan ID or nil when unresolvable
+    def plan_id_for_listing(listing)
+      if listing.respond_to?(:freemius_plan_id) && listing.try(:freemius_plan_id).to_s.strip.present?
+        return listing.freemius_plan_id.to_s.strip
+      end
 
-      post("/checkouts", body)
+      map = plan_map
+      key = listing.id.to_s
+      return map[key].to_s.strip if map[key].to_s.strip.present?
+
+      single = ENV["FREEMIUS_PLAN_ID"].to_s.strip
+      single.presence
     end
 
-    # Retrieves a payment by its Freemius payment ID.
+    # Reverse lookup: plan_id → listing_id (for webhook dispatch).
+    # Single-plan mode cannot identify the listing from the plan alone,
+    # so it returns nil and the caller falls back to webhook metadata.
+    #
+    # @param plan_id [String, Integer, nil]
+    # @return [Integer, nil]
+    def listing_id_for_plan(plan_id)
+      return nil if plan_id.to_s.strip.empty?
+
+      map = plan_map
+      found = map.find { |_lid, pid| pid.to_s.strip == plan_id.to_s.strip }
+      return found[0].to_i if found
+
+      nil
+    end
+
+    # Retrieves a payment by its Freemius payment ID (product scope).
+    #
+    # Real path: GET /products/{product_id}/payments/{payment_id}.json
     #
     # @param payment_id [String]
-    # @return [Hash] payment object
+    # @return [Hash] payment object (gross: Float, currency:, id:, ...)
     def get_payment(payment_id)
-      get("/payments/#{payment_id}")
+      get(product_path("payments/#{encode(payment_id.to_s)}"))
     end
 
-    # Retrieves a subscription by its Freemius subscription ID.
+    # Retrieves a subscription by its Freemius subscription ID (product scope).
+    #
+    # Real path: GET /products/{product_id}/subscriptions/{subscription_id}.json
     #
     # @param subscription_id [String]
     # @return [Hash] subscription object
     def get_subscription(subscription_id)
-      get("/subscriptions/#{subscription_id}")
+      get(product_path("subscriptions/#{encode(subscription_id.to_s)}"))
     end
 
-    # Whether Freemius credentials are configured.
+    # Converts a Freemius payment hash to cents.
+    # Real schema uses `gross` (Float, tax-excluded). Legacy stubs/tests may
+    # use `amount_cents` / `amount` (cents). This helper accepts both.
+    #
+    # @param payment [Hash]
+    # @return [Integer] amount in cents (0 when unresolvable)
+    def payment_amount_cents(payment)
+      return 0 unless payment.is_a?(Hash)
+
+      cents = payment["amount_cents"] || payment[:amount_cents] ||
+              payment["amount"] || payment[:amount]
+      return cents.to_i if cents.to_i.positive?
+
+      gross = payment["gross"] || payment[:gross]
+      return 0 if gross.nil? || gross.to_f <= 0
+
+      (gross.to_f * 100).round
+    end
+
+    # Whether Freemius server credentials are configured.
+    # Requires the numeric product_id AND the Bearer token.
     #
     # @return [Boolean]
     def configured?
-      api_key.present?
+      product_id.present? && bearer_token.present?
+    end
+
+    # Webhook HMAC secret: PRODUCT_SECRET_KEY (preferred) or legacy fallback.
+    #
+    # @return [String, nil]
+    def webhook_secret
+      secret = ENV["PRODUCT_SECRET_KEY"].to_s.strip
+      return secret if secret.present?
+
+      legacy = ENV["FREEMIUS_WEBHOOK_SECRET"].to_s.strip
+      legacy.presence
+    end
+
+    # Numeric Freemius product ID (Dashboard → product Settings → API & Keys).
+    #
+    # @return [String, nil]
+    def product_id
+      pid = ENV["FREEMIUS_PRODUCT_ID"].to_s.strip
+      pid.presence
     end
 
     private
 
+    def bearer_token
+      token = ENV["API_BEARER_AUTHORIZATION_TOKEN"].to_s.strip
+      return token if token.present?
+
+      legacy = ENV["FREEMIUS_API_KEY"].to_s.strip
+      legacy.presence
+    end
+
+    # Kept for backward compatibility with callers/tests referencing api_key.
     def api_key
-      ENV["FREEMIUS_API_KEY"]
+      bearer_token
     end
 
     def base_url
       ENV.fetch("FREEMIUS_API_BASE_URL", DEFAULT_BASE_URL)
     end
 
-    def post(path, body)
-      request(:post, path, body)
+    def product_path(rest)
+      suffix = rest.end_with?(".json") ? rest : "#{rest}.json"
+      "/products/#{encode(product_id)}/#{suffix}"
+    end
+
+    def plan_map
+      raw = ENV["FREEMIUS_PLAN_MAP"].to_s.strip
+      return {} if raw.empty?
+
+      parsed = JSON.parse(raw)
+      parsed.is_a?(Hash) ? parsed : {}
+    rescue JSON::ParserError
+      {}
+    end
+
+    def encode(part)
+      URI.encode_www_form_component(part.to_s)
     end
 
     def get(path)
@@ -127,7 +210,9 @@ module FreemiusClient
     end
 
     def request(method, path, body)
-      raise ApiError, "FREEMIUS_API_KEY is not configured" unless configured?
+      unless configured?
+        raise ApiError, "Freemius is not configured (FREEMIUS_PRODUCT_ID and API_BEARER_AUTHORIZATION_TOKEN are required)"
+      end
 
       uri = URI.parse("#{base_url}#{path}")
       http = Net::HTTP.new(uri.host, uri.port)

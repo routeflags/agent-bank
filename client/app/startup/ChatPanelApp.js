@@ -234,7 +234,7 @@ class WalletTopupModal extends React.Component {
 
     self.setState({ isProcessing: true, error: null });
 
-    // Step 1: Create a checkout session (Freemius preferred, Stripe fallback)
+    // Step 1: Create a top-up intent (dev pseudo-payment; Freemius/Stripe not used per Issue #43)
     fetch('/api/v1/wallet_topup', {
       method: 'POST',
       headers: jsonHeaders(),
@@ -249,14 +249,15 @@ class WalletTopupModal extends React.Component {
         return response.json();
       })
       .then(function (data) {
-        // Freemius (Merchant of Record): redirect to the hosted checkout.
+        // Hosted checkout redirect (reserved for fixed prepaid plans; wallet
+        // arbitrary-amount checkout is unsupported per Issue #43).
         // Completion arrives via webhook; poll the balance on return.
         if (data.provider === 'freemius' && data.checkout_url) {
           self.setState({ isProcessing: false, redirecting: true });
           window.location.href = data.checkout_url;
           return null;
         }
-        // Stripe fallback / dev mode: confirm the payment directly.
+        // Dev mode: confirm the pseudo payment directly.
         return fetch('/api/v1/wallet_topup/confirm', {
           method: 'POST',
           headers: jsonHeaders(),
@@ -264,7 +265,7 @@ class WalletTopupModal extends React.Component {
         });
       })
       .then(function (response) {
-        // Freemius redirect path returns null above; skip confirm in that case.
+        // Hosted redirect path returns null above; skip confirm in that case.
         if (!response) return null;
         if (!response.ok) {
           return response.json().catch(function () { return {}; }).then(function (body) {
@@ -274,7 +275,7 @@ class WalletTopupModal extends React.Component {
         return response.json();
       })
       .then(function (data) {
-        // Null means the Freemius redirect already happened; nothing more to do.
+        // Null means the hosted redirect already happened; nothing more to do.
         if (!data) return;
         self.setState({ isProcessing: false, success: true });
         if (self.props.onSuccess) self.props.onSuccess(data.balance_cents);

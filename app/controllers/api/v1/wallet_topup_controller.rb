@@ -1,10 +1,16 @@
 # frozen_string_literal: true
 
-# Wallet top-up API controller.
+# Wallet top-up API controller (Issue #34, Issue #43 Freemius一本化).
 #
-# Provides two-step Stripe-backed wallet top-up:
-#   1. POST /api/v1/wallet_topup          → creates a Stripe PaymentIntent
-#   2. POST /api/v1/wallet_topup/confirm   → verifies the PaymentIntent and credits the wallet
+# Provides dev-mode pseudo top-up only:
+#   1. POST /api/v1/wallet_topup          → returns a dev_pi_* pseudo intent (dev only)
+#   2. POST /api/v1/wallet_topup/confirm   → credits the wallet (dev intents only)
+#
+# Freemius hosted checkout does not support arbitrary amounts (plan-based only),
+# so wallet top-up via Freemius is intentionally unsupported (see
+# documents/guides/freemius_production_setup.md). Stripe paths were removed
+# per owner policy (Freemius only). Sharetribe core Stripe settings
+# (PaymentSettings etc.) are left untouched.
 #
 # Amount validation: 100円〜10,000円 (100–10,000 cents).
 #
@@ -59,23 +65,23 @@ module API
       #
       # Returns whether wallet top-up is currently available and why.
       # The frontend uses this to keep the top-up button label in sync
-      # with the actual payment configuration (Issue #34):
-      #   * development without Stripe keys → dev_mode pseudo-payment
-      #   * Freemius configured → Freemius checkout
-      #   * Stripe key configured → Stripe PaymentIntent
-      #   * none of the above → topup_enabled: false with reason
-      # The branching precedence mirrors #create (dev > Freemius > Stripe).
+      # with the actual payment configuration (Issue #34, Issue #43):
+      #   * development → dev_mode pseudo-payment
+      #   * otherwise → topup_enabled: false with reason payment_unconfigured
+      #     (Freemius hosted checkout is plan-based and cannot charge an
+      #     arbitrary amount; Stripe is not used per owner policy).
+      # The payload mirrors #create so the button state always matches
+      # what a top-up attempt would do.
       def status
         render json: topup_status_payload
       end
 
       # POST /api/v1/wallet_topup
       #
-      # Creates a checkout session with the configured payment provider.
-      # Freemius (Merchant of Record) is preferred when configured;
-      # otherwise falls back to Stripe PaymentIntent for backward compatibility.
-      # Returns a checkout_url (Freemius) or client_secret (Stripe) that the
-      # frontend uses to complete the payment.
+      # Creates a dev-mode pseudo intent in development. In any other
+      # environment the arbitrary-amount top-up is unsupported (Freemius is
+      # plan-based, Stripe is not used), so 503 payment_unconfigured is
+      # returned. See documents/guides/freemius_production_setup.md.
       def create
         amount_cents = params[:amount_cents].to_i
 
@@ -87,8 +93,8 @@ module API
 
         wallet = find_or_create_wallet!
 
-        # 開発/テスト環境で決済キー未設定の場合、実カード決済の代わりに
-        # デバッグ用の擬似 PaymentIntent を返す（ローカル開発でチャージ動作を検証するため）。
+        # 開発環境では実カード決済の代わりにデバッグ用の擬似 PaymentIntent を
+        # 返す（ローカル開発でチャージ動作を検証するため。開発用経路は残す）。
         if dev_mode_topup?
           return render json: {
             client_secret: dev_secret_for(amount_cents, wallet),
@@ -98,30 +104,19 @@ module API
           }
         end
 
-        # Freemius (Merchant of Record) takes precedence when configured.
-        if FreemiusClient.configured?
-          return create_freemius_checkout(amount_cents, wallet)
-        end
-
-        intent = create_payment_intent(amount_cents, wallet)
-
+        # Freemius ホスト型 Checkout は plan 単位で任意金額に対応しないため、
+        # ウォレットの任意額チャージは提供しない。Stripe へはフォールバックしない
+        #（オーナー方針: Freemius 一本）。代替案は文書に記録している。
         render json: {
-          client_secret: intent.client_secret,
-          payment_intent_id: intent.id,
-          amount_cents: amount_cents,
-          provider: "stripe"
-        }
-      rescue Stripe::InvalidRequestError => e
-        Rails.logger.error("[WalletTopup] Stripe error creating PaymentIntent: #{e.message}")
-        render json: { error: "決済の作成に失敗しました: #{e.message}" }, status: :unprocessable_entity
-      rescue FreemiusClient::ApiError => e
-        Rails.logger.error("[WalletTopup] Freemius error creating checkout: #{e.message}")
-        render json: { error: "決済の作成に失敗しました: #{e.message}" }, status: :unprocessable_entity
+          error: "決済が未設定のため、現在チャージできません",
+          error_type: "payment_unconfigured",
+          reason: "freemius_arbitrary_amount_unsupported"
+        }, status: :service_unavailable
       end
 
       # POST /api/v1/wallet_topup/confirm
       #
-      # Verifies the PaymentIntent status and credits the wallet if succeeded.
+      # Credits the wallet for dev-mode pseudo intents only.
       # Includes idempotency protection to prevent double-crediting on retries.
       def confirm
         intent_id = params[:payment_intent_id]
@@ -130,51 +125,16 @@ module API
           return render json: { error: "payment_intent_id は必須です" }, status: :bad_request
         end
 
-        # デバッグ用擬似 PaymentIntent（Stripe 不要）の場合
+        # デバッグ用擬似 PaymentIntent（開発用）の場合のみ受理する。
         if dev_intent?(intent_id)
           return confirm_dev_topup(intent_id)
         end
 
-        intent = Stripe::PaymentIntent.retrieve(intent_id)
-
-        unless intent.metadata&.dig("user_id") == current_user.id
-          return render json: { error: "認証されていません" }, status: :forbidden
-        end
-
-        if intent.status == "succeeded"
-          wallet = Wallet.find_by(id: intent.metadata["wallet_id"])
-
-          unless wallet
-            return render json: { error: "ウォレットが見つかりません" }, status: :not_found
-          end
-
-          # Idempotent credit with row lock (see Wallet#topup!): concurrent
-          # duplicate confirmations credit only once. Returns nil if already done.
-          credited = wallet.topup!(intent.amount, stripe_payment_id: intent.id)
-
-          if credited.nil?
-            return render json: {
-              status: "ok",
-              balance_cents: wallet.reload.balance_cents,
-              amount_credited: 0,
-              message: "既に処理済みです"
-            }
-          end
-
-          render json: {
-            status: "ok",
-            balance_cents: wallet.reload.balance_cents,
-            amount_credited: intent.amount
-          }
-        else
-          render json: {
-            error: "決済が完了していません",
-            payment_status: intent.status
-          }, status: :unprocessable_entity
-        end
-      rescue Stripe::InvalidRequestError => e
-        Rails.logger.error("[WalletTopup] Stripe error retrieving PaymentIntent: #{e.message}")
-        render json: { error: "決済情報の取得に失敗しました" }, status: :unprocessable_entity
+        # Freemius/Stripe の confirm 経路は提供しない（Issue #43）。
+        render json: {
+          error: "この環境では決済の確定は利用できません",
+          error_type: "confirm_unsupported"
+        }, status: :unprocessable_entity
       end
 
       private
@@ -202,63 +162,26 @@ module API
       end
 
       # Builds the top-up availability payload (see #status).
-      # Precedence mirrors #create so the button state always matches
+      # Mirrors #create so the button state always matches
       # what a top-up attempt would do.
       def topup_status_payload
         if dev_mode_topup?
           { topup_enabled: true, dev_mode: true, provider: "dev", reason: nil }
-        elsif FreemiusClient.configured?
-          { topup_enabled: true, dev_mode: false, provider: "freemius", reason: nil }
-        elsif stripe_key_configured?
-          { topup_enabled: true, dev_mode: false, provider: "stripe", reason: nil }
         else
           { topup_enabled: false, dev_mode: false, provider: nil, reason: "payment_unconfigured" }
         end
       end
 
-      # Creates a Freemius checkout session for the wallet top-up.
-      # The buyer completes payment on Freemius; completion arrives via
-      # webhook (FreemiusWebhooksController#payment_completed).
-      def create_freemius_checkout(amount_cents, wallet)
-        session = FreemiusClient.create_checkout(
-          amount_cents: amount_cents,
-          currency: (wallet.currency || BillingConfig.currency).upcase,
-          user_id: current_user.id,
-          wallet_id: wallet.id
-        )
-
-        unless session["checkout_url"].present?
-          raise FreemiusClient::ApiError, "Freemius checkout response missing checkout_url"
-        end
-
-        render json: {
-          checkout_url: session["checkout_url"],
-          payment_id: session["payment_id"],
-          amount_cents: amount_cents,
-          provider: "freemius"
-        }
-      end
-
-      # ── デバッグ用擬似決済（Stripe キー未設定時のローカル動作） ──
+      # ── デバッグ用擬似決済（開発環境のローカル動作。Issue #43 で残す） ──
       #
-      # 開発/テスト環境で Stripe API キーが設定されていない場合、
-      # 実カード決済の代わりに Base64 エンコードした擬似 PaymentIntent を
+      # 開発環境では実カード決済の代わりに Base64 エンコードした擬似 PaymentIntent を
       # 発行し、confirm 時に Wallet#topup! で直接チャージする。
-      # これにより Stripe アカウントなしでもチャージ動作を検証できる。
+      # これにより決済アカウントなしでもチャージ動作を検証できる。
 
-      # 擬似決済を有効にするか（開発環境のみ + Stripeキー未設定）
-      # テスト環境では Stripe パス（モック）を検証するため dev モードにしない。
+      # 擬似決済を有効にするか（開発環境のみ）。
+      # テスト環境では dev モードにしない（spec が明示的に development を stub した場合のみ dev）。
       def dev_mode_topup?
-        Rails.env.development? && !stripe_key_configured?
-      end
-
-      # Stripe API キーが設定されているか
-      def stripe_key_configured?
-        PaymentSettings.exists?(
-          community_id: current_user.community_id,
-          payment_gateway: "stripe",
-          active: true
-        ) || ENV["STRIPE_SECRET_KEY"].present?
+        Rails.env.development?
       end
 
       # 擬似 PaymentIntent ID を生成（金額・ウォレット・ランダムトークンを埋め込む）
@@ -317,59 +240,6 @@ module API
       rescue ArgumentError, JSON::ParserError => e
         Rails.logger.error("[WalletTopup] Invalid dev intent: #{e.message}")
         render json: { error: "決済情報が不正です" }, status: :unprocessable_entity
-      end
-
-      # Creates a Stripe PaymentIntent for the wallet top-up.
-      #
-      # @param amount_cents [Integer] the top-up amount in cents
-      # @param wallet [Wallet] the target wallet
-      # @return [Stripe::PaymentIntent]
-      def create_payment_intent(amount_cents, wallet)
-        # Retrieve Stripe API key from payment settings (block form ensures restore)
-        configure_stripe_api! do
-          Stripe::PaymentIntent.create(
-            amount: amount_cents,
-            currency: (wallet.currency || BillingConfig.currency).downcase,
-            customer: current_user.stripe_customer_id,
-            metadata: {
-              user_id: current_user.id,
-              wallet_id: wallet.id,
-              community_id: current_user.community_id,
-              type: "wallet_topup"
-            },
-            description: "Wallet top-up for #{current_user.id}"
-          )
-        end
-      end
-
-      # Configures the Stripe API key from the community's payment settings.
-      # Falls back to ENV['STRIPE_SECRET_KEY'] if no payment settings exist.
-      #
-      # Thread-safe: saves and restores Stripe.api_key to prevent race conditions
-      # in Puma's multi-threaded environment.
-      def configure_stripe_api!
-        previous_key = Stripe.api_key
-        community = current_user.community
-        payment_settings = PaymentSettings.find_by(
-          community_id: community.id,
-          payment_gateway: "stripe",
-          active: true
-        )
-
-        if payment_settings
-          Stripe.api_key = TransactionService::Store::PaymentSettings.decrypt_value(
-            payment_settings.api_private_key,
-            payment_settings.key_encryption_padding
-          )
-        elsif ENV["STRIPE_SECRET_KEY"].present?
-          Stripe.api_key = ENV["STRIPE_SECRET_KEY"]
-        else
-          raise "No Stripe API key configured for community #{community.id}"
-        end
-
-        yield if block_given?
-      ensure
-        Stripe.api_key = previous_key
       end
     end
   end

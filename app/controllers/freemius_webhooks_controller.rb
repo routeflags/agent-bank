@@ -5,12 +5,19 @@ require "openssl"
 # Receives Freemius server-to-server webhooks.
 #
 # Freemius acts as the Merchant of Record: after a buyer completes a
-# checkout, Freemius notifies this endpoint. The controller verifies the
-# request signature, dispatches by event type, and credits the wallet or
-# syncs the subscription. All handlers are idempotent: repeated delivery
-# of the same event must not double-credit.
+# hosted checkout, Freemius notifies this endpoint. The controller verifies the
+# request signature (HMAC-SHA256 of the raw body with PRODUCT_SECRET_KEY),
+# dispatches by event type, and grants the purchase entitlement or syncs the
+# subscription. All handlers are idempotent: repeated delivery of the same
+# event must not double-credit.
 #
-# Reference: https://freemius.com/help/documentation/saas-sdk/js-sdk/webhooks/
+# Real event names (see Issue #43): payment.created / payment.refund /
+# subscription.created / subscription.cancelled / subscription.renewal.failed.
+# Legacy names (payment.completed etc.) are accepted for backward compatibility
+# with existing tests/stubs but are not sent by Freemius.
+#
+# Reference: https://freemius.com/help/documentation/marketing-automation/events-webhooks/
+#   (Validating Webhook Signatures, Types of Events)
 #
 # Route: POST /webhooks/freemius (see config/routes.rb, next to PayPal IPN)
 class FreemiusWebhooksController < ApplicationController
@@ -21,20 +28,22 @@ class FreemiusWebhooksController < ApplicationController
                      :fetch_community_membership,
                      :check_http_auth
 
-  # Supported inbound event types.
-  PAYMENT_COMPLETED = "payment.completed"
-  PAYMENT_REFUNDED = "payment.refunded"
+  # Supported inbound event types (real names first, legacy aliases after).
+  # Real: payment.created (successful payment), payment.refund.
+  PAYMENT_CREATED = %w[payment.created payment.completed].freeze
+  PAYMENT_REFUND = %w[payment.refund payment.refunded].freeze
   # Checkout metadata type for persona purchases (listing unit).
   # Wallet top-up checkouts carry type: "wallet_topup" (or no type for
   # legacy checkouts); anything other than persona_purchase keeps the
-  # existing wallet credit path.
+  # existing wallet credit path (dormant for arbitrary-amount top-ups,
+  # kept for fixed prepaid plans — see Issue #43).
   PERSONA_PURCHASE = "persona_purchase"
   SUBSCRIPTION_EVENTS = %w[
     subscription.created
-    subscription.renewed
     subscription.cancelled
-    subscription.expired
     subscription.renewal.failed
+    subscription.renewed
+    subscription.expired
   ].freeze
 
   def receive
@@ -43,15 +52,14 @@ class FreemiusWebhooksController < ApplicationController
       return render json: { error: "Unauthorized" }, status: :unauthorized
     end
 
-    event = params[:event].to_s
-    objects = params[:objects] || {}
+    event = extract_event_type
+    objects = params[:objects] || params["objects"] || {}
 
-    case event
-    when PAYMENT_COMPLETED
-      handle_payment_completed(objects)
-    when PAYMENT_REFUNDED
+    if PAYMENT_CREATED.include?(event)
+      handle_payment_completed(objects, event)
+    elsif PAYMENT_REFUND.include?(event)
       handle_payment_refunded(objects)
-    when *SUBSCRIPTION_EVENTS
+    elsif SUBSCRIPTION_EVENTS.include?(event)
       handle_subscription_event(event, objects)
     else
       Rails.logger.info("[FreemiusWebhook] Ignored event: #{event}")
@@ -59,18 +67,19 @@ class FreemiusWebhooksController < ApplicationController
 
     render json: { status: "ok" }
   rescue StandardError => e
-    Rails.logger.error("[FreemiusWebhook] Error processing #{params[:event]}: #{e.message}")
+    Rails.logger.error("[FreemiusWebhook] Error processing #{extract_event_type}: #{e.message}")
     render json: { error: "Internal error" }, status: :internal_server_error
   end
 
   private
 
   # Verifies the HMAC signature sent in the x-signature header.
-  # The signature covers the raw request body with the webhook secret.
+  # The signature covers the raw request body with PRODUCT_SECRET_KEY
+  # (legacy FREEMIUS_WEBHOOK_SECRET is accepted for backward compatibility).
   #
   # @return [Boolean]
   def valid_signature?
-    secret = ENV["FREEMIUS_WEBHOOK_SECRET"]
+    secret = FreemiusClient.webhook_secret
     return false if secret.blank?
 
     signature = request.headers["x-signature"].to_s
@@ -78,52 +87,84 @@ class FreemiusWebhooksController < ApplicationController
 
     expected = OpenSSL::HMAC.hexdigest("SHA256", secret, request.raw_post)
     ActiveSupport::SecurityUtils.secure_compare(expected, signature)
+  rescue StandardError
+    false
   end
 
-  # Dispatches a completed payment by its checkout metadata type.
-  #   - type: "persona_purchase" → grants the purchase entitlement
+  # Extracts the event type from either a string or an object payload.
+  # Real Freemius payloads use event.type; legacy tests use a plain string.
+  # Rails parses JSON objects into ActionController::Parameters, so both
+  # Hash and Parameters shapes are accepted here.
+  #
+  # @return [String]
+  def extract_event_type
+    raw = params[:event].nil? ? params["event"] : params[:event]
+    if raw.respond_to?(:[]) && !raw.is_a?(String)
+      begin
+        type = raw[:type] || raw["type"]
+      rescue StandardError
+        type = nil
+      end
+      return type.to_s.strip if type.present?
+
+      # Fallback for double-encoded or unexpected shapes: dig manually.
+      return raw.to_s.strip
+    end
+    raw.to_s.strip
+  end
+
+  # Dispatches a created payment by its checkout metadata type or plan mapping.
+  #   - type: "persona_purchase" (or plan_id → listing mapping) → grants entitlement
   #   - anything else (incl. "wallet_topup" / legacy without type) → credits the wallet
-  def handle_payment_completed(objects)
+  def handle_payment_completed(objects, event)
     payment = objects[:payment] || objects["payment"] || {}
     payment_id = payment[:id] || payment["id"]
     metadata = payment[:metadata] || payment["metadata"] || {}
 
     if payment_id.blank?
-      Rails.logger.warn("[FreemiusWebhook] payment.completed missing payment id: #{objects.inspect[0, 200]}")
+      Rails.logger.warn("[FreemiusWebhook] #{event} missing payment id: #{objects.inspect[0, 200]}")
       return
     end
 
     type = metadata[:type] || metadata["type"]
-    if type.to_s == PERSONA_PURCHASE
-      handle_persona_purchase_completed(payment_id, metadata)
+    if type.to_s == PERSONA_PURCHASE || persona_payment?(payment, metadata)
+      handle_persona_purchase_completed(payment_id, payment, metadata)
     else
-      handle_wallet_topup_completed(payment_id, metadata)
+      handle_wallet_topup_completed(payment_id, payment, metadata)
     end
+  end
+
+  # Whether the payment corresponds to a persona purchase when no explicit
+  # metadata type is present (real Freemius payments carry plan_id, not metadata).
+  def persona_payment?(payment, metadata)
+    plan_id = payment[:plan_id] || payment["plan_id"] ||
+              metadata[:plan_id] || metadata["plan_id"]
+    return false if plan_id.to_s.strip.empty?
+
+    FreemiusClient.listing_id_for_plan(plan_id).present?
   end
 
   # Credits the buyer's wallet for a completed wallet top-up payment.
   # Verifies the payment server-side before crediting: the webhook payload
-  # alone is not trusted for amount or status.
-  def handle_wallet_topup_completed(payment_id, metadata)
-    user_id = metadata[:user_id] || metadata["user_id"]
+  # alone is not trusted for amount.
+  # NOTE: arbitrary-amount top-ups have no Freemius checkout (Issue #43), so
+  # this path is dormant except for fixed prepaid plans / legacy metadata.
+  def handle_wallet_topup_completed(payment_id, payment, metadata)
+    user_id = metadata[:user_id] || metadata["user_id"] ||
+              payment[:user_id] || payment["user_id"]
     wallet_id = metadata[:wallet_id] || metadata["wallet_id"]
 
-    if user_id.blank? || wallet_id.blank?
-      Rails.logger.warn("[FreemiusWebhook] payment.completed (wallet_topup) missing fields: #{metadata.inspect[0, 200]}")
+    wallet = wallet_id.present? ? Wallet.find_by(id: wallet_id) : wallet_for_user(user_id)
+    if wallet.nil?
+      Rails.logger.warn("[FreemiusWebhook] payment wallet target not found: user=#{user_id.inspect} wallet=#{wallet_id.inspect}, skipping")
       return
     end
 
-    wallet = Wallet.find_by(id: wallet_id)
-    unless wallet
-      Rails.logger.warn("[FreemiusWebhook] Wallet not found: #{wallet_id}")
-      return
-    end
-
-    # Server-side verification: fetch the payment from Freemius and
-    # require completed status. Never trust amount from the webhook body.
+    # Server-side verification: fetch the payment from Freemius.
+    # Never trust amount from the webhook body.
     verified = verify_payment_completed(payment_id)
     unless verified
-      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} not verified as completed, skipping")
+      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} not verified, skipping")
       return
     end
 
@@ -150,27 +191,29 @@ class FreemiusWebhooksController < ApplicationController
   # listing / person が見つからない場合は警告ログを出してスキップする（500 にしない）。
   # create_for 自体の例外は外側の rescue で 500 になり、Freemius が再送するため
   # 一時的な DB エラーは再試行される（冪等なので二重付与はしない）。
-  def handle_persona_purchase_completed(payment_id, metadata)
+  def handle_persona_purchase_completed(payment_id, payment, metadata)
     listing_id = metadata[:listing_id] || metadata["listing_id"]
     user_id = metadata[:user_id] || metadata["user_id"]
+    listing_id ||= listing_id_from_payment(payment, metadata)
+    user_id ||= payment[:user_id] || payment["user_id"]
 
-    if listing_id.blank? || user_id.blank?
-      Rails.logger.warn("[FreemiusWebhook] payment.completed (persona_purchase) missing fields: #{metadata.inspect[0, 200]}")
+    if listing_id.blank?
+      Rails.logger.warn("[FreemiusWebhook] persona_purchase missing listing (plan mapping + metadata): payment=#{payment_id}, skipping")
       return
     end
 
     listing = Listing.find_by(id: listing_id)
-    person = Person.find_by(id: user_id)
+    person = resolve_person(user_id, payment)
     unless listing && person
-      Rails.logger.warn("[FreemiusWebhook] persona_purchase target not found: listing=#{listing_id} person=#{user_id}, skipping")
+      Rails.logger.warn("[FreemiusWebhook] persona_purchase target not found: listing=#{listing_id} person=#{user_id.inspect}, skipping")
       return
     end
 
     # Server-side verification: same as the wallet path — the webhook body
-    # alone is not trusted for status or amount.
+    # alone is not trusted for amount.
     verified = verify_payment_completed(payment_id)
     unless verified
-      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} not verified as completed, skipping persona purchase")
+      Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} not verified, skipping persona purchase")
       return
     end
 
@@ -187,24 +230,64 @@ class FreemiusWebhooksController < ApplicationController
     end
   end
 
-  # Fetches the payment from Freemius and requires completed status.
+  # Fetches the payment from Freemius and verifies its existence/amount.
+  # Real Freemius payments have no `status` field (only successful payments
+  # exist); legacy stubs use `status: completed/pending`. When a status is
+  # present it must be completed-like, otherwise existence + positive amount
+  # (gross → cents) is sufficient. Never trust the webhook body amount.
   #
   # @return [Hash, nil] { amount_cents: Integer } when verified, nil otherwise
   def verify_payment_completed(payment_id)
     remote = FreemiusClient.get_payment(payment_id)
     status = remote["status"] || remote[:status]
-    unless status.to_s == "completed"
+    if status.present? && !%w[completed complete success successful paid active].include?(status.to_s.downcase)
       Rails.logger.warn("[FreemiusWebhook] Payment #{payment_id} status=#{status.inspect}, not completed")
       return nil
     end
 
-    amount = (remote["amount_cents"] || remote[:amount_cents] ||
-              remote["amount"] || remote[:amount]).to_i
+    amount = FreemiusClient.payment_amount_cents(remote)
     return nil unless amount.positive?
 
     { amount_cents: amount }
   rescue FreemiusClient::ApiError => e
     Rails.logger.error("[FreemiusWebhook] Payment verification failed for #{payment_id}: #{e.message}")
+    nil
+  end
+
+  # Resolves listing_id from plan mapping when metadata lacks it.
+  def listing_id_from_payment(payment, metadata)
+    plan_id = payment[:plan_id] || payment["plan_id"] ||
+              metadata[:plan_id] || metadata["plan_id"]
+    return nil if plan_id.to_s.strip.empty?
+
+    FreemiusClient.listing_id_for_plan(plan_id)
+  end
+
+  # Resolves the buyer Person from a local id or Freemius user info.
+  def resolve_person(user_id, payment)
+    person = Person.find_by(id: user_id) if user_id.present?
+    return person if person
+
+    objects_user = params.dig(:objects, :user) || params.dig("objects", "user") || {}
+    email = objects_user[:email] || objects_user["email"] ||
+            payment[:user_email] || payment["user_email"]
+    return nil if email.to_s.strip.empty?
+
+    Person.by_email(email.to_s.strip).first
+  rescue StandardError
+    nil
+  end
+
+  # Falls back to the person's wallet when wallet_id metadata is absent
+  # (real Freemius payments carry user_id, not our wallet_id).
+  def wallet_for_user(user_id)
+    return nil if user_id.blank?
+
+    person = Person.find_by(id: user_id)
+    return nil unless person
+
+    person.wallet || person.find_or_create_wallet!(community: person.community)
+  rescue StandardError
     nil
   end
 
