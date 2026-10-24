@@ -158,7 +158,7 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     Rails.logger.info(
       "[PersonaExecutorJob] Billing: base=#{billing_result[:base_cost_cents]}c " \
       "platform_fee=#{billing_result[:platform_commission_cents]}c " \
-      "seller_fee=#{billing_result[:seller_commission_cents]}c " \
+      "seller_payout=#{billing_result[:seller_payout_cents]}c " \
       "total=#{billing_result[:total_charge_cents]}c"
     )
 

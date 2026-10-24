@@ -208,7 +208,7 @@ RSpec.describe PersonaExecutorJob, type: :model do
       billing_service = instance_double(BillingService)
       allow(BillingService).to receive(:new).and_return(billing_service)
       allow(billing_service).to receive(:process!).and_return(
-        { base_cost_cents: 1, platform_commission_cents: 0, seller_commission_cents: 0, total_charge_cents: 1 }
+        { base_cost_cents: 1, platform_commission_cents: 0, seller_payout_cents: 1, total_charge_cents: 1 }
       )
     end
 

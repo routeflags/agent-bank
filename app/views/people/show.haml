@@ -97,6 +97,32 @@
           .raku-summary__value= "¥#{number_with_delimiter(wallet_balance_cents)}"
           .raku-summary__action
             = raw(react_component("MypageWalletApp", props: { i18n: mypage_wallet_i18n, balance_cents: wallet_balance_cents }, prerender: false).to_s.gsub(/^[ \t]+\n/, ""))
+        -# 出品収益の受取累計（Issue #59）: 本人のみ。残高と同じウォレットの seller_earning。
+        .raku-summary__item
+          .raku-summary__label
+            %span.raku-summary__icon 💰
+            = t('lamprey.mypage.seller_earning_label')
+          .raku-summary__value= "¥#{number_with_delimiter(@seller_earning_total_cents.to_i)}"
+
+    -# ── Seller earnings（受取履歴・本人のみ）──────────────
+    - if current_user?(person)
+      %section.raku-earnings
+        %h2.raku-table-title= t('lamprey.mypage.seller_earning_title')
+        - if @seller_earning_items.present?
+          %table.raku-table
+            %thead
+              %tr
+                %th= t('lamprey.mypage.seller_earning_th_listing')
+                %th= t('lamprey.mypage.seller_earning_th_date')
+                %th= t('lamprey.mypage.seller_earning_th_amount')
+            %tbody
+              - @seller_earning_items.each do |item|
+                %tr
+                  %td= item[:listing]&.title || t('lamprey.mypage.seller_earning_unknown_listing')
+                  %td= item[:transaction].created_at.strftime('%Y/%m/%d %H:%M')
+                  %td= "¥#{number_with_delimiter(item[:transaction].amount_cents.to_i)}"
+        - else
+          .raku-table__empty= t('lamprey.mypage.seller_earning_empty')
 
     -# ── About（自己紹介がある場合のみ）──────────────
     - if person.description.present?

@@ -140,7 +140,7 @@ CREATE TABLE `auth_tokens` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `index_auth_tokens_on_token` (`token`) USING BTREE,
   KEY `index_on_person_id` (`person_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=179 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=180 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `billing_agreements`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -589,6 +589,7 @@ CREATE TABLE `credit_transactions` (
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `index_credit_transactions_on_type_and_reference_unique` (`transaction_type`,`reference_type`,`reference_id`),
   KEY `index_credit_transactions_on_wallet_id` (`wallet_id`),
   KEY `index_credit_transactions_on_reference_type_and_reference_id` (`reference_type`,`reference_id`),
   KEY `index_credit_transactions_on_transaction_type` (`transaction_type`),
@@ -1070,7 +1071,6 @@ CREATE TABLE `listings` (
   `publisher_name` varchar(255) DEFAULT NULL,
   `total_sold` int(11) DEFAULT 0,
   `avg_rating` float DEFAULT 0,
-  `seller_commission_rate` int(11) DEFAULT NULL COMMENT '出品者コミッション率 (%) — 出品ペルソナ価格に追加',
   `skill_markdown` text DEFAULT NULL COMMENT '出品者のスキル説明 (Markdown) — 所有者のみ閲覧可・フロント非表示',
   PRIMARY KEY (`id`),
   UNIQUE KEY `index_listings_on_uuid` (`uuid`),
@@ -1838,6 +1838,8 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261025000004'),
+('20261025000003'),
 ('20261025000002'),
 ('20261025000001'),
 ('20261025000000'),
