@@ -110,6 +110,29 @@
 - `FREEMIUS_TOPUP_PLAN_MAP` は未設定（Issue #48 でオーナー判断待ち）。未設定の間、wallet 固定額チャージは `503` のまま。値は勝手に決めない。
 - `STORE_ID` / `STORE_PUBLIC_KEY` / `STORE_SECRET_KEY` / `PRODUCT_PUBLIC_KEY` / `PLAN_MONTHLY_ID`（課金用途）は現行フローで未使用（将来用に保持）。
 
+## 12. ローカルで webhook を受け取る（cloudflared / ngrok）
+
+Freemius から `127.0.0.1` へは到達できないため、トンネルで公開して検証する。**実測済みの手順**:
+
+```bash
+# 1) トンネルを張って公開 URL を得る（cloudflared は brew で導入済み）
+cloudflared tunnel --url http://127.0.0.1:3000 --no-autoupdate
+#   → https://<random>.trycloudflare.com が出力される
+
+# 2) Rails は未知の Host を 403 で拒否するため、トンネルのホストを許可して起動する
+RAILS_DEVELOPMENT_HOSTS=<random>.trycloudflare.com bin/rails server -b 127.0.0.1 -p 3000
+
+# 3) 経路と署名検証の確認（付与は起きない。401 が正解）
+curl -i -X POST https://<random>.trycloudflare.com/webhooks/freemius \
+  -H 'Content-Type: application/json' -H 'x-signature: deadbeef' -d '{}'
+#   → 401 {"error":"Unauthorized"}
+```
+
+- `RAILS_DEVELOPMENT_HOSTS` を忘れると、Rails の Host Authorization が **403（HTML）** を返す。アプリの不具合に見えるので注意。
+- 署名付き webhook を投げる場合は raw body をそのまま署名する（HMAC-SHA256(raw_body, `PRODUCT_SECRET_KEY`)）。
+- 実測（2026-10-24・公開 URL 経由）: 署名不正 → 401 / 署名正（未知 payment id → API 404）→ 200 で購入権利 1 件 / 同一 payload 再送 → 200 で件数不変（冪等）。
+- トンネル URL は一時的。検証後はプロセスを止める（公開状態を残さない）。
+
 ## 出典
 
 - https://freemius.com/help/api/（Bearer Token Authentication / Making API Requests / Other Scopes and Authentication）
