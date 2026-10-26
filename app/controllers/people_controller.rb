@@ -29,9 +29,17 @@ class PeopleController < Devise::RegistrationsController
 
     # raku-mypage のKPI（DESIGN.md §16 — 実データのみ表示。ハードコード値禁止）
     person_listings = Listing.where(community_id: @current_community.id, author_id: @service.person.id, deleted: false)
+    # 販売トークン数（Issue #75/#76）: 自分の出品に紐づくチャットで消費された
+    # assistant 回答のトークン合計。assistant メッセージ1件に入力+出力の両方が
+    # 記録されるため input_tokens + output_tokens を合算する（output のみの定義より大きい方を採用）。
+    # usage_records には listing_id が無いため chat_messages を chat_sessions.listing_id 経由で辿る。
+    total_tokens = ChatMessage.joins(chat_session: :listing)
+                              .where(role: "assistant")
+                              .where(listings: { author_id: @service.person.id, community_id: @current_community.id })
+                              .sum("COALESCE(chat_messages.input_tokens, 0) + COALESCE(chat_messages.output_tokens, 0)").to_i
     @raku_stats = {
       published: @service.listings.total_entries,
-      total_sold: person_listings.sum(:total_sold).to_i,
+      total_tokens: total_tokens,
       total_views: person_listings.sum(:times_viewed).to_i,
       avg_rating: person_listings.where("avg_rating > 0").average(:avg_rating)&.round(1)
     }
