@@ -194,6 +194,14 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     )
 
     # Step 7: Broadcast completion event
+    # Issue #82: 課金後の残高を返し、フロントの表示を更新する。
+    # ウォレットが無い/取得できない場合は nil（フロントは無視する）。
+    current_balance = begin
+      person.wallet.reload.balance_cents
+    rescue StandardError
+      nil
+    end
+
     ActionCable.server.broadcast(
       "persona_chat_#{chat_session_id}",
       {
@@ -209,7 +217,8 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
         tokens: {
           input: usage_result.input_tokens,
           output: usage_result.output_tokens
-        }
+        },
+        current_balance: current_balance
       }
     )
 
