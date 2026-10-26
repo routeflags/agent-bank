@@ -60,8 +60,23 @@ class SettingsController < ApplicationController
 
   def transactions
     @selected_left_navi_link = "transactions"
-    @service = Admin::TransactionsService.new(@current_community, params, request.format, @current_user, true)
-    @transactions_presenter = Admin::TransactionsPresenter.new(params, @service)
+    # Issue #69: 出品スキルの第三者利用履歴。表示対象ユーザー（params[:person_id]。
+    # 管理者が他人のページを見る場合も同じ一覧）の出品に紐づく chat_sessions を
+    # 集計する。自分自身の利用（chat_sessions.person_id = 出品者本人）は除外する。
+    # 集計クエリ: chat_sessions JOIN listings ON listings.id = chat_sessions.listing_id
+    #   WHERE listings.author_id = 表示対象ユーザー
+    #     AND listings.community_id = 当コミュニティ
+    #     AND chat_sessions.person_id <> 表示対象ユーザー
+    #   ORDER BY chat_sessions.created_at DESC
+    # 既存の Admin::TransactionsService（Transaction 一覧）は他画面でも使うため
+    # 壊さず、この画面から参照を外すだけにする。
+    @target_user = Person.find_by!(username: params[:person_id], community_id: @current_community.id)
+    @skill_usage_sessions = ChatSession.joins(:listing)
+                                       .where(listings: { author_id: @target_user.id, community_id: @current_community.id })
+                                       .where.not(person_id: @target_user.id)
+                                       .includes(:listing, :person, :chat_messages)
+                                       .order(created_at: :desc)
+                                       .paginate(page: params[:page], per_page: 20)
   end
 
   private
