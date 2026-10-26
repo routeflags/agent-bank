@@ -36,7 +36,8 @@
                   %span.raku-muted-label= t('lamprey.listings.rating_none')
               .raku-card__price
                 -# Issue #52: 価格未設定の出品は非公開のため一覧に出ない。価格がある場合のみ表示する。
-                - if listing.price && listing.price_cents.to_i.positive?
+                -# 検索結果の `price` は Money で、`ListingItem` に `price_cents` は無い（Issue #52 で追加した判定が 500 の原因だった）。
+                - if listing.price && listing.price.to_f.positive?
                   = MoneyViewUtils.to_humanized(listing.price)
     %button.raku-featured__arrow.raku-featured__arrow--next{type: "button", "aria-label": t('lamprey.homepage.slide_next'), onclick: "RakuFeatured.slide(1)"} ›
 
