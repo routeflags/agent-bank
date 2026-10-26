@@ -44,8 +44,9 @@ class ChatSession < ApplicationRecord
 
   # Builds the system prompt from the associated Listing's persona fields.
   #
-  # Combines the listing's short_description and external_apis into a
-  # single system prompt string that defines the AI persona's behavior.
+  # Combines the listing's skill_markdown, short_description and
+  # external_apis into a single system prompt string that defines
+  # the AI persona's behavior.
   #
   # @return [String, nil] the system prompt, or nil if no persona is configured
   def system_prompt
@@ -53,6 +54,10 @@ class ChatSession < ApplicationRecord
     return nil unless listing_obj
 
     parts = []
+
+    if listing_obj.skill_markdown.present?
+      parts << listing_obj.skill_markdown
+    end
 
     if listing_obj.short_description.present?
       parts << listing_obj.short_description

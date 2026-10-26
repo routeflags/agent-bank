@@ -112,16 +112,36 @@ body.dark-theme .home-list-author-name {
   text-decoration: underline;
 }
 
-// フラッシュ通知の本文（ライト背景 #e8e8e8 / #b2d9ab 上で白文字 = 1.2〜1.6:1
-// だった部分。#8: warning / success も notice と同じ #333333 に統一する。
-// ダークテーマの白文字パッチがライト背景の通知に適用されないよう scope を限定）
+// フラッシュ通知の本文（ダークテーマでは通知背景自体をダーク化したため
+// 白系文字で統一。ライト背景時代の #333333 指定は不要になった）
 body.dark-theme .flash-notice .flash-text,
 body.dark-theme .ajax-notice .ajax-text,
 body.dark-theme .flash-warning .flash-text,
 body.dark-theme .ajax-warning .ajax-text,
 body.dark-theme .flash-success .flash-text,
 body.dark-theme .ajax-success .ajax-text {
-  color: #333333 !important;
+  color: #e0e0e0 !important;
+}
+
+// ダークテーマの通知背景（Sharetribe 既定のライトグレー #e8e8e8 /
+// ライトグリーン #b2d9ab はダークトーンと不整合のため上書き。
+// ChatPanel（#242424 基調＋グリーンアクセント #4caf50）に調和させる）
+body.dark-theme .flash-notice,
+body.dark-theme .ajax-notice,
+body.dark-theme .flash-warning,
+body.dark-theme .ajax-warning,
+body.dark-theme .ajax-update-notice {
+  background-color: #242424 !important;
+  border: 1px solid #3d3d3d !important;
+  color: #e0e0e0 !important;
+}
+
+body.dark-theme .flash-success,
+body.dark-theme .ajax-success,
+body.dark-theme .ajax-update-success {
+  background-color: rgba(76, 175, 80, 0.12) !important;
+  border: 1px solid rgba(76, 175, 80, 0.3) !important;
+  color: #e0e0e0 !important;
 }
 
 // Rails フォームビルダの button（devise 等: white on #4a90e2 = 3.29:1 だった部分。
@@ -132,35 +152,29 @@ button.button {
   color: #1a1a1a;
 }
 
-// フラッシュ通知内のリンク（通知背景は _flash.scss の #e8e8e8 のまま。
-// body.dark-theme a:hover の teal #7cc3b6 は #e8e8e8 上で 1.66:1 だったため、
-// dark teal + 下線で 4.5:1 以上を確保）
+// フラッシュ通知内のリンク（通知背景はダーク化済み（#242424 / green 12%）。
+// teal #7cc3b6 で 7:1 以上を確保し、下線で色だけに依存しない識別にする）
 body.dark-theme .flash-notice a,
 body.dark-theme .ajax-notice a,
 body.dark-theme .flash-warning a,
-body.dark-theme .ajax-warning a {
-  color: #1f6f60;
+body.dark-theme .ajax-warning a,
+body.dark-theme .flash-success a,
+body.dark-theme .ajax-success a {
+  color: #7cc3b6;
   text-decoration: underline;
 }
 
 body.dark-theme .flash-notice a:hover,
 body.dark-theme .ajax-notice a:hover,
 body.dark-theme .flash-warning a:hover,
-body.dark-theme .ajax-warning a:hover {
-  color: #17554a;
+body.dark-theme .ajax-warning a:hover,
+body.dark-theme .flash-success a:hover,
+body.dark-theme .ajax-success a:hover {
+  color: #a8d8ce;
 }
 
-// 通知内リンク（success / error。#8 の点検で追加）。
-// success は明色背景 #b2d9ab のため本文と同じ #333333 + 下線で識別する
-// （dark teal #1f6f60 でも 3.8:1 しか出ないため）。
-// error は赤背景 #c81f1f のため白 + 下線（body.dark-theme a の teal
-// #59b3a2 は赤背景上で 2.3:1 に落ちる）。
-body.dark-theme .flash-success a,
-body.dark-theme .ajax-success a {
-  color: #333333;
-  text-decoration: underline;
-}
-
+// 通知内リンク（error。赤背景 #c81f1f のため白 + 下線（body.dark-theme a の teal
+// #59b3a2 は赤背景上で 2.3:1 に落ちる）。success は上記のダーク化ルールに含む。
 body.dark-theme .flash-error a,
 body.dark-theme .ajax-error a {
   color: #ffffff;
