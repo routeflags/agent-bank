@@ -2,6 +2,7 @@ import React from 'react';
 import '../components/ChatPanel/chatPanel.css';
 import WalletTopupModal from '../components/WalletTopup/WalletTopupModal';
 import { csrfToken, jsonHeaders, fetchTopupStatus as fetchTopupStatusFromServer } from '../components/WalletTopup/walletTopupApi';
+import { saveActiveElement, restoreFocus, focusInitial, trapTabKey } from '../utils/modalDialog';
 
 /**
  * ChatPanelApp — AI persona chat panel with 3-column layout.
@@ -163,6 +164,8 @@ var DEFAULT_I18N = {
   a11y_close: 'チャットを閉じる',
   a11y_input: 'チャットメッセージ入力',
   a11y_send: 'メッセージを送信',
+  a11y_connected: '接続済み',
+  a11y_disconnected: '未接続',
   truncated_notice: '回答がトークン上限に達したため、途中で切れています。続きが必要な場合は「続きを生成」を押してください。',
   truncated_continue: '続きを生成',
   truncated_continue_prompt: '続きを生成してください。前回の回答の続きからお願いします。',
@@ -438,6 +441,12 @@ class ChatPanelApp extends React.Component {
     this.handleTopupSuccess = this.handleTopupSuccess.bind(this);
     this.handleContinue = this.handleContinue.bind(this);
     this.handleJumpToResult = this.handleJumpToResult.bind(this);
+    this.handleDialogKeyDown = this.handleDialogKeyDown.bind(this);
+    // モーダルのフォーカス管理（Issue #78）。開く直前の要素を覚え、
+    // ダイアログ内で Tab を循環・Esc で閉じる・閉じたら元へ戻す。
+    this.dialogRef = null;
+    this.inputRef = null;
+    this.previouslyFocused = null;
   }
 
   // ─── Session management ───────────────────────────────
@@ -976,6 +985,7 @@ class ChatPanelApp extends React.Component {
   }
 
   handleOpen() {
+    this.previouslyFocused = saveActiveElement();
     this.setState({ isOpen: true });
     this.fetchWalletBalance();
     this.fetchTopupStatus();
@@ -989,6 +999,21 @@ class ChatPanelApp extends React.Component {
     this.disconnect();
     this.closeSession();
     this.setState({ isOpen: false });
+    restoreFocus(this.previouslyFocused);
+    this.previouslyFocused = null;
+  }
+
+  // ダイアログ内のキーボード操作（Issue #78）: Esc で閉じる、Tab は循環。
+  handleDialogKeyDown(e) {
+    if (!this.state.isOpen) return;
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      this.handleClose();
+      return;
+    }
+    if (e.key === 'Tab') {
+      trapTabKey(e, this.dialogRef);
+    }
   }
 
   // ─── Settings handlers ────────────────────────────────
@@ -1073,6 +1098,10 @@ class ChatPanelApp extends React.Component {
     if (prevState.messages !== this.state.messages && this.messagesEndRef) {
       this.messagesEndRef.scrollIntoView({ behavior: 'smooth' });
     }
+    // 開いた直後に入力欄へフォーカスを移す（Issue #78）。
+    if (!prevState.isOpen && this.state.isOpen) {
+      focusInitial(this.dialogRef, this.inputRef);
+    }
   }
 
   componentDidMount() {
@@ -1124,9 +1153,17 @@ class ChatPanelApp extends React.Component {
     return React.createElement('div', {
       key: item.id,
       className: 'chatPanel__historyItem' + (item.id === state.sessionId ? ' is-active' : ''),
+      role: 'button',
+      tabIndex: 0,
+      'aria-label': item.title,
+      // ダブルクリックのリネームは既存の ✎ ボタンに一本化し、行自体は
+      // クリック / Enter / Space の選択操作にする（Issue #78）。
       onClick: function () { self.handleSelectSession(item.id); },
-      onDoubleClick: function () {
-        self.setState({ renamingId: item.id, renameValue: item.title });
+      onKeyDown: function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          self.handleSelectSession(item.id);
+        }
       },
       title: item.title,
     },
@@ -1186,7 +1223,10 @@ class ChatPanelApp extends React.Component {
       React.createElement('div', {
         className: 'chatPanel',
         onClick: function (e) { e.stopPropagation(); },
+        onKeyDown: this.handleDialogKeyDown,
+        ref: function (el) { self.dialogRef = el; },
         role: 'dialog',
+        'aria-modal': 'true',
         'aria-label': t('a11y_dialog'),
         style: {
           display: 'flex',
@@ -1227,7 +1267,7 @@ class ChatPanelApp extends React.Component {
               older.map(function (item) { return self.renderHistoryItem(item); })
             ),
             state.sessionHistory.length === 0 && React.createElement('div', {
-              style: { color: '#666', fontSize: '13px', textAlign: 'center', padding: '24px 12px' }
+              style: { color: 'var(--text-secondary, #999)', fontSize: '13px', textAlign: 'center', padding: '24px 12px' }
             }, t('history_empty'))
           )
         ),
@@ -1239,7 +1279,9 @@ class ChatPanelApp extends React.Component {
             React.createElement('div', { style: { display: 'flex', alignItems: 'center' } },
               React.createElement('h3', { className: 'chatPanel__personaName' }, personaName),
               React.createElement('span', {
-                className: 'chatPanel__connectionDot' + (state.isConnected ? '' : ' chatPanel__connectionDot--disconnected')
+                className: 'chatPanel__connectionDot' + (state.isConnected ? '' : ' chatPanel__connectionDot--disconnected'),
+                role: 'img',
+                'aria-label': state.isConnected ? t('a11y_connected') : t('a11y_disconnected'),
               })
             ),
             React.createElement('button', {
@@ -1259,13 +1301,17 @@ class ChatPanelApp extends React.Component {
           ),
 
           // Error
-          state.error && React.createElement('div', { className: 'chatPanel__error' }, state.error),
+          state.error && React.createElement('div', { className: 'chatPanel__error', role: 'alert' }, state.error),
 
           // Loading
           state.isLoading && React.createElement('div', { className: 'chatPanel__loading' }, t('loading')),
 
           // Messages
-          React.createElement('div', { className: 'chatPanel__messages' },
+          React.createElement('div', {
+            className: 'chatPanel__messages',
+            'aria-live': 'polite',
+            'aria-relevant': 'additions text',
+          },
             state.messages.length === 0 && !state.isLoading
               ? React.createElement('div', { className: 'chatPanel__emptyState' },
                   React.createElement('div', { className: 'chatPanel__emptyStateIcon' }, '🤖'),
@@ -1323,6 +1369,7 @@ class ChatPanelApp extends React.Component {
             }, '📎'),
             React.createElement('textarea', {
               className: 'chatPanel__input',
+              ref: function (el) { self.inputRef = el; },
               value: state.inputText,
               onChange: this.handleInputChange,
               onKeyDown: this.handleKeyDown,
@@ -1405,9 +1452,10 @@ class ChatPanelApp extends React.Component {
 
           // Model selection
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_model')),
+            React.createElement('label', { className: 'chatPanel__settingsLabel', htmlFor: 'chatPanel-modelSelect' }, t('settings_model')),
             React.createElement('select', {
               className: 'chatPanel__settingsSelect',
+              id: 'chatPanel-modelSelect',
               value: state.selectedModel,
               onChange: this.handleModelChange,
             },
@@ -1420,15 +1468,17 @@ class ChatPanelApp extends React.Component {
 
           // Token limit
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_token_limit')),
+            React.createElement('label', { className: 'chatPanel__settingsLabel', htmlFor: 'chatPanel-tokenLimit' }, t('settings_token_limit')),
             React.createElement('input', {
               type: 'range',
               className: 'chatPanel__settingsSlider',
+              id: 'chatPanel-tokenLimit',
               min: '1000',
               max: '8000',
               step: '500',
               value: state.tokenLimit,
               onChange: this.handleTokenChange,
+              'aria-valuetext': tFormat('settings_tokens_unit', { count: state.tokenLimit.toLocaleString() }),
             }),
             React.createElement('div', { className: 'chatPanel__settingsValue' },
               tFormat('settings_tokens_unit', { count: state.tokenLimit.toLocaleString() })
@@ -1437,13 +1487,14 @@ class ChatPanelApp extends React.Component {
 
           // Output length
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_output_length')),
-            React.createElement('div', { className: 'chatPanel__toneButtons' },
+            React.createElement('span', { className: 'chatPanel__settingsLabel', id: 'chatPanel-outputLengthLabel' }, t('settings_output_length')),
+            React.createElement('div', { className: 'chatPanel__toneButtons', role: 'group', 'aria-labelledby': 'chatPanel-outputLengthLabel' },
               ['short', 'standard', 'long'].map(function (length) {
                 var labels = { short: t('output_short'), standard: t('output_standard'), long: t('output_long') };
                 return React.createElement('button', {
                   key: length,
                   className: 'chatPanel__toneBtn' + (state.outputLength === length ? ' is-active' : ''),
+                  'aria-pressed': state.outputLength === length,
                   onClick: function () { self.handleOutputLength(length); },
                   type: 'button',
                 }, labels[length]);
@@ -1453,9 +1504,10 @@ class ChatPanelApp extends React.Component {
 
           // Tone
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_tone')),
+            React.createElement('label', { className: 'chatPanel__settingsLabel', htmlFor: 'chatPanel-toneSelect' }, t('settings_tone')),
             React.createElement('select', {
               className: 'chatPanel__settingsSelect',
+              id: 'chatPanel-toneSelect',
               value: state.tone,
               onChange: function (e) { self.handleToneChange(e.target.value); },
             },

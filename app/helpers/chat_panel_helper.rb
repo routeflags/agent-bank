@@ -31,6 +31,7 @@ module ChatPanelHelper
     attach_remove attach_upload_failed attach_invalid_type
     attach_too_large a11y_dialog a11y_open
     a11y_close a11y_input a11y_send
+    a11y_connected a11y_disconnected
     truncated_notice truncated_continue truncated_continue_prompt
     copy copied
   ].freeze
