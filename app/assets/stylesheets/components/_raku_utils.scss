@@ -112,16 +112,80 @@ body.dark-theme .home-list-author-name {
   text-decoration: underline;
 }
 
-// フラッシュ通知の本文（ライト背景 #e8e8e8 / #b2d9ab 上で白文字 = 1.2〜1.6:1
-// だった部分。#8: warning / success も notice と同じ #333333 に統一する。
-// ダークテーマの白文字パッチがライト背景の通知に適用されないよう scope を限定）
+// フラッシュ通知のダーク化（Issue #73正本・#61・#77統合）。
+// Sharetribe既定のライト背景（partials/_flash.scss: notice/warning #e8e8e8、
+// success #b2d9ab）は残し、body.dark-theme配下でのみダークサーフェスに上書きする。
+// ライト側（themes/_light_variables.scss）は変更しない。
+// notice/warning: #242424＋#3d3d3d境界 / success: rgba(76,175,80,.12)＋
+// グリーン境界（WalletTopup --wallet-success-bg/borderと同系）。
+// 本文は #e0e0e0、リンクはteal #7cc3b6＋下線。errorは現行維持
+// （赤背景＋白文字）のため背景上書きなし。
+// 対象外の記録: 管理画面内（views/admin/_domains.scss等）はダーク化対象外のため
+// 低優先、PayPalブランド色（partials/_paypal.scss #4a90e2）は維持。
+body.dark-theme .flash-notice,
+body.dark-theme .ajax-notice,
+body.dark-theme .ajax-update-notice,
+body.dark-theme .flash-warning,
+body.dark-theme .ajax-warning {
+  background-color: #242424 !important;
+  border: 1px solid #3d3d3d !important;
+  color: #e0e0e0 !important;
+}
+
+body.dark-theme .flash-success,
+body.dark-theme .ajax-success,
+body.dark-theme .ajax-update-success {
+  background-color: rgba(76, 175, 80, 0.12) !important;
+  border: 1px solid rgba(76, 175, 80, 0.3) !important;
+  color: #e0e0e0 !important;
+}
+
+// errorは現行維持のため背景・境界の上書きは行わない（赤背景＋白文字のまま）。
+
 body.dark-theme .flash-notice .flash-text,
 body.dark-theme .ajax-notice .ajax-text,
+body.dark-theme .ajax-update-notice .ajax-update-text,
 body.dark-theme .flash-warning .flash-text,
 body.dark-theme .ajax-warning .ajax-text,
 body.dark-theme .flash-success .flash-text,
-body.dark-theme .ajax-success .ajax-text {
-  color: #333333 !important;
+body.dark-theme .ajax-success .ajax-text,
+body.dark-theme .ajax-update-success .ajax-update-text {
+  color: #e0e0e0 !important;
+}
+
+// 通知内リンク（notice/warning/success）。ダークサーフェス上ではteal＋下線で
+// 識別する（#7cc3b6 on #242424 ≒ 7:1）。旧パッチのdark teal #1f6f60は
+// ライト背景前提のため廃止。
+body.dark-theme .flash-notice a,
+body.dark-theme .ajax-notice a,
+body.dark-theme .ajax-update-notice a,
+body.dark-theme .flash-warning a,
+body.dark-theme .ajax-warning a,
+body.dark-theme .flash-success a,
+body.dark-theme .ajax-success a,
+body.dark-theme .ajax-update-success a {
+  color: #7cc3b6;
+  text-decoration: underline;
+}
+
+body.dark-theme .flash-notice a:hover,
+body.dark-theme .ajax-notice a:hover,
+body.dark-theme .ajax-update-notice a:hover,
+body.dark-theme .flash-warning a:hover,
+body.dark-theme .ajax-warning a:hover,
+body.dark-theme .flash-success a:hover,
+body.dark-theme .ajax-success a:hover,
+body.dark-theme .ajax-update-success a:hover {
+  color: #9ad5c9;
+}
+
+// 通知内リンク（error）。赤背景のため白＋下線を維持（body.dark-theme a の
+// teal #59b3a2は赤背景上で2.3:1に落ちるため使わない）。
+body.dark-theme .flash-error a,
+body.dark-theme .ajax-error a,
+body.dark-theme .ajax-update-error a {
+  color: #ffffff;
+  text-decoration: underline;
 }
 
 // Rails フォームビルダの button（devise 等: white on #4a90e2 = 3.29:1 だった部分。
@@ -130,41 +194,6 @@ button.button {
   background-color: var(--accent-gold);
   border-color: var(--accent-gold);
   color: #1a1a1a;
-}
-
-// フラッシュ通知内のリンク（通知背景は _flash.scss の #e8e8e8 のまま。
-// body.dark-theme a:hover の teal #7cc3b6 は #e8e8e8 上で 1.66:1 だったため、
-// dark teal + 下線で 4.5:1 以上を確保）
-body.dark-theme .flash-notice a,
-body.dark-theme .ajax-notice a,
-body.dark-theme .flash-warning a,
-body.dark-theme .ajax-warning a {
-  color: #1f6f60;
-  text-decoration: underline;
-}
-
-body.dark-theme .flash-notice a:hover,
-body.dark-theme .ajax-notice a:hover,
-body.dark-theme .flash-warning a:hover,
-body.dark-theme .ajax-warning a:hover {
-  color: #17554a;
-}
-
-// 通知内リンク（success / error。#8 の点検で追加）。
-// success は明色背景 #b2d9ab のため本文と同じ #333333 + 下線で識別する
-// （dark teal #1f6f60 でも 3.8:1 しか出ないため）。
-// error は赤背景 #c81f1f のため白 + 下線（body.dark-theme a の teal
-// #59b3a2 は赤背景上で 2.3:1 に落ちる）。
-body.dark-theme .flash-success a,
-body.dark-theme .ajax-success a {
-  color: #333333;
-  text-decoration: underline;
-}
-
-body.dark-theme .flash-error a,
-body.dark-theme .ajax-error a {
-  color: #ffffff;
-  text-decoration: underline;
 }
 
 // 送信/ログインボタンの hover/active（mixins/_forms.scss の汎用 button:hover の
