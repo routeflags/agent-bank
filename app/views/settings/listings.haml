@@ -4,9 +4,9 @@
     = "-"
     = t("layouts.settings.listings")
 
-= render :partial => "layouts/left_hand_navigation", :locals => { :links => settings_links_for(@current_user, @current_community) }
+%p.back-to-mypage= link_to "← #{t('lamprey.mypage.dashboard')}", person_path(username: @current_user.username)
 
-.left-navi-section
+.left-navi-section.settings-no-nav
   %h2= t("admin.communities.listings.listings")
 
   = render partial: 'admin/community_listings/table', locals: {placeholder: t('layouts.settings.listings_search_placeholder')}
