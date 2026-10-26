@@ -101,7 +101,8 @@ body.dark-theme {
     border-right: 1px solid var(--border-color);
     font-size: 14px;
     color: var(--text-secondary);
-    cursor: pointer;
+    // 装飾表示（非対話要素）のため default。対話化する場合は select / button 化 + JS 接続が必要（Issue #78）
+    cursor: default;
     white-space: nowrap;
     transition: color var(--transition-fast);
 

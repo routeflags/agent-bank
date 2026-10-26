@@ -4,6 +4,17 @@
   background: $highlight;
 }
 
+// ダークテーマでは $highlight（#e8e8e8）の未読行背景に白文字が載り
+// コントラストが 1.23:1 まで落ちる。選択チップと同系の Gold 系サーフェス
+// （_dark_variables.scss と同値）+ var(--text-primary) で上書きする。
+// ライトテーマは変更しない。
+body.dark-theme {
+  .conversation-unread {
+    background-color: rgba(212, 168, 83, 0.14);
+    color: var(--text-primary);
+  }
+}
+
 .conversation-details-container {
   position: relative;
 }
