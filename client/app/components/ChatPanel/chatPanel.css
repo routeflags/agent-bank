@@ -294,11 +294,16 @@
   transition: color 120ms ease, border-color 120ms ease;
 }
 
-.chatMessage__copyBtn:hover,
+.chatMessage__copyBtn:hover {
+  color: #e0e0e0;
+  border-color: #7cc3b6;
+}
+
 .chatMessage__copyBtn:focus-visible {
   color: #e0e0e0;
   border-color: #7cc3b6;
-  outline: none;
+  outline: 2px solid #c41e3a;
+  outline-offset: 2px;
 }
 
 .chatMessage__copyBtn.is-copied {
@@ -690,7 +695,7 @@
 .chatPanel__error {
   padding: 8px 16px;
   background: rgba(244, 67, 54, 0.1);
-  color: #f44336;
+  color: #ff6b6b;
   font-size: 13px;
   text-align: center;
   border-bottom: 1px solid #333;

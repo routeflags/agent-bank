@@ -1,6 +1,7 @@
 /* eslint-env browser */
 import React from 'react';
 import { jsonHeaders } from './walletTopupApi';
+import { saveActiveElement, restoreFocus, focusInitial, trapTabKey } from '../../utils/modalDialog';
 import './wallet-topup.css';
 
 // Shared wallet top-up modal (Issue #58).
@@ -72,6 +73,36 @@ class WalletTopupModal extends React.Component {
     this.handleCustomChange = this.handleCustomChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleOverlayClick = this.handleOverlayClick.bind(this);
+    this.handleDialogKeyDown = this.handleDialogKeyDown.bind(this);
+    // モーダルのフォーカス管理（Issue #78。ChatPanelApp と共用）。
+    this.dialogRef = null;
+    this.closeBtnRef = null;
+    this.previouslyFocused = null;
+  }
+
+  componentDidMount() {
+    // 開く直前のフォーカスを覚え、閉じるボタンへ初期フォーカスする。
+    this.previouslyFocused = saveActiveElement();
+    focusInitial(this.dialogRef, this.closeBtnRef);
+  }
+
+  componentWillUnmount() {
+    restoreFocus(this.previouslyFocused);
+    this.previouslyFocused = null;
+  }
+
+  // Esc で閉じる、Tab はダイアログ内で循環させる。親の ChatPanel
+  // ダイアログへ伝搬させない（Esc で両方が閉じないようにする）。
+  handleDialogKeyDown(e) {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      this.props.onClose();
+      return;
+    }
+    if (e.key === 'Tab') {
+      e.stopPropagation();
+      trapTabKey(e, this.dialogRef);
+    }
   }
 
   t(key) {
@@ -222,12 +253,20 @@ class WalletTopupModal extends React.Component {
       className: 'wallet-topup-modal__overlay',
       onClick: this.handleOverlayClick,
     },
-      React.createElement('div', { className: 'wallet-topup-modal', role: 'dialog', 'aria-label': self.t('wallet_topup_title') },
+      React.createElement('div', {
+        className: 'wallet-topup-modal',
+        ref: function (el) { self.dialogRef = el; },
+        onKeyDown: this.handleDialogKeyDown,
+        role: 'dialog',
+        'aria-modal': 'true',
+        'aria-label': self.t('wallet_topup_title'),
+      },
         // Header
         React.createElement('div', { className: 'wallet-topup-modal__header' },
           React.createElement('h3', { className: 'wallet-topup-modal__title' }, '💰 ' + self.t('wallet_topup_title')),
           React.createElement('button', {
             className: 'wallet-topup-modal__closeBtn',
+            ref: function (el) { self.closeBtnRef = el; },
             onClick: this.props.onClose,
             'aria-label': self.t('wallet_topup_close'),
             type: 'button',
@@ -311,7 +350,7 @@ class WalletTopupModal extends React.Component {
         })(),
 
         // Status messages
-        state.error && React.createElement('div', { className: 'wallet-topup-modal__error' }, state.error),
+        state.error && React.createElement('div', { className: 'wallet-topup-modal__error', role: 'alert' }, state.error),
         state.success && React.createElement('div', { className: 'wallet-topup-modal__success' }, self.t('wallet_success')),
         state.redirecting && React.createElement('div', { className: 'wallet-topup-modal__success' }, self.t('wallet_redirecting')),
 

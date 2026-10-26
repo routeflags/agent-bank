@@ -13,9 +13,9 @@
   --wallet-success-bg: rgba(76, 175, 80, 0.12);
   --wallet-success-border: rgba(76, 175, 80, 0.3);
   --wallet-success-bg-hover: rgba(76, 175, 80, 0.2);
-  --wallet-error: #f44336;
-  --wallet-error-bg: rgba(244, 67, 54, 0.1);
-  --wallet-error-border: rgba(244, 67, 54, 0.3);
+  --wallet-error: #ff6b6b;
+  --wallet-error-bg: rgba(255, 107, 107, 0.1);
+  --wallet-error-border: rgba(255, 107, 107, 0.3);
 }
 
 /* ── Balance bar (inside settings panel) ────────────────────── */
