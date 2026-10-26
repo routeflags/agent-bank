@@ -1589,6 +1589,10 @@ en:
           really want to continue?
       location:
         location: Location
+      open:
+        label: Listing status
+        open: Open
+        closed: Closed
       price:
         price: Price (JPY / 1M tokens, half-width numbers)
         per: per

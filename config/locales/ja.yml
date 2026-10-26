@@ -1298,6 +1298,10 @@ ja:
         images_not_uploaded_confirm: 全ての画像のアップロードが完了しておりません。本当に次へ進みますか？
       location:
         location: 場所 （地区、郵便番号、市町区村名...）
+      open:
+        label: 公開ステータス
+        open: 公開する
+        closed: 非公開にする
       price:
         price: 価格（円 / 100万トークン、半角数字でご入力ください）
         per: につき
