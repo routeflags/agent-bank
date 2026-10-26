@@ -36,6 +36,7 @@ module Ai
       @ai_model = ai_model
       @provider = ai_model.ai_provider
       @last_usage = nil
+      @last_finish_reason = nil
       @accumulated_content = ""
       @streaming_client_class = streaming_client || Ai::StreamingClient
     end
@@ -44,6 +45,16 @@ module Ai
     #
     # @return [Usage, nil]
     attr_reader :last_usage
+
+    # Returns the stop reason from the most recent API call
+    # (e.g. "end_turn" for a complete response, "max_tokens" when the
+    # output token cap cut the response off).
+    #
+    # Unified name with OpenAiAdapter#last_finish_reason so callers
+    # (PersonaExecutorJob) read the same accessor for both providers.
+    #
+    # @return [String, nil]
+    attr_reader :last_finish_reason
 
     # Sends a messages request to Anthropic with true SSE streaming.
     #
@@ -56,6 +67,8 @@ module Ai
     #
     # @param messages [Array<Hash>] messages array (role + content)
     # @yield [chunk] each streamed chunk { content: String, type: String }
+    # The stop reason is not yielded (it arrives separately from the text);
+    # read it from #last_finish_reason after the stream ends.
     # @return [Usage] token usage from the response
     # @raise [ApiError] on non-200 responses or missing API key
     def stream(messages, max_tokens: nil)
@@ -64,6 +77,7 @@ module Ai
 
       system_text, api_messages = extract_system_and_messages(messages)
       @accumulated_content = ""
+      @last_finish_reason = nil
 
       client = @streaming_client_class.new(url: "#{base_url}/v1/messages")
       client.post(
@@ -85,6 +99,12 @@ module Ai
             yield({ content: text, type: "content_block_delta" }) if block_given?
           end
         when "message_delta"
+          # Extract the stop reason from the final message_delta event.
+          # "max_tokens" means the output cap cut the response off;
+          # it arrives separately from the text chunks, so keep it here.
+          stop_reason = event.dig(:delta, :stop_reason)
+          @last_finish_reason = stop_reason if stop_reason.present?
+
           # Extract usage from the final message_delta event
           usage_data = event[:usage]
           if usage_data

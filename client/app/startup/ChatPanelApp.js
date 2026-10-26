@@ -162,7 +162,10 @@ var DEFAULT_I18N = {
   a11y_open: 'AIチャットを開く',
   a11y_close: 'チャットを閉じる',
   a11y_input: 'チャットメッセージ入力',
-  a11y_send: 'メッセージを送信'
+  a11y_send: 'メッセージを送信',
+  truncated_notice: '回答がトークン上限に達したため、途中で切れています。続きが必要な場合は「続きを生成」を押してください。',
+  truncated_continue: '続きを生成',
+  truncated_continue_prompt: '続きを生成してください。前回の回答の続きからお願いします。'
 };
 var I18N = Object.assign({}, DEFAULT_I18N);
 function t(key) { return I18N[key] != null ? I18N[key] : (DEFAULT_I18N[key] || key); }
@@ -191,6 +194,9 @@ function MessageBubble(props) {
   var attachment = props.attachment;
   // 特別な成果表示（DESIGN.md §13）は明示フラグが付いた回答にのみ適用する
   var isResult = props.is_result === true;
+  // トークン上限による打ち切り（Issue #63）。正常完結時は表示しない。
+  var truncated = props.truncated === true;
+  var onContinueClick = props.onContinueClick;
 
   var isUser = role === 'user';
   var isSystem = role === 'system';
@@ -246,6 +252,16 @@ function MessageBubble(props) {
         alt: '',
       }),
       isStreaming && React.createElement('span', { className: 'chatMessage__streaming' })
+    ),
+    // 打ち切り明示（Issue #63）: length 打ち切り時のみ注意書き＋継続導線を出す。
+    // 正常完結（stop）時は何も出さない。
+    isAssistant && !isStreaming && truncated && React.createElement('div', { className: 'chatMessage__truncated' },
+      React.createElement('div', { className: 'chatMessage__truncatedNotice' }, t('truncated_notice')),
+      onContinueClick && React.createElement('button', {
+        className: 'chatMessage__continueBtn',
+        onClick: onContinueClick,
+        type: 'button',
+      }, t('truncated_continue'))
     ),
     // Inline导线: 残高不足時はチャージ導線のみを出す（Issue #51。購入導線は持たない）。
     showTopupButton && onTopupClick && React.createElement('div', { className: 'wallet-topup-prompt' },
@@ -331,6 +347,7 @@ class ChatPanelApp extends React.Component {
     this.handleOpenTopup = this.handleOpenTopup.bind(this);
     this.handleCloseTopup = this.handleCloseTopup.bind(this);
     this.handleTopupSuccess = this.handleTopupSuccess.bind(this);
+    this.handleContinue = this.handleContinue.bind(this);
   }
 
   // ─── Session management ───────────────────────────────
@@ -393,12 +410,16 @@ class ChatPanelApp extends React.Component {
       .then(function (data) {
         if (!data || !data.chat_session) return;
         var messages = (data.chat_session.messages || []).map(function (m) {
+          var meta = m.metadata || {};
           return {
             id: m.id,
             role: m.role,
             content: m.content,
             isStreaming: false,
             is_result: m.is_result === true,
+            // 打ち切り記録（Issue #63）: API の算出値を優先し、metadata を後方互換で読む。
+            truncated: m.truncated === true || meta.truncated === true,
+            finish_reason: m.finish_reason || meta.finish_reason || null,
             created_at: m.created_at,
             total_tokens: (m.input_tokens || 0) + (m.output_tokens || 0),
             attachment: m.attachment || null,
@@ -562,7 +583,11 @@ class ChatPanelApp extends React.Component {
     if (this.streamingId) {
       // サーバーは messageId（camelCase）で送る。旧形式 message_id も受ける（#32）。
       var finalId = data.message_id || data.messageId || this.streamingId;
-      this.finalizeMessage(this.streamingId, finalId, data.is_result === true);
+      this.finalizeMessage(this.streamingId, finalId, {
+        isResult: data.is_result === true,
+        truncated: data.truncated === true,
+        finishReason: data.finish_reason || null,
+      });
       this.streamingId = null;
     }
   }
@@ -619,7 +644,10 @@ class ChatPanelApp extends React.Component {
     });
   }
 
-  finalizeMessage(tempId, finalId, isResult) {
+  finalizeMessage(tempId, finalId, flags) {
+    var isResult = flags && flags.isResult === true;
+    var truncated = flags && flags.truncated === true;
+    var finishReason = flags && flags.finishReason ? flags.finishReason : null;
     this.setState(function (prev) {
       return {
         messages: prev.messages.map(function (m) {
@@ -627,13 +655,25 @@ class ChatPanelApp extends React.Component {
             return Object.assign({}, m, {
               id: finalId,
               isStreaming: false,
-              is_result: isResult === true,
+              is_result: isResult,
+              truncated: truncated,
+              finish_reason: finishReason,
             });
           }
           return m;
         }),
       };
     });
+  }
+
+  // 打ち切り時の継続導線（Issue #63）: 前回回答の続きを同じセッションで要求する。
+  handleContinue() {
+    if (!this.state.sessionId || this.sending) return;
+    var text = t('truncated_continue_prompt');
+    this.sending = true;
+    this.addMessage('user-' + Date.now(), 'user', text, false);
+    this.sendMessage(text, null, this.state.sessionId);
+    this.sending = false;
   }
 
   // ─── User interaction ─────────────────────────────────
@@ -1127,6 +1167,8 @@ class ChatPanelApp extends React.Component {
                     key: msg.id, role: msg.role, content: msg.content,
                     isStreaming: msg.isStreaming,
                     is_result: msg.is_result,
+                    truncated: msg.truncated,
+                    onContinueClick: msg.truncated ? self.handleContinue : null,
                     total_tokens: msg.total_tokens,
                     created_at: msg.created_at,
                     showTopupButton: msg.showTopupButton,

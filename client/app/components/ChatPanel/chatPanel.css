@@ -433,6 +433,47 @@
   font-weight: 600;
 }
 
+/* ── Truncated response notice (Issue #63) ─────────────────────
+   Shown only when the provider cut the reply off at the token cap. */
+.chatMessage__truncated {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px dashed #8a6d2b;
+  border-radius: 8px;
+  background: rgba(215, 164, 59, 0.08);
+  max-width: 100%;
+}
+
+.chatMessage__truncatedNotice {
+  color: #f5e6b8;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.chatMessage__continueBtn {
+  background: none;
+  border: 1px solid var(--chat-brand-gold);
+  color: var(--chat-brand-gold-light);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.chatMessage__continueBtn:hover {
+  background: rgba(215, 164, 59, 0.15);
+  color: #f5e6b8;
+}
+
+.chatMessage__continueBtn:focus-visible {
+  outline: 2px solid #c41e3a;
+  outline-offset: 2px;
+}
+
 /* ── Token usage display ────────────────────────────────────── */
 .chatMessage__tokens {
   font-size: 11px;

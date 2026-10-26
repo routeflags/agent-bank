@@ -2968,6 +2968,9 @@ en:
       a11y_close: "Close chat"
       a11y_input: "Chat message input"
       a11y_send: "Send message"
+      truncated_notice: "The response hit the token limit and was cut off. Press “Continue” if you need the rest."
+      truncated_continue: "Continue"
+      truncated_continue_prompt: "Please continue from where the previous response stopped."
     freemius_return:
       success_title: "Purchase complete"
       success_body: "Your payment was received. Please wait a moment while your purchase is activated."

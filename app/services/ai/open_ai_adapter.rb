@@ -33,6 +33,7 @@ module Ai
       @ai_model = ai_model
       @provider = ai_model.ai_provider
       @last_usage = nil
+      @last_finish_reason = nil
       @accumulated_content = ""
       @streaming_client_class = streaming_client || Ai::StreamingClient
     end
@@ -41,6 +42,13 @@ module Ai
     #
     # @return [Usage, nil]
     attr_reader :last_usage
+
+    # Returns the finish reason from the most recent API call
+    # (e.g. "stop" for a complete response, "length" when the output
+    # token cap cut the response off).
+    #
+    # @return [String, nil]
+    attr_reader :last_finish_reason
 
     # Sends a chat completion request to OpenAI with true SSE streaming.
     #
@@ -58,6 +66,7 @@ module Ai
       raise ApiError, "API key not configured for provider #{@provider.slug}" unless api_key.present?
 
       @accumulated_content = ""
+      @last_finish_reason = nil
       finish_reason = nil
 
       client = @streaming_client_class.new(url: "#{base_url}/chat/completions")
@@ -95,6 +104,10 @@ module Ai
           yield({ content: content, finish_reason: finish_reason }) if block_given?
         end
       end
+
+      # The terminal chunk may carry only the finish reason (no content),
+      # so keep it on the adapter instead of relying on yielded chunks alone.
+      @last_finish_reason = finish_reason
 
       # Fallback: estimate usage if not provided in stream
       @last_usage ||= Usage.new(

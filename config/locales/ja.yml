@@ -2379,6 +2379,9 @@ ja:
       a11y_close: "チャットを閉じる"
       a11y_input: "チャットメッセージ入力"
       a11y_send: "メッセージを送信"
+      truncated_notice: "回答がトークン上限に達したため、途中で切れています。続きが必要な場合は「続きを生成」を押してください。"
+      truncated_continue: "続きを生成"
+      truncated_continue_prompt: "続きを生成してください。前回の回答の続きからお願いします。"
     freemius_return:
       success_title: "購入が完了しました"
       success_body: "お支払いを受け付けました。購入内容の反映まで少々お待ちください。"

@@ -76,6 +76,60 @@ RSpec.describe Ai::OpenAiAdapter do
     end
   end
 
+  describe "#stream の finish_reason 伝達（Issue #63）" do
+    # SSE データ行をブロックに渡すだけの疑似ストリーミングクライアント。
+    # 実送信はしない（外部 API への実送信は禁止）。
+    let(:stub_client_class) do
+      lines = sse_lines
+      Class.new do
+        define_method(:initialize) { |**| }
+        define_method(:post) do |headers:, body:, &block|
+          lines.each { |line| block.call(line) }
+        end
+      end
+    end
+
+    context "上限打ち切り（length）の場合" do
+      let(:sse_lines) do
+        [
+          '{"id":"chatcmpl-1","choices":[{"delta":{"content":"Hello"},"finish_reason":null}]}',
+          '{"id":"chatcmpl-1","choices":[{"delta":{},"finish_reason":"length"}]}',
+          '{"id":"chatcmpl-1","choices":[],"usage":{"prompt_tokens":10,"completion_tokens":5}}'
+        ]
+      end
+
+      it "content が空の最終チャンクでも finish_reason を保持する" do
+        adapter = described_class.new(ai_model, streaming_client: stub_client_class)
+        yielded = []
+        adapter.stream([{ role: "user", content: "hi" }]) { |chunk| yielded << chunk }
+
+        expect(adapter.accumulated_content).to eq("Hello")
+        expect(adapter.last_finish_reason).to eq("length")
+        expect(adapter.last_usage.output_tokens).to eq(5)
+        # 空 content の終端チャンクは yield しない（空の stream_chunk を流さない）
+        expect(yielded).to eq([{ content: "Hello", finish_reason: nil }])
+      end
+    end
+
+    context "正常完結（stop）の場合" do
+      let(:sse_lines) do
+        [
+          '{"id":"chatcmpl-1","choices":[{"delta":{"content":"Hi"},"finish_reason":null}]}',
+          '{"id":"chatcmpl-1","choices":[{"delta":{},"finish_reason":"stop"}]}',
+          '{"id":"chatcmpl-1","choices":[],"usage":{"prompt_tokens":10,"completion_tokens":3}}'
+        ]
+      end
+
+      it "finish_reason stop を保持する" do
+        adapter = described_class.new(ai_model, streaming_client: stub_client_class)
+        adapter.stream([{ role: "user", content: "hi" }]) { |_| }
+
+        expect(adapter.accumulated_content).to eq("Hi")
+        expect(adapter.last_finish_reason).to eq("stop")
+      end
+    end
+  end
+
   describe "#stream のエラー" do
     let(:error_body) do
       '{"error":{"message":"You have no credits remaining.",' \

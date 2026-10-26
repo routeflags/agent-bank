@@ -220,6 +220,8 @@ class API::V1::ChatSessionsController < ApplicationController
           output_tokens: m.output_tokens,
           metadata: m.metadata,
           is_result: m.metadata.is_a?(Hash) && m.metadata["is_result"] == true,
+          truncated: m.metadata.is_a?(Hash) && m.metadata["truncated"] == true,
+          finish_reason: m.metadata.is_a?(Hash) ? m.metadata["finish_reason"] : nil,
           attachment: attachment && {
             id: attachment.id,
             url: attachment.image.url(:medium)

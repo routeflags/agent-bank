@@ -31,6 +31,7 @@ module ChatPanelHelper
     attach_remove attach_upload_failed attach_invalid_type
     attach_too_large a11y_dialog a11y_open
     a11y_close a11y_input a11y_send
+    truncated_notice truncated_continue truncated_continue_prompt
   ].freeze
 
   def chat_panel_i18n

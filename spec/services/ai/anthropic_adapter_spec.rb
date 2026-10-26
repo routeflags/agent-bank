@@ -74,4 +74,56 @@ RSpec.describe Ai::AnthropicAdapter do
       expect(adapter.accumulated_content).to eq("")
     end
   end
+
+  describe "#stream の stop_reason 伝達（Issue #63）" do
+    # SSE イベント行をブロックに渡すだけの疑似ストリーミングクライアント。
+    # 実送信はしない（外部 API への実送信は禁止）。
+    let(:stub_client_class) do
+      lines = sse_lines
+      Class.new do
+        define_method(:initialize) { |**| }
+        define_method(:post) do |headers:, body:, &block|
+          lines.each { |line| block.call(line) }
+        end
+      end
+    end
+    let(:request_messages) { [{ role: "user", content: "hi" }] }
+
+    context "上限打ち切り（max_tokens）の場合" do
+      let(:sse_lines) do
+        [
+          '{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}',
+          '{"type":"message_delta","delta":{"stop_reason":"max_tokens"},"usage":{"input_tokens":10,"output_tokens":5}}',
+          '{"type":"message_stop"}'
+        ]
+      end
+
+      it "stop_reason max_tokens を last_finish_reason として保持する" do
+        adapter = described_class.new(ai_model, streaming_client: stub_client_class)
+        adapter.stream(request_messages) { |_| }
+
+        expect(adapter.accumulated_content).to eq("Hello")
+        expect(adapter.last_finish_reason).to eq("max_tokens")
+        expect(adapter.last_usage.output_tokens).to eq(5)
+      end
+    end
+
+    context "正常完結（end_turn）の場合" do
+      let(:sse_lines) do
+        [
+          '{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hi"}}',
+          '{"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"input_tokens":10,"output_tokens":3}}',
+          '{"type":"message_stop"}'
+        ]
+      end
+
+      it "stop_reason end_turn を保持する" do
+        adapter = described_class.new(ai_model, streaming_client: stub_client_class)
+        adapter.stream(request_messages) { |_| }
+
+        expect(adapter.accumulated_content).to eq("Hi")
+        expect(adapter.last_finish_reason).to eq("end_turn")
+      end
+    end
+  end
 end

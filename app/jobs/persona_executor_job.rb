@@ -14,8 +14,9 @@
 #   1. Resolve adapter via ProviderFactory
 #   2. Build messages via ChatCompletionsBuilder
 #   3. Check wallet balance (fail fast if insufficient)
-#   4. Stream AI response, broadcasting chunks via Action Cable
-#   5. Save the complete assistant message to chat_messages
+#   4. Stream the AI response, broadcasting chunks via Action Cable
+#   5. Save the complete assistant message to chat_messages, recording
+#      a token-cap cutoff (finish_reason length/max_tokens) in metadata
 #   6. Create UsageRecord and deduct cost from wallet (atomically)
 class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
 
@@ -24,6 +25,11 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
   # Minimum wallet balance in cents required before making an API call.
   # Prevents making expensive API calls when the user can't afford it.
   MIN_BALANCE_CENTS = 10
+
+  # Finish reasons that mean the response was cut off by the output token cap.
+  # OpenAI reports "length"; Anthropic reports "max_tokens".
+  # Any other reason ("stop" / "end_turn" / nil) is a normal completion.
+  TRUNCATED_FINISH_REASONS = %w[length max_tokens].freeze
 
   # Provider error codes that keep failing until an operator fixes billing
   # or spend limits. Retrying or asking the user to resend cannot help.
@@ -91,10 +97,16 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
 
     # Step 4: Stream the AI response
     full_content = ""
+    finish_reason = nil
     usage_result = nil
 
     adapter.stream(messages, max_tokens: max_tokens) do |chunk|
-      full_content += chunk[:content]
+      # The terminal chunk may carry only the finish reason (no content),
+      # so record the reason even when there is nothing to append.
+      chunk_reason = chunk[:finish_reason] || chunk[:stop_reason]
+      finish_reason ||= chunk_reason if chunk_reason.present?
+
+      full_content += chunk[:content].to_s
 
       # Broadcast each chunk to connected clients
       ActionCable.server.broadcast(
@@ -105,6 +117,13 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
         }
       )
     end
+
+    # Fall back to the adapter's recorded reason: it survives terminal
+    # chunks that carry no content and are never yielded.
+    if finish_reason.nil? && adapter.respond_to?(:last_finish_reason)
+      finish_reason = adapter.last_finish_reason
+    end
+    truncated = TRUNCATED_FINISH_REASONS.include?(finish_reason)
 
     # Retrieve usage from the adapter after streaming completes.
     # The adapter stores the last usage result internally.
@@ -129,6 +148,18 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     billing_result = nil
     is_result = Ai::ResultDetector.result?(full_content)
 
+    # Record a token-cap cutoff in metadata so a truncated reply stays
+    # identifiable after reload. Normal completions store nothing extra.
+    assistant_metadata = nil
+    if is_result || truncated
+      assistant_metadata = {}
+      assistant_metadata["is_result"] = true if is_result
+      if truncated
+        assistant_metadata["truncated"] = true
+        assistant_metadata["finish_reason"] = finish_reason
+      end
+    end
+
     ActiveRecord::Base.transaction do
       next_seq = chat_session.chat_messages.maximum(:seq)&.next || 1
       assistant_message = chat_session.chat_messages.create!(
@@ -137,7 +168,7 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
         seq: next_seq,
         input_tokens: usage_result.input_tokens,
         output_tokens: usage_result.output_tokens,
-        metadata: is_result ? { "is_result" => true } : nil
+        metadata: assistant_metadata
       )
 
       usage_record = UsageRecord.create!(
@@ -172,6 +203,8 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
         role: "assistant",
         content: assistant_message.content,
         is_result: is_result,
+        finish_reason: finish_reason,
+        truncated: truncated,
         time: (assistant_message.created_at.to_f * 1000).to_i,
         tokens: {
           input: usage_result.input_tokens,
@@ -182,7 +215,8 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
 
     Rails.logger.info(
       "[PersonaExecutorJob] Completed message #{message_id}. " \
-      "Tokens: #{usage_result.input_tokens}in/#{usage_result.output_tokens}out"
+      "Tokens: #{usage_result.input_tokens}in/#{usage_result.output_tokens}out " \
+      "finish_reason=#{finish_reason.inspect} truncated=#{truncated}"
     )
   rescue Ai::ProviderFactory::ProviderNotConfiguredError => e
     Rails.logger.error("[PersonaExecutorJob] Provider not configured: #{e.message}")
