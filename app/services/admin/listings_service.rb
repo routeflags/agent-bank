@@ -33,7 +33,7 @@ class Admin::ListingsService
   end
 
   def update_by_author_params(update_listing)
-    if community.pre_approved_listings? && !person.has_admin_rights?(community)
+    base_params = if community.pre_approved_listings? && !person.has_admin_rights?(community)
       if update_listing.approved? || update_listing.approval_rejected?
         {state: Listing::APPROVAL_PENDING}
       else
@@ -41,6 +41,21 @@ class Admin::ListingsService
       end
     else
       {state: Listing::APPROVED}
+    end
+    base_params.merge(open_param)
+  end
+
+  # 出品編集画面の公開/非公開ラジオ (listing[open] "1"/"0") をそのまま保存する。
+  # パラメータが無い場合は現在の状態を維持する。所有者チェックは
+  # ListingsController の before_action に任せる。
+  def open_param
+    case params.dig(:listing, :open)
+    when "1", true, 1
+      {open: true}
+    when "0", false, 0
+      {open: false}
+    else
+      {}
     end
   end
 

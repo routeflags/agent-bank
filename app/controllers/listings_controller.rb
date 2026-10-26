@@ -205,7 +205,7 @@ class ListingsController < ApplicationController
       return redirect_to edit_listing_path
     end
 
-    listing_params = result.data.merge(@listing.closed? ? {open: true} : {})
+    listing_params = result.data
     service = Admin::ListingsService.new(community: @current_community, params: params, person: @current_user)
     listing_params.merge!(service.update_by_author_params(@listing))
 
