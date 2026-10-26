@@ -41,8 +41,8 @@
           .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_views])
           .raku-profile__stat-label= t('lamprey.mypage.stats_total_views')
         .raku-profile__stat
-          .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_sold])
-          .raku-profile__stat-label= t('lamprey.mypage.stats_total_sold')
+          .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_tokens])
+          .raku-profile__stat-label= t('lamprey.mypage.stats_total_tokens')
 
     .raku-sidebar__nav
       .raku-sidebar__section-label= t('lamprey.mypage.menu')
@@ -71,8 +71,8 @@
       .raku-summary__item
         .raku-summary__label
           %span.raku-summary__icon 💰
-          = t('lamprey.mypage.summary_total_sold')
-        .raku-summary__value= number_with_delimiter(@raku_stats[:total_sold])
+          = t('lamprey.mypage.summary_total_tokens')
+        .raku-summary__value= number_with_delimiter(@raku_stats[:total_tokens])
       .raku-summary__item
         .raku-summary__label
           %span.raku-summary__icon 👆
