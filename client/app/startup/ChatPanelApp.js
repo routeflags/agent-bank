@@ -663,6 +663,11 @@ class ChatPanelApp extends React.Component {
   }
 
   handleDone(data) {
+    // Issue #82: 課金後の残高が数値で届いたら表示を更新（追加リクエストなし）。
+    // null/欠落時は何もしない（後方互換）。
+    if (data && typeof data.current_balance === 'number') {
+      this.setState({ walletBalance: data.current_balance });
+    }
     if (this.streamingId) {
       // サーバーは messageId（camelCase）で送る。旧形式 message_id も受ける（#32）。
       var finalId = data.message_id || data.messageId || this.streamingId;
