@@ -208,7 +208,10 @@ class HomepageController < ApplicationController
       price_max: params[:price_max],
       locale: I18n.locale,
       include_closed: false,
-      sort: nil
+      sort: nil,
+      # 一覧の並び順（Issue #80 / #81）。`:sort` は検索エンジン側のソートで
+      # DB フォールバックでは無視されるため、別のキーで渡す。
+      sort_by: homepage_sort_order(params[:sort])
     }
 
     if @view_type != 'map' && location_search_in_use
@@ -304,6 +307,20 @@ class HomepageController < ApplicationController
   end
 
   # Filter search params if their values equal min/max
+  # 一覧の並び順（Issue #80 / #81）。
+  #
+  # タブの値（popular / newest / rating）だけを受け付け、未知の値は
+  # 既定（popular = サーバー既定の並び）に落とす。
+  #
+  # @param sort [String, nil] `?sort=` の値
+  # @return [String] "popular" / "newest" / "rating"
+  HOMEPAGE_SORT_ORDERS = %w[popular newest rating].freeze
+
+  def homepage_sort_order(sort)
+    value = sort.to_s
+    HOMEPAGE_SORT_ORDERS.include?(value) ? value : "popular"
+  end
+
   def filter_unnecessary(search_params, numeric_fields)
     search_params.reject do |search_param|
       numeric_field = numeric_fields.find(search_param[:id])

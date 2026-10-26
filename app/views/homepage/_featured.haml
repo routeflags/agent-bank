@@ -1,12 +1,17 @@
 -# Featured Cards
 -# ═══════════════════════════════════════════════════════════
+-# 並び順タブ（Issue #80 / #81）。
+-# 以前は JS で DOM を並べ替えていたが、一覧グリッドはサーバーが描画するため
+-# カードの並びが変わらなかった。タブをリンクにしてサーバー側で並べ替える
+-# （注目カードと一覧グリッドの順序が常に一致する）。
+- featured_sort = %w[newest rating].include?(params[:sort].to_s) ? params[:sort].to_s : "popular"
+- featured_tab_href = ->(key) { "#{request.path}?#{request.query_parameters.except("page").merge("sort" => key).to_query}" }
 .raku-featured
   .raku-featured__header
     %h2.raku-featured__title= t('lamprey.homepage.featured_title')
     .raku-featured__tabs
-      %button.raku-featured__tab.is-active{type: "button", data: {sort: "popular"}}= t('lamprey.homepage.tab_popular')
-      %button.raku-featured__tab{type: "button", data: {sort: "newest"}}= t('lamprey.homepage.tab_newest')
-      %button.raku-featured__tab{type: "button", data: {sort: "rating"}}= t('lamprey.homepage.tab_rating')
+      - [["popular", t('lamprey.homepage.tab_popular')], ["newest", t('lamprey.homepage.tab_newest')], ["rating", t('lamprey.homepage.tab_rating')]].each do |key, label|
+        %a.raku-featured__tab{class: (featured_sort == key ? "is-active" : nil), href: featured_tab_href.call(key), data: {sort: key}}= label
   .raku-featured__slider
     %button.raku-featured__arrow.raku-featured__arrow--prev{type: "button", "aria-label": t('lamprey.homepage.slide_prev'), onclick: "RakuFeatured.slide(-1)"} ‹
     .raku-featured__scroll#raku-featured-scroll
