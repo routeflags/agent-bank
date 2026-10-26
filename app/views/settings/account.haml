@@ -4,9 +4,9 @@
 - content_for :title_header do
   %h1= t("layouts.no_tribe.settings")
 
-= render :partial => "layouts/left_hand_navigation", :locals => { :links => settings_links_for(target_user, @current_community) }
+%p.back-to-mypage= link_to "← #{t('lamprey.mypage.dashboard')}", person_path(username: @current_user.username)
 
-#person_settings_form.left-navi-section.settings-section.account-settings
+#person_settings_form.left-navi-section.settings-section.account-settings.settings-no-nav
   -# Email
   .account-settings-row
     = form_for target_user, :html => {:id => 'email_form'} do |form|
