@@ -165,7 +165,9 @@ var DEFAULT_I18N = {
   a11y_send: 'メッセージを送信',
   truncated_notice: '回答がトークン上限に達したため、途中で切れています。続きが必要な場合は「続きを生成」を押してください。',
   truncated_continue: '続きを生成',
-  truncated_continue_prompt: '続きを生成してください。前回の回答の続きからお願いします。'
+  truncated_continue_prompt: '続きを生成してください。前回の回答の続きからお願いします。',
+  copy: 'コピー',
+  copied: 'コピー済み'
 };
 var I18N = Object.assign({}, DEFAULT_I18N);
 function t(key) { return I18N[key] != null ? I18N[key] : (DEFAULT_I18N[key] || key); }
@@ -182,6 +184,82 @@ function tFormat(key, vars) {
 // client/app/components/WalletTopup/ に移動。ChatPanel とマイページで共用。
 
 // ─── Message Bubble ──────────────────────────────────────
+
+// アシスタント回答のコピーボタン（Issue #66）。
+// React 16.1.1 はフック非対応のためクラスコンポーネントで実装する。
+class CopyButton extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { copied: false };
+    this.mounted = false;
+    this.resetTimer = null;
+    this.handleClick = this.handleClick.bind(this);
+  }
+
+  componentDidMount() {
+    this.mounted = true;
+  }
+
+  componentWillUnmount() {
+    this.mounted = false;
+    if (this.resetTimer) {
+      clearTimeout(this.resetTimer);
+      this.resetTimer = null;
+    }
+  }
+
+  legacyCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+
+  handleClick() {
+    var self = this;
+    var text = this.props.text || '';
+    var done = function() {
+      if (!self.mounted) return;
+      self.setState({ copied: true });
+      if (self.resetTimer) clearTimeout(self.resetTimer);
+      self.resetTimer = setTimeout(function() {
+        if (self.mounted) self.setState({ copied: false });
+      }, 1500);
+    };
+    // クリップボード API は secure context のみ。使えない環境では
+    // textarea + execCommand にフォールバックする。
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function() {
+          try { self.legacyCopy(text); done(); } catch (e) {
+            console.warn('[ChatPanel] copy failed', e);
+          }
+        });
+      } else {
+        this.legacyCopy(text);
+        done();
+      }
+    } catch (e) {
+      console.warn('[ChatPanel] copy failed', e);
+    }
+  }
+
+  render() {
+    var label = this.state.copied ? t('copied') : t('copy');
+    return React.createElement('button', {
+      type: 'button',
+      className: 'chatMessage__copyBtn' + (this.state.copied ? ' is-copied' : ''),
+      onClick: this.handleClick,
+      title: label,
+      'aria-label': label,
+    }, this.state.copied ? '✓ ' + label : label);
+  }
+}
 
 function MessageBubble(props) {
   var role = props.role;
@@ -273,6 +351,11 @@ function MessageBubble(props) {
     ),
     role === 'assistant' && totalTokens > 0 && (
       React.createElement('span', { className: 'chatMessage__tokens' }, tFormat('message_tokens', { count: totalTokens }))
+    ),
+    // コピーボタン（Issue #66）: 完了したアシスタント回答のプレーンテキストを
+    // コピーする（Markdown 変換前の本文）。
+    isAssistant && !isStreaming && displayContent && (
+      React.createElement(CopyButton, { text: content })
     ),
     timeStr && role !== 'system' && (
       React.createElement('span', { className: 'chatMessage__meta' }, timeStr)

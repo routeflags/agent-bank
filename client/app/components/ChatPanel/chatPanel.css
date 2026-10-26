@@ -279,6 +279,33 @@
   margin-top: 4px;
 }
 
+/* コピーボタン（Issue #66）: 回答バブルの下に小さく置く。 */
+.chatMessage__copyBtn {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border: 1px solid #3d3d3d;
+  border-radius: 10px;
+  background: transparent;
+  color: #b0b0b0;
+  font-size: 11px;
+  line-height: 1.6;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.chatMessage__copyBtn:hover,
+.chatMessage__copyBtn:focus-visible {
+  color: #e0e0e0;
+  border-color: #7cc3b6;
+  outline: none;
+}
+
+.chatMessage__copyBtn.is-copied {
+  color: #7cc3b6;
+  border-color: #7cc3b6;
+}
+
 /* ─── RESULT Best Answer card (designs/chat-sp.png) ─── */
 
 .chatMessage--assistant-done .chatMessage__bubble {
