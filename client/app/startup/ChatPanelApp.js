@@ -270,6 +270,9 @@ function MessageBubble(props) {
   var showTopupButton = props.showTopupButton;
   var onTopupClick = props.onTopupClick;
   var attachment = props.attachment;
+  // 会話へ移動（Issue #64）のスクロール先特定用。key は props 経由で
+  // 取得できないため、メッセージ ID を data-message-id として描画する。
+  var messageId = props.message_id;
   // 特別な成果表示（DESIGN.md §13）は明示フラグが付いた回答にのみ適用する
   var isResult = props.is_result === true;
   // トークン上限による打ち切り（Issue #63）。正常完結時は表示しない。
@@ -315,7 +318,10 @@ function MessageBubble(props) {
     renderedContent = displayContent || '';
   }
 
-  return React.createElement('div', { className: 'chatMessage chatMessage--' + (role || 'user') + (isAssistant && !isStreaming && displayContent && isResult ? ' chatMessage--assistant-done' : '') },
+  return React.createElement('div', {
+    className: 'chatMessage chatMessage--' + (role || 'user') + (isAssistant && !isStreaming && displayContent && isResult ? ' chatMessage--assistant-done' : ''),
+    'data-message-id': messageId,
+  },
     React.createElement('div', { className: 'chatMessage__bubble' },
       // RESULT Best Answer card header (designs/chat-sp.png §7-3)
       // DESIGN.md §13: 特別な成果表示であり通常の回答すべてには出さない
@@ -431,6 +437,7 @@ class ChatPanelApp extends React.Component {
     this.handleCloseTopup = this.handleCloseTopup.bind(this);
     this.handleTopupSuccess = this.handleTopupSuccess.bind(this);
     this.handleContinue = this.handleContinue.bind(this);
+    this.handleJumpToResult = this.handleJumpToResult.bind(this);
   }
 
   // ─── Session management ───────────────────────────────
@@ -762,6 +769,20 @@ class ChatPanelApp extends React.Component {
     this.addMessage('user-' + Date.now(), 'user', text, false);
     this.sendMessage(text, null, this.state.sessionId);
     this.sending = false;
+  }
+
+  // 成果プレビュー「会話へ移動」（Issue #64）: 該当の assistant 回答までスクロールする。
+  // 要素が見つからない場合は何もしない（例外を出さない）。
+  handleJumpToResult(result) {
+    if (!result || result.id === undefined || result.id === null) return;
+    var el = null;
+    try {
+      el = document.querySelector('[data-message-id="' + result.id + '"]');
+    } catch (e) {
+      return;
+    }
+    if (!el || !el.scrollIntoView) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   // ─── User interaction ─────────────────────────────────
@@ -1252,7 +1273,7 @@ class ChatPanelApp extends React.Component {
                 )
               : state.messages.map(function (msg) {
                   return React.createElement(MessageBubble, {
-                    key: msg.id, role: msg.role, content: msg.content,
+                    key: msg.id, message_id: msg.id, role: msg.role, content: msg.content,
                     isStreaming: msg.isStreaming,
                     is_result: msg.is_result,
                     truncated: msg.truncated,
@@ -1347,11 +1368,7 @@ class ChatPanelApp extends React.Component {
               tFormat('message_tokens', { count: latestResult.total_tokens })),
             React.createElement('button', {
               className: 'chatPanel__resultJump',
-              onClick: function () {
-                if (self.messagesEndRef && self.messagesEndRef.scrollIntoView) {
-                  self.messagesEndRef.scrollIntoView({ behavior: 'smooth' });
-                }
-              },
+              onClick: function () { self.handleJumpToResult(latestResult); },
               type: 'button',
             }, t('result_panel_jump'))
           ),
