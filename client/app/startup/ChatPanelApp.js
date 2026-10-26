@@ -315,7 +315,7 @@ function MessageBubble(props) {
     renderedContent = displayContent || '';
   }
 
-  return React.createElement('div', { className: 'chatMessage chatMessage--' + (role || 'user') + (isAssistant && !isStreaming && displayContent ? ' chatMessage--assistant-done' : '') },
+  return React.createElement('div', { className: 'chatMessage chatMessage--' + (role || 'user') + (isAssistant && !isStreaming && displayContent && isResult ? ' chatMessage--assistant-done' : '') },
     React.createElement('div', { className: 'chatMessage__bubble' },
       // RESULT Best Answer card header (designs/chat-sp.png §7-3)
       // DESIGN.md §13: 特別な成果表示であり通常の回答すべてには出さない
@@ -1123,11 +1123,11 @@ class ChatPanelApp extends React.Component {
     var self = this;
     var personaName = this.props.persona_name || 'AI Assistant';
 
-    // §13 Result/Artifact preview — latest completed assistant answer
+    // §13 Result/Artifact preview — latest completed assistant answer with is_result === true (Issue #65)
     var latestResult = null;
     for (var i = state.messages.length - 1; i >= 0; i--) {
       var m = state.messages[i];
-      if (m.role === 'assistant' && !m.isStreaming && m.content) {
+      if (m.role === 'assistant' && !m.isStreaming && m.content && m.is_result === true) {
         latestResult = m;
         break;
       }
