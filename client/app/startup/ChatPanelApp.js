@@ -140,6 +140,7 @@ var DEFAULT_I18N = {
   settings_model: 'モデル',
   settings_token_limit: 'トークン上限',
   settings_tokens_unit: '%{count} トークン',
+  settings_token_unlimited: '上限なし',
   settings_output_length: '出力の長さ',
   output_short: '短め',
   output_standard: '標準',
@@ -426,6 +427,7 @@ class ChatPanelApp extends React.Component {
     this.handleRenameSession = this.handleRenameSession.bind(this);
     this.handleModelChange = this.handleModelChange.bind(this);
     this.handleTokenChange = this.handleTokenChange.bind(this);
+    this.handleTokenUnlimitedChange = this.handleTokenUnlimitedChange.bind(this);
     this.handleOutputLength = this.handleOutputLength.bind(this);
     this.handleToneChange = this.handleToneChange.bind(this);
     this.handleAttachClick = this.handleAttachClick.bind(this);
@@ -1019,6 +1021,16 @@ class ChatPanelApp extends React.Component {
     this.setState({ selectedModel: e.target.value });
   }
 
+  // Issue #105: チェック時は tokenLimit を null（上限なし）にし、
+  // settings.token_limit に null を送る。外すと既定 4000 に戻す。
+  handleTokenUnlimitedChange(e) {
+    if (e.target.checked) {
+      this.setState({ tokenLimit: null });
+    } else {
+      this.setState({ tokenLimit: 4000 });
+    }
+  }
+
   handleTokenChange(e) {
     this.setState({ tokenLimit: parseInt(e.target.value, 10) });
   }
@@ -1460,7 +1472,9 @@ class ChatPanelApp extends React.Component {
             )
           ),
 
-          // Token limit
+          // Token limit (Issue #105: 8000 の上限を撤廃し、「上限なし」を選べる）
+          // スライダーは有限値の簡易選択（1000〜32000）。上限なしでは null を送り、
+          // サーバー・モデル既定の最大まで生成させる（20,000 等も切り詰めない）。
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
             React.createElement('label', { className: 'chatPanel__settingsLabel', htmlFor: 'chatPanel-tokenLimit' }, t('settings_token_limit')),
             React.createElement('input', {
@@ -1468,14 +1482,28 @@ class ChatPanelApp extends React.Component {
               className: 'chatPanel__settingsSlider',
               id: 'chatPanel-tokenLimit',
               min: '1000',
-              max: '8000',
+              max: '32000',
               step: '500',
-              value: state.tokenLimit,
+              value: state.tokenLimit == null ? 4000 : state.tokenLimit,
+              disabled: state.tokenLimit == null,
               onChange: this.handleTokenChange,
-              'aria-valuetext': tFormat('settings_tokens_unit', { count: state.tokenLimit.toLocaleString() }),
+              'aria-valuetext': state.tokenLimit == null
+                ? t('settings_token_unlimited')
+                : tFormat('settings_tokens_unit', { count: state.tokenLimit.toLocaleString() }),
             }),
             React.createElement('div', { className: 'chatPanel__settingsValue' },
-              tFormat('settings_tokens_unit', { count: state.tokenLimit.toLocaleString() })
+              state.tokenLimit == null
+                ? t('settings_token_unlimited')
+                : tFormat('settings_tokens_unit', { count: state.tokenLimit.toLocaleString() })
+            ),
+            React.createElement('label', { className: 'chatPanel__settingsUnlimited', htmlFor: 'chatPanel-tokenUnlimited' },
+              React.createElement('input', {
+                type: 'checkbox',
+                id: 'chatPanel-tokenUnlimited',
+                checked: state.tokenLimit == null,
+                onChange: this.handleTokenUnlimitedChange,
+              }),
+              t('settings_token_unlimited')
             )
           ),
 

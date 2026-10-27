@@ -68,6 +68,48 @@ RSpec.describe Ai::AnthropicAdapter do
     end
   end
 
+  describe "#stream の max_tokens 転送（Issue #105）" do
+    # max_tokens は Anthropic の必須パラメータ。nil のときはモデルの最大出力値を送る。
+    let(:sent_bodies) { [] }
+    let(:capturing_client_class) do
+      bodies = sent_bodies
+      Class.new do
+        define_method(:initialize) { |**| }
+        define_method(:post) do |headers:, body:, &_block|
+          bodies << JSON.parse(body)
+        end
+      end
+    end
+    let(:messages) { [{ role: "user", content: "こんにちは" }] }
+
+    it "nil のときは @ai_model.max_tokens を送る" do
+      adapter = described_class.new(ai_model, streaming_client: capturing_client_class)
+      adapter.stream(messages, max_tokens: nil) { |_| }
+
+      expect(sent_bodies.first["max_tokens"]).to eq(4096)
+    end
+
+    it "モデル固有の max_tokens を使う（ハードコードではない）" do
+      large_model = instance_double(
+        AiModel,
+        model_id: "claude-3-5-sonnet-20241022",
+        max_tokens: 8192,
+        ai_provider: ai_provider
+      )
+      adapter = described_class.new(large_model, streaming_client: capturing_client_class)
+      adapter.stream(messages, max_tokens: nil) { |_| }
+
+      expect(sent_bodies.first["max_tokens"]).to eq(8192)
+    end
+
+    it "指定値があるときはそのまま送る" do
+      adapter = described_class.new(ai_model, streaming_client: capturing_client_class)
+      adapter.stream(messages, max_tokens: 20_000) { |_| }
+
+      expect(sent_bodies.first["max_tokens"]).to eq(20_000)
+    end
+  end
+
   describe "#accumulated_content" do
     it "is empty string after initialization" do
       adapter = described_class.new(ai_model)

@@ -317,6 +317,54 @@ RSpec.describe PersonaExecutorJob, type: :model do
     end
   end
 
+  # ── トークン上限の引き渡し（Issue #105） ──────────────────────
+
+  describe "トークン上限の引き渡し" do
+    let!(:wallet) { FactoryBot.create(:wallet, person: person, community: community, balance_cents: 1000) }
+
+    before do
+      allow_any_instance_of(Person).to receive(:wallet).and_return(wallet)
+      allow(adapter).to receive(:stream).and_yield({ content: "Hi" })
+      allow(adapter).to receive(:last_usage).and_return(
+        OpenStruct.new(input_tokens: 10, output_tokens: 5)
+      )
+      allow(adapter).to receive(:last_finish_reason).and_return("stop")
+      billing_service = instance_double(BillingService)
+      allow(BillingService).to receive(:new).and_return(billing_service)
+      allow(billing_service).to receive(:process!).and_return(
+        { base_cost_cents: 1, platform_commission_cents: 0, seller_payout_cents: 1, total_charge_cents: 1 }
+      )
+      allow(ActionCable.server).to receive(:broadcast)
+    end
+
+    def perform_with_token_limit(token_limit)
+      user_message = chat_session.chat_messages.create!(
+        content: "Hello",
+        sender_type: "Person",
+        sender_id: person.id,
+        role: "user",
+        seq: 1,
+        metadata: { "settings" => { "token_limit" => token_limit } }
+      )
+      PersonaExecutorJob.new(chat_session.id, user_message.id, "Hello").perform
+    end
+
+    it "nil は max_tokens: nil としてアダプターに渡す（上限なし）" do
+      perform_with_token_limit(nil)
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: nil))
+    end
+
+    it "20_000 は切り詰めずそのまま渡す" do
+      perform_with_token_limit(20_000)
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 20_000))
+    end
+
+    it "4_000 は従来どおり渡す" do
+      perform_with_token_limit(4_000)
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 4000))
+    end
+  end
+
   # ── 打ち切り記録 (finish_reason / Issue #63) ──────────────────────
 
   describe "トークン上限による打ち切りの記録" do

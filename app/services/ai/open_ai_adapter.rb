@@ -180,19 +180,18 @@ module Ai
     #
     # @param messages [Array<Hash>]
     # @param stream [Boolean]
+    # @param max_tokens [Integer, nil] nil のときは max_tokens を含めない（上限なし）
     # @return [String] JSON-encoded body
-    # Output token cap: OpenAI models have different output limits.
-    # 16384 is the max output for most GPT-4o / GPT-4o-mini models.
-    MAX_OUTPUT_TOKENS = 16384
-
     def build_request_body(messages, stream: true, max_tokens: nil)
-      cap = max_tokens || @ai_model.max_tokens || 4096
       body = {
         model: @ai_model.model_id,
         messages: messages,
-        max_tokens: [cap, MAX_OUTPUT_TOKENS].min,
         stream: stream
       }
+
+      # Issue #105: nil は「上限なし」。max_tokens を送らずモデル既定の最大まで生成させる。
+      # 有限値のときはクリップせずそのまま送る。
+      body[:max_tokens] = max_tokens unless max_tokens.nil?
 
       # Request usage statistics in streaming mode
       if stream

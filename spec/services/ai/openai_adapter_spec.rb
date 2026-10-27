@@ -76,6 +76,41 @@ RSpec.describe Ai::OpenAiAdapter do
     end
   end
 
+  describe "#stream の max_tokens 転送（Issue #105）" do
+    let(:sent_bodies) { [] }
+    let(:capturing_client_class) do
+      bodies = sent_bodies
+      Class.new do
+        define_method(:initialize) { |**| }
+        define_method(:post) do |headers:, body:, &_block|
+          bodies << JSON.parse(body)
+        end
+      end
+    end
+    let(:messages) { [{ role: "user", content: "こんにちは" }] }
+
+    it "nil のときはリクエストに max_tokens を含めない（上限なし）" do
+      adapter = described_class.new(ai_model, streaming_client: capturing_client_class)
+      adapter.stream(messages, max_tokens: nil) { |_| }
+
+      expect(sent_bodies.first).not_to have_key("max_tokens")
+    end
+
+    it "4_000 のときは max_tokens=4000 を送る" do
+      adapter = described_class.new(ai_model, streaming_client: capturing_client_class)
+      adapter.stream(messages, max_tokens: 4_000) { |_| }
+
+      expect(sent_bodies.first["max_tokens"]).to eq(4000)
+    end
+
+    it "20_000 のときは切り詰めずそのまま送る" do
+      adapter = described_class.new(ai_model, streaming_client: capturing_client_class)
+      adapter.stream(messages, max_tokens: 20_000) { |_| }
+
+      expect(sent_bodies.first["max_tokens"]).to eq(20_000)
+    end
+  end
+
   describe "#stream の finish_reason 伝達（Issue #63）" do
     # SSE データ行をブロックに渡すだけの疑似ストリーミングクライアント。
     # 実送信はしない（外部 API への実送信は禁止）。

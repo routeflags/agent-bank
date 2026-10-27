@@ -2358,6 +2358,7 @@ ja:
       settings_model: "モデル"
       settings_token_limit: "トークン上限"
       settings_tokens_unit: "%{count} トークン"
+      settings_token_unlimited: "上限なし"
       settings_output_length: "出力の長さ"
       output_short: "短め"
       output_standard: "標準"

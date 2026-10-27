@@ -22,6 +22,7 @@ module ChatPanelHelper
     loading empty_state input_placeholder
     disclaimer balance_label settings_title
     settings_model settings_token_limit settings_tokens_unit
+    settings_token_unlimited
     settings_output_length output_short output_standard
     output_long settings_tone tone_polite
     tone_casual tone_professional tone_friendly

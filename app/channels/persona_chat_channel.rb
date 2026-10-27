@@ -72,7 +72,7 @@ class PersonaChatChannel < ApplicationCable::Channel
     settings = data['settings']
     if settings.is_a?(Hash)
       metadata['settings'] = {
-        'token_limit' => settings['token_limit'].to_i.clamp(100, 32_000),
+        'token_limit' => normalize_token_limit(settings['token_limit']),
         'output_length' => %w[short standard long].include?(settings['output_length']) ? settings['output_length'] : 'standard',
         'tone' => %w[polite casual professional friendly].include?(settings['tone']) ? settings['tone'] : 'polite'
       }
@@ -104,5 +104,16 @@ class PersonaChatChannel < ApplicationCable::Channel
     Rails.logger.info("[PersonaChatChannel] enqueued session=#{chat_session.id} message=#{message.id}")
   rescue ActiveRecord::RecordInvalid => e
     Rails.logger.error("[PersonaChatChannel] Failed to create message: #{e.message}")
+  end
+
+  private
+
+  # Issue #105: nil は「上限なし」としてそのまま保存する。
+  # 正の整数のみ採用し、それ以外（文字列・0・負数など）は既定 4000 にフォールバックする。
+  def normalize_token_limit(value)
+    return nil if value.nil?
+    return value if value.is_a?(Integer) && value.positive?
+
+    4000
   end
 end

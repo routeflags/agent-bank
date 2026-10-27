@@ -74,6 +74,56 @@ RSpec.describe PersonaChatChannel, type: :channel do
       expect(settings).not_to have_key("evil")
     end
 
+    # トークン上限の正規化（Issue #105）。
+    # nil は「上限なし」として保存し、サーバーの切り詰め（clamp）はしない。
+    describe "トークン上限の正規化" do
+      before do
+        allow(Delayed::Job).to receive(:enqueue)
+      end
+
+      def last_token_limit
+        chat_session.chat_messages.order(:seq).last.metadata["settings"]["token_limit"]
+      end
+
+      def receive_with_token_limit(token_limit)
+        perform :receive, {
+          "chat_session_id" => chat_session.id,
+          "content" => "トークン上限の確認",
+          "settings" => { "token_limit" => token_limit }
+        }
+      end
+
+      it "nil は上限なしとしてそのまま保存する" do
+        receive_with_token_limit(nil)
+        expect(last_token_limit).to be_nil
+      end
+
+      it "20_000 は切り詰めずそのまま保存する" do
+        receive_with_token_limit(20_000)
+        expect(last_token_limit).to eq(20_000)
+      end
+
+      it "4_000 は従来どおり保存する" do
+        receive_with_token_limit(4_000)
+        expect(last_token_limit).to eq(4_000)
+      end
+
+      it "文字列は 4000 にフォールバックする" do
+        receive_with_token_limit("abc")
+        expect(last_token_limit).to eq(4000)
+      end
+
+      it "0 は 4000 にフォールバックする" do
+        receive_with_token_limit(0)
+        expect(last_token_limit).to eq(4000)
+      end
+
+      it "負数は 4000 にフォールバックする" do
+        receive_with_token_limit(-1)
+        expect(last_token_limit).to eq(4000)
+      end
+    end
+
     it "存在しないセッションでは保存も投入もしない" do
       expect(Delayed::Job).not_to receive(:enqueue)
       expect {

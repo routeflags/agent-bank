@@ -2959,6 +2959,7 @@ en:
       settings_model: "Model"
       settings_token_limit: "Token limit"
       settings_tokens_unit: "%{count} tokens"
+      settings_token_unlimited: "Unlimited"
       settings_output_length: "Output length"
       output_short: "Short"
       output_standard: "Standard"
