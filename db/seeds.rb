@@ -178,8 +178,8 @@ puts "  Created #{created_providers.size} AI providers"
 
 models_data = [
   # OpenAI models
-  { provider_slug: 'openai', name: 'GPT-4o',              slug: 'gpt-4o',             model_id: 'gpt-4o',             max_tokens: 128000, context_window: 128000, cost_per_1k_input: 0.0025,   cost_per_1k_output: 0.01,  supports_vision: true,  supports_tools: true },
-  { provider_slug: 'openai', name: 'GPT-4o Mini',         slug: 'gpt-4o-mini',        model_id: 'gpt-4o-mini',        max_tokens: 128000, context_window: 128000, cost_per_1k_input: 0.00015,  cost_per_1k_output: 0.0006, supports_vision: true,  supports_tools: true },
+  { provider_slug: 'openai', name: 'GPT-4o',              slug: 'gpt-4o',             model_id: 'gpt-4o',             max_tokens: 16384, context_window: 128000, cost_per_1k_input: 0.0025,   cost_per_1k_output: 0.01,  supports_vision: true,  supports_tools: true },
+  { provider_slug: 'openai', name: 'GPT-4o Mini',         slug: 'gpt-4o-mini',        model_id: 'gpt-4o-mini',        max_tokens: 16384, context_window: 128000, cost_per_1k_input: 0.00015,  cost_per_1k_output: 0.0006, supports_vision: true,  supports_tools: true },
   { provider_slug: 'openai', name: 'GPT-4.1',             slug: 'gpt-4-1',            model_id: 'gpt-4.1',            max_tokens: 32768,  context_window: 1047576, cost_per_1k_input: 0.002,  cost_per_1k_output: 0.008, supports_vision: true,  supports_tools: true },
   { provider_slug: 'openai', name: 'GPT-4.1 Mini',        slug: 'gpt-4-1-mini',       model_id: 'gpt-4.1-mini',       max_tokens: 32768,  context_window: 1047576, cost_per_1k_input: 0.0004, cost_per_1k_output: 0.0016, supports_vision: true, supports_tools: true },
   { provider_slug: 'openai', name: 'GPT-4.1 Nano',        slug: 'gpt-4-1-nano',       model_id: 'gpt-4.1-nano',       max_tokens: 32768,  context_window: 1047576, cost_per_1k_input: 0.0001, cost_per_1k_output: 0.0004, supports_vision: true, supports_tools: true },
