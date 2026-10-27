@@ -12,7 +12,7 @@ describe "チャージ可否のステータス API", type: :request do
     DatabaseCleaner.start
     @domain = "topup-status.custom.org"
     @community = FactoryBot.create(:community, domain: @domain, use_domain: true,
-                                                settings: { "locales" => ["ja"] })
+                                               settings: { "locales" => ["ja"] })
     @person = FactoryBot.create(:person, username: "topupstatus", community_id: @community.id)
     FactoryBot.create(:community_membership, person: @person, community: @community)
     @community.reload

@@ -69,5 +69,58 @@ RSpec.describe Ai::ChatCompletionsBuilder do
         expect(messages.first).to eq({ role: "user", content: "こんにちは" })
       end
     end
+
+    # Issue #102: 実行設定（出力の長さ・トーン）が system prompt に反映されること。
+    # 実 API での効き目は script/measure_output_length.rb で測る（short 135字 /
+    # long 624字）。ここでは「指示文が組み立てられているか」を固定する。
+    context "実行設定が渡された場合" do
+      def system_content(settings)
+        described_class.new(chat_session, settings).build.first[:content]
+      end
+
+      it "output_length: short は簡潔さの指示を末尾に足す" do
+        expect(system_content("output_length" => "short"))
+          .to end_with(described_class::LENGTH_INSTRUCTIONS["short"])
+      end
+
+      it "output_length: long は詳細さの指示を末尾に足す" do
+        expect(system_content("output_length" => "long"))
+          .to end_with(described_class::LENGTH_INSTRUCTIONS["long"])
+      end
+
+      it "output_length: standard は指示を足さない" do
+        expect(system_content("output_length" => "standard")).to eq(skill_markdown)
+      end
+
+      it "未知の output_length では指示を足さない" do
+        expect(system_content("output_length" => "evil")).to eq(skill_markdown)
+      end
+
+      it "tone は 4 種類すべてが指示文に変換される" do
+        described_class::TONE_INSTRUCTIONS.each do |tone, instruction|
+          expect(system_content("tone" => tone)).to end_with(instruction)
+        end
+      end
+
+      it "未知の tone では指示を足さない" do
+        expect(system_content("tone" => "evil")).to eq(skill_markdown)
+      end
+
+      it "スキルが空なら実行設定だけの system メッセージになる" do
+        listing.update_columns(skill_markdown: "")
+
+        expect(system_content("output_length" => "short"))
+          .to eq(described_class::LENGTH_INSTRUCTIONS["short"])
+      end
+
+      it "スキルも設定も空なら system メッセージを作らない" do
+        listing.update_columns(skill_markdown: "")
+
+        messages = described_class.new(chat_session, {}).build
+
+        expect(messages.map { |m| m[:role] }).not_to include("system")
+      end
+    end
+
   end
 end

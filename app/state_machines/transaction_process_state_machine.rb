@@ -64,7 +64,7 @@ class TransactionProcessStateMachine
     # 既存サブスクリプションがある場合は冪等にスキップされる
     begin
       UserPlanSubscriptionService.create_on_purchase(conversation)
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error("[TransactionProcessStateMachine] Failed to create subscription for transaction #{conversation.id}: #{e.message}")
     end
   end
