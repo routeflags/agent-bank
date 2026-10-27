@@ -53,6 +53,11 @@ body.dark-theme {
     font-weight: 800;
     color: var(--text-primary);
     line-height: 1.2;
+    /* Issue #95: 短縮表示でも10桁超の保険に省略表示 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
   }
 
   .raku-summary__trend {

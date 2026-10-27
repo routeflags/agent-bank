@@ -240,6 +240,11 @@ body.dark-theme {
     font-size: 18px;
     font-weight: 700;
     color: var(--text-primary);
+    /* Issue #95: 短縮表示でも10桁超の保険に省略表示 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
   }
 
   .raku-profile__stat-label {
