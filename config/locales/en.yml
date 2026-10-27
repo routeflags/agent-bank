@@ -2941,6 +2941,7 @@ en:
       wallet_insufficient: "Your wallet balance is insufficient."
       connect_failed: "Could not connect to the chat. Please try again shortly."
       session_create_failed: "Failed to create the session."
+      listing_closed: "This listing is currently unavailable."
       history_title: "History"
       history_new: "＋ New"
       history_today: "Today"

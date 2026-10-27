@@ -400,7 +400,8 @@ label {
   @extend .label;
 }
 
-label.inline {
+label.inline,
+.inline-label-container span.inline {
   width: auto;
   display: inline;
   margin-right: lines(0.5);

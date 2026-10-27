@@ -2342,6 +2342,7 @@ ja:
       wallet_insufficient: "ウォレットの残高が不足しています。"
       connect_failed: "チャットに接続できませんでした。しばらくしてからもう一度お試しください。"
       session_create_failed: "セッションの作成に失敗しました。"
+      listing_closed: "この出品は現在公開されていません"
       history_title: "履歴"
       history_new: "＋ 新規"
       history_today: "今日"

@@ -1,5 +1,5 @@
 .inline-label-container
-  = form.label :open, t(".label"), :class => "inline"
+  %span.inline= t(".label")
   = radio_button_tag "listing[open]", "1", @listing.open?, :id => "listing_open_true"
   = label_tag "listing_open_true", t(".open"), :class => "radiobutton"
   = radio_button_tag "listing[open]", "0", !@listing.open?, :id => "listing_open_false"

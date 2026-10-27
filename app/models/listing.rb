@@ -250,6 +250,13 @@ class Listing < ApplicationRecord
     !open? || (valid_until && valid_until < DateTime.now)
   end
 
+  # AI チャット可否の単一ルール（Issue #72）。
+  # 非公開・期限切れ・削除済みの出品は、新規セッションの開始も既存
+  # セッションの継続も不可とし、課金を発生させない。
+  def chat_available?
+    !closed? && !deleted?
+  end
+
   # Send notifications to the users following this listing
   # when the listing is updated (update=true) or a
   # new comment to the listing is created.
