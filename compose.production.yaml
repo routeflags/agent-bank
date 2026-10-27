@@ -6,11 +6,14 @@
 #   3. `docker compose -f compose.production.yaml build`（親の承認後に実行）
 #   4. `docker compose -f compose.production.yaml up -d`
 #
-# 方針（指示書 Phase 3）:
+# 方針（指示書 Phase 3 / Phase 4）:
 # - 開発用 `docker-compose.dev.yml` は変更しない。本番設定はこのファイルに分離する
 # - 秘密情報は `.env` からのみ供給し、このファイルに直書きしない
 # - MySQL / Redis はホストへポート公開しない（Docker 内部ネットワークのみ）
-# - `web` はリバースプロキシ（Caddy 等）前提で 127.0.0.1:3000 のみ公開する
+# - `web` はリバースプロキシ（Caddy）前提で 127.0.0.1:3000 のみ公開する
+# - `caddy` が 80/443（+ 443/udp の HTTP/3）を受け、web:3000 へ転送する
+# - ドメイン未設定時（APP_DOMAIN 空）は Caddy が localhost として HTTP のみ提供する
+#   （証明書取得なし。詳細は Caddyfile のコメントと documents/plans/20261028-vps-phase4.md）
 # - Rails のログは標準出力に集約される（config/environments/production.rb の設定による）
 # - DB マイグレーションは `web` 起動時に実行する（script/startup.sh + RUN_DB_MIGRATE）
 #
@@ -32,11 +35,11 @@ services:
     restart: unless-stopped
     environment:
       MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MARIADB_DATABASE: ${MYSQL_DATABASE:-[REDACTED]}
+      MARIADB_DATABASE: ${MYSQL_DATABASE:-lamprey}
       MARIADB_USER: ${MYSQL_USER}
       MARIADB_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-[REDACTED]}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sharetribe_production}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
@@ -122,12 +125,35 @@ services:
     networks:
       - lamprey
 
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - lamprey
+
 volumes:
   mysql_data:
     driver: local
   redis_data:
     driver: local
   public_system:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local
 
 networks:

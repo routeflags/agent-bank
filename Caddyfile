@@ -1,0 +1,39 @@
+# Caddy リバースプロキシ設定（Lamprey / agent-bank、Issue #99 Phase 4）
+#
+# 読み方:
+# - サイトアドレスは環境変数 APP_DOMAIN で差し替える（未設定時は localhost）。
+#   compose.production.yaml が .env の値を APP_DOMAIN として渡す。
+# - ドメイン未設定（localhost）のとき、Caddy は証明書の取得も HTTPS への
+#   リダイレクトも行わず、ポート 80 を HTTP のまま提供する。
+#   （Caddy の自動 HTTPS はホスト名が localhost / IP の場合は対象外のため）
+# - APP_DOMAIN に公開 FQDN を設定すると、Caddy が証明書を自動取得・更新し、
+#   HTTP → HTTPS リダイレクトを有効化する。このファイルの変更は不要。
+# - /_health を含む全リクエストは Rails（web サービス）に転送する。
+#   /_health は Rack ミドルウェアが直接応答する（DB 到達時は 200、それ以外は 503）。
+#   ミドルウェア層で SSL リダイレクトを回避しているため、内部は HTTP のままでよい。
+# - 詳細な起動・切替手順は documents/plans/20261028-vps-phase4.md を参照。
+
+{$APP_DOMAIN:localhost} {
+	reverse_proxy web:3000
+
+	# アップロード上限（ペルソナ画像等）。Nginx の client_max_body_size 相当。
+	request_body {
+		max_size 25MB
+	}
+
+	# 圧縮を有効化する。
+	encode gzip zstd
+
+	# セキュリティヘッダ。
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# アクセスログは標準出力へ（JSON 形式）。
+	log {
+		output stdout
+		format json
+	}
+}
