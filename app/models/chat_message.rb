@@ -46,6 +46,15 @@ class ChatMessage < ApplicationRecord
   scope :by_role, ->(role) { where(role: role) }
 
   after_create :increment_chat_session_tokens
+  # Issue #98: アシスタント回答の確定＝課金処理の成功と同一トランザクション
+  # （PersonaExecutorJob はメッセージ作成と BillingService#process! を1つの
+  # transaction で行う）。commit 後に加算することで、課金失敗のロールバック時
+  # に販売数が水増しされない。BillingService 側は親作業中のため触らない。
+  after_create_commit :increment_listing_total_sold, if: :assistant?
+
+  def assistant?
+    role == "assistant"
+  end
 
   private
 
@@ -53,5 +62,12 @@ class ChatMessage < ApplicationRecord
   # This avoids N+1 queries when computing session-level usage.
   def increment_chat_session_tokens
     chat_session.increment!(:total_tokens, input_tokens + output_tokens)
+  end
+
+  def increment_listing_total_sold
+    listing_id = chat_session&.listing_id
+    return if listing_id.nil?
+
+    Listing.update_counters(listing_id, total_sold: 1)
   end
 end
