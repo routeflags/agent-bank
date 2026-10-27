@@ -12,10 +12,19 @@ set -euo pipefail
 
 : "${COMPOSE_FILE:=compose.production.yaml}"
 : "${BACKUP_DIR:=/var/backups/agent-bank/db}"
-: "${MYSQL_DATABASE:=sharetribe_production}"
+: "${MYSQL_DATABASE:=}"
 : "${DRY_RUN:=0}"
 
 cd "$(dirname "$0")/.."
+
+# DB 名は .env を単一の真実にする（db_backup.sh と同じ規則）。
+if [ -z "$MYSQL_DATABASE" ] && [ -f .env ]; then
+  MYSQL_DATABASE="$(sed -n 's/^MYSQL_DATABASE=//p' .env | head -1)"
+fi
+if [ -z "$MYSQL_DATABASE" ]; then
+  echo "error: MYSQL_DATABASE を .env か環境変数で指定してください" >&2
+  exit 1
+fi
 
 BACKUP_FILE=""
 YES="0"
@@ -52,7 +61,7 @@ fi
 mysql_query() {
   docker compose -f "$COMPOSE_FILE" exec -T \
     -e "MYSQL_DATABASE=${MYSQL_DATABASE}" \
-    mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -B "$MYSQL_DATABASE" -e "$0"' "$1"
+    mysql sh -c 'if command -v mariadb >/dev/null 2>&1; then C=mariadb; else C=mysql; fi; exec "$C" -uroot -p"$MYSQL_ROOT_PASSWORD" -N -B "$MYSQL_DATABASE" -e "$0"' "$1"
 }
 
 restore_pipeline() {
@@ -61,7 +70,7 @@ restore_pipeline() {
     *) cat "$BACKUP_FILE" ;;
   esac | docker compose -f "$COMPOSE_FILE" exec -T \
     -e "MYSQL_DATABASE=${MYSQL_DATABASE}" \
-    mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
+    mysql sh -c 'if command -v mariadb >/dev/null 2>&1; then C=mariadb; else C=mysql; fi; exec "$C" -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
 }
 
 if [ "$DRY_RUN" = "1" ]; then
