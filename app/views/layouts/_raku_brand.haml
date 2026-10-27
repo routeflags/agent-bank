@@ -1,0 +1,10 @@
+-# 楽市楽問 — ロゴ3点セット（円形マーク＋和文＋欧文・Issue #110）
+-# 全ページ共通ヘッダ（_global_header.haml）専用。トップ・一覧・詳細・
+-# マイページで同一にするため、表記はここだけに持つ。
+-# header-logo の class/id は E2E（spec/e2e/navigation_spec.js TC-01）が
+-# 参照しているため維持する。
+= link_to landing_page_path, class: "header-logo topbar-brand", id: "header-logo", aria: { label: t("lamprey.header.brand_label") } do
+  %span.topbar-brand__mark{aria: {hidden: "true"}} 楽
+  %span.topbar-brand__text
+    %span.topbar-brand__name 楽市楽問
+    %span.topbar-brand__romaji RAKUICHI RAKUMON

@@ -1,27 +1,34 @@
 #header-menu-toggle-menu.toggle-menu.header-toggle-menu-menu.hidden
 
-  = link_to "/" do
-    = icon_map_tag(icons, "home", ["icon-with-text"])
-    = t("header.home")
+  -# Mobile auth — デスクトップの .top-actions と同じ遷移先（ID重複を避けるため id 無し）
+  - if logged_in
+    = link_to profile_path do
+      = icon_map_tag(icons, "user", ["icon-with-text"])
+      = t("lamprey.header.mypage")
+    = link_to logout_path do
+      = icon_map_tag(icons, "logout", ["icon-with-text"])
+      = t("layouts.logged_in.logout")
+  - else
+    = link_to login_path, class: "raku-nav__login" do
+      = t("lamprey.header.login")
+    = link_to sign_up_path, class: "raku-nav__signup" do
+      = t("lamprey.header.signup")
 
-  -# Primary navigation (hidden on desktop where the inline nav shows it)
+  -# Primary navigation (hidden on desktop where the inline nav shows it).
+  -# デスクトップの .topbar-nav と同一の4項目＋既存ルートのランキング/バトル。
   .hidden-desktop
+    = link_to landing_page_path do
+      = t("lamprey.header.nav_marketplace")
     = link_to browse_path do
-      %span.raku-nav__icon 🗂️
-      = t("lamprey.header.nav_browse")
+      = t("lamprey.header.nav_agents")
+    = link_to new_listing_path do
+      = t("lamprey.header.nav_sell")
+    = link_to docs_path do
+      = t("lamprey.header.nav_docs")
     = link_to rankings_path do
-      %span.raku-nav__icon 🏆
       = t("lamprey.header.nav_rankings")
     = link_to battles_path do
-      %span.raku-nav__icon ⚔️
       = t("lamprey.header.nav_battles")
-    = link_to docs_path do
-      %span.raku-nav__icon 📚
-      = t("lamprey.header.nav_docs")
-
-  = link_to new_listing_path, :class => "hidden-tablet" do
-    = icon_map_tag(icons, "new_listing", ["icon-with-text"])
-    = t("homepage.index.post_new_listing")
 
   - if @current_community.configuration.display_about_menu?
     = link_to about_infos_path do

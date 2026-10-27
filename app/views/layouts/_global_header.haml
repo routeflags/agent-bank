@@ -1,72 +1,82 @@
--# 楽市楽問 — Dark Theme Global Header
-%header.header.raku-header
-  .header-wrapper
-    -# Logo (left side)
-    .header-left.header-logo-container
-      = link_to landing_page_path, :class => "header-logo", :id => "header-logo" do
-        %span.header-wide-logo-text 楽市楽問
+-# 楽市楽問 — 共通トップバー（全ページ共通・Issue #110）
+-# 正本: デザインHTML（rakuichi-rakumon.html）の .topbar 構造に置き換え。
+-# 全ページのレイアウト application.haml が topbar_v1 無効時に描画する。
+-# landing_page/_topbar.erb はカスタムLP専用の React ブートストラップで
+-# あり、全ページのヘッダではないため正としない。
+-# 機能保全: アカウントメニュー・通知バッジ・受信箱・言語切替は既存
+-# パーシャル（_header_anchors/_header_user_menu/_header_right_visible_tablet）
+-# をそのまま使い、見た目だけ .topbar に寄せる。モバイルの開閉は既存
+-# toggle-menu 機構（dropdown.js）を流用し、aria-expanded だけ JS で同期する。
+-# ナビは既存ルートがある項目だけ出す（マーケット/エージェントを探す/
+-# 出品する/ドキュメント）。スキル・カテゴリー・コミュニティに独立した
+-# ルートは無いため除外し、対応表は Issue #110 に記録する。
+-# E2E（spec/e2e/navigation_spec.js）が参照する class は維持する:
+-# header-logo / raku-nav__link / raku-nav__login / raku-nav__signup /
+-# new-listing-link（ナビの「出品する」に付与）。
+- hide_topbar_search = params[:controller] == "homepage" && params[:action] == "index" && !@listing_page
+%header.topbar
+  .topbar-inner
+    = render partial: "layouts/raku_brand"
 
-    -# Primary navigation (DESIGN.md §7/§8) — inline in the single header row.
-    -# Hidden below tablet, where the hamburger menu carries these links.
-    .raku-nav.visible-tablet
-      .raku-nav__inner
-        = link_to landing_page_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:marketplace)}" do
-          %span.raku-nav__icon 🔍
+    %nav.topbar-nav.visible-tablet#topbar-nav{aria: {label: t("lamprey.header.nav_label")}}
+      .topbar-nav__inner
+        = link_to landing_page_path, class: "raku-nav__link topbar-nav__link#{' is-active' if raku_nav_active?(:marketplace)}" do
           = t("lamprey.header.nav_marketplace")
-        = link_to browse_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:browse)}" do
-          %span.raku-nav__icon 🗂️
-          = t("lamprey.header.nav_browse")
-        -# 「出品」は右側の「出品する」CTAと重複するためナビから除外
-        = link_to rankings_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:rankings)}" do
-          %span.raku-nav__icon 🏆
-          = t("lamprey.header.nav_rankings")
-        = link_to battles_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:battles)}" do
-          %span.raku-nav__icon ⚔️
-          = t("lamprey.header.nav_battles")
-        = link_to docs_path, class: "raku-nav__link#{' is-active' if raku_nav_active?(:docs)}" do
-          %span.raku-nav__icon 📚
+        = link_to browse_path, class: "raku-nav__link topbar-nav__link#{' is-active' if raku_nav_active?(:browse)}" do
+          = t("lamprey.header.nav_agents")
+        = link_to new_listing_path, class: "raku-nav__link new-listing-link topbar-nav__link#{' is-active' if raku_nav_active?(:new_listing)}" do
+          = t("lamprey.header.nav_sell")
+        = link_to docs_path, class: "raku-nav__link topbar-nav__link#{' is-active' if raku_nav_active?(:docs)}" do
           = t("lamprey.header.nav_docs")
 
-    -# Desktop/tablet compact search (DESIGN.md §7/§11) — 送信先は一覧画面（/browse）
-    .header-search.visible-tablet
-      = form_tag browse_path, method: :get, class: "header-search__form" do
-        = text_field_tag :q, params[:q], class: "header-search__input", placeholder: t("homepage.index.what_do_you_need"), aria: { label: t("lamprey.header.search_label") }
-        = button_tag type: :submit, class: "header-search__button", aria: { label: t("lamprey.header.search_submit") } do
-          🔍
+    -# トップはヒーローに検索があるためヘッダ内検索は出さない。他ページは現状維持。
+    - unless hide_topbar_search
+      .header-search.visible-tablet
+        = form_tag browse_path, method: :get, class: "header-search__form" do
+          = text_field_tag :q, params[:q], class: "header-search__input", placeholder: t("homepage.index.what_do_you_need"), aria: { label: t("lamprey.header.search_label") }
+          = button_tag type: :submit, class: "header-search__button", aria: { label: t("lamprey.header.search_submit") } do
+            🔍
 
-    -# Desktop auth / actions (right side)
-    .header-right.header-padding.visible-tablet
-      = link_to t("homepage.index.post_new_listing"), new_listing_path, :class => "new-listing-link", :id => "new-listing-link"
-
-    - if logged_in
-      .header-right
-        = render :partial => "layouts/header_anchors", locals: {avatar_url: avatar_url, current_user_name: current_user_name, icons: icons}
-        = render :partial => "layouts/header_user_menu", locals: {unread_count: unread_count, inbox_path: inbox_path, profile_path: profile_path, settings_path: settings_path, logout_path: logout_path, icons: icons}
-      = render :partial => "layouts/header_right_visible_tablet", locals: {unread_count: unread_count, inbox_path: inbox_path, icons: icons}
-
-    - if available_locales.size > 1
-      .header-right.visible-desktop
-        #header-locales-menu.toggle.header-hover{data: {toggle: '#header-locales-toggle-menu', 'toggle-position' => 'absolute'}}
-          %span.header-text-link
-            = current_locale_name
-            = icon_map_tag(icons, "dropdown", ["icon-dropdown"])
-        #header-locales-toggle-menu.toggle-menu.header-toggle-menu-language.hidden
-          - locale_change_links.each do |locale_change_link|
-            %a{href: locale_change_link[:url]}
-              = locale_change_link[:title]
-
-    - unless logged_in
-      .header-right
-        = link_to login_path, class: "raku-nav__login", id: "header-login-link" do
+    .top-actions
+      - if logged_in
+        .top-actions__user
+          = render :partial => "layouts/header_anchors", locals: {avatar_url: avatar_url, current_user_name: current_user_name, icons: icons}
+          = render :partial => "layouts/header_user_menu", locals: {unread_count: unread_count, inbox_path: inbox_path, profile_path: profile_path, settings_path: settings_path, logout_path: logout_path, icons: icons}
+        = render :partial => "layouts/header_right_visible_tablet", locals: {unread_count: unread_count, inbox_path: inbox_path, icons: icons}
+        = link_to profile_path, class: "top-actions__mypage visible-tablet" do
+          = t("lamprey.header.mypage")
+        = link_to logout_path, class: "top-actions__logout visible-tablet" do
+          = t("layouts.logged_in.logout")
+      - else
+        = link_to login_path, class: "raku-nav__login top-actions__login visible-tablet", id: "header-login-link" do
           = t("lamprey.header.login")
-      .header-right
-        = link_to sign_up_path, class: "raku-nav__signup" do
+        = link_to sign_up_path, class: "raku-nav__signup top-actions__signup visible-tablet" do
           = t("lamprey.header.signup")
 
-    -# Mobile hamburger
-    .header-left.hidden-tablet
-      .header-menu-container.toggle.hidden{data: {toggle: '#header-menu-toggle-menu', 'toggle-position' => 'absolute'}}
-        #header-menu-mobile-anchor.header-menu-toggle-container.toggle-header-container
-          = icon_map_tag(icons, "rows", ["header-menu-icon"])
+      - if available_locales.size > 1
+        .header-right.visible-desktop
+          #header-locales-menu.toggle.header-hover{data: {toggle: '#header-locales-toggle-menu', 'toggle-position' => 'absolute'}}
+            %span.header-text-link
+              = current_locale_name
+              = icon_map_tag(icons, "dropdown", ["icon-dropdown"])
+          #header-locales-toggle-menu.toggle-menu.header-toggle-menu-language.hidden
+            - locale_change_links.each do |locale_change_link|
+              %a{href: locale_change_link[:url]}
+                = locale_change_link[:title]
 
-    = render :partial => "layouts/header_menu", locals: { locale_change_links: locale_change_links, icons: icons}
+      -# Mobile hamburger — 既存 toggle-menu 機構を流用。aria は下の JS で同期。
+      %button.topbar-menu-toggle.toggle.hidden-tablet#topbar-menu-toggle{type: "button", data: {toggle: '#header-menu-toggle-menu', 'toggle-position' => 'absolute'}, aria: {expanded: "false", controls: "header-menu-toggle-menu", label: t("lamprey.header.menu_button")}} ☰
+
+  - menu_locals = {logged_in: logged_in, login_path: login_path, sign_up_path: sign_up_path, locale_change_links: locale_change_links, icons: icons}
+  - menu_locals.merge!({profile_path: profile_path, logout_path: logout_path}) if logged_in
+  = render :partial => "layouts/header_menu", locals: menu_locals
+
+:javascript
+  (function() {
+    var menu = document.getElementById('header-menu-toggle-menu');
+    var btn = document.getElementById('topbar-menu-toggle');
+    if (!menu || !btn || !window.MutationObserver) { return; }
+    new MutationObserver(function() {
+      btn.setAttribute('aria-expanded', String(!menu.classList.contains('hidden')));
+    }).observe(menu, { attributes: true, attributeFilter: ['class'] });
+  })();

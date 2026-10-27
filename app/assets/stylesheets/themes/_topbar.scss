@@ -1,0 +1,262 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽問 — 共通トップバー（Issue #110）
+// 正本: rakuichi-rakumon.html の .topbar（実測値を優先する）
+// 全ページの application.haml（body.dark-theme）で読み込まれる。
+// require_tree ./themes により自動で取り込まれる。
+// ═══════════════════════════════════════════════════════════
+
+// #060608ed と等価（旧 Sass 3.4 は8桁HEXを解釈できないため rgba 表記）
+$topbar-bg: rgba(6, 6, 8, 0.93);
+$topbar-border: #46351e;
+$topbar-gold: #dfb560;
+$topbar-muted: #aaa;
+$topbar-panel: #111;
+$topbar-btn-bg: #111115;
+$topbar-btn-border: #61534c;
+
+body.dark-theme #sidewinder-wrapper > header.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: $topbar-bg;
+  border-bottom: 1px solid $topbar-border;
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+}
+
+body.dark-theme .topbar-inner {
+  max-width: 1536px;
+  margin: auto;
+  min-height: 68px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+// ── ロゴ3点セット ─────────────────────────────────────────
+body.dark-theme .topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  height: auto;
+  line-height: normal;
+  text-decoration: none;
+}
+
+body.dark-theme .topbar-brand__mark {
+  display: grid;
+  place-items: center;
+  width: 41px;
+  height: 41px;
+  flex: none;
+  border: 2px solid $topbar-gold;
+  border-radius: 50%;
+  color: $topbar-gold;
+  font-size: 25px;
+  font-weight: 900;
+  transform: rotate(-8deg);
+}
+
+body.dark-theme .topbar-brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+body.dark-theme .topbar-brand__name {
+  display: block;
+  font-family: serif;
+  font-size: 23px;
+  letter-spacing: 2px;
+  color: #fff;
+  white-space: nowrap;
+}
+
+body.dark-theme .topbar-brand__romaji {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: $topbar-muted;
+  white-space: nowrap;
+}
+
+// ── ナビ ──────────────────────────────────────────────────
+body.dark-theme .topbar-nav {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+}
+
+body.dark-theme .topbar-nav__inner {
+  display: flex;
+  align-items: center;
+  gap: 27px;
+  white-space: nowrap;
+}
+
+body.dark-theme .topbar-nav__link {
+  position: relative;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  text-decoration: none;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: $topbar-gold;
+  }
+
+  &.is-active {
+    color: $topbar-gold;
+
+    &::after {
+      content: "";
+      height: 3px;
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -25px;
+      background: var(--accent-red);
+    }
+  }
+}
+
+// E2E 用の new-listing-link class をナビ項目に付けているため、
+// レガシーの赤ボタン見た目を打ち消してナビリンクに統一する。
+body.dark-theme .topbar .topbar-nav__link.new-listing-link {
+  background: transparent;
+  background-color: transparent;
+  border: 0;
+  color: #fff;
+  max-width: none;
+
+  &:hover {
+    color: $topbar-gold;
+    background-color: transparent;
+  }
+
+  &.is-active {
+    color: $topbar-gold;
+  }
+}
+
+// ── 右側アクション ────────────────────────────────────────
+body.dark-theme .top-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-left: auto;
+  flex: none;
+}
+
+body.dark-theme .top-actions__login,
+body.dark-theme .top-actions__signup,
+body.dark-theme .top-actions__mypage,
+body.dark-theme .top-actions__logout {
+  border: 1px solid $topbar-btn-border;
+  background: $topbar-btn-bg;
+  color: #fff;
+  padding: 11px 18px;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    background-color: #252029;
+    color: #fff;
+  }
+}
+
+body.dark-theme .top-actions__signup {
+  background: $topbar-gold;
+  border-color: $topbar-gold;
+  color: #17100a;
+
+  &:hover {
+    color: #17100a;
+  }
+}
+
+body.dark-theme .top-actions__user {
+  display: flex;
+  align-items: center;
+}
+
+// ── ハンバーガー ──────────────────────────────────────────
+body.dark-theme .topbar-menu-toggle {
+  display: none;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  font-size: 24px;
+  line-height: 1;
+  padding: 8px;
+  cursor: pointer;
+}
+
+// ── モバイルメニュー（既存 toggle-menu 機構の見た目だけ寄せる） ──
+body.dark-theme .topbar #header-menu-toggle-menu {
+  background: $topbar-panel;
+  border-bottom: 1px solid $topbar-gold;
+
+  a {
+    color: #fff;
+
+    &:hover {
+      color: $topbar-gold;
+    }
+  }
+}
+
+// ── キーボードフォーカス（正本の :focus-visible を再現） ────
+body.dark-theme .topbar a:focus-visible,
+body.dark-theme .topbar button:focus-visible,
+body.dark-theme .topbar input:focus-visible {
+  outline: 3px solid $topbar-gold;
+  outline-offset: 3px;
+}
+
+@media (max-width: 1200px) {
+  body.dark-theme .topbar-nav__inner {
+    gap: 14px;
+  }
+
+  body.dark-theme .topbar-nav__link {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 767px) {
+  body.dark-theme .topbar-inner {
+    padding: 0 16px;
+    min-height: 65px;
+    gap: 12px;
+  }
+
+  body.dark-theme .topbar-menu-toggle {
+    display: block;
+  }
+
+  body.dark-theme .topbar-brand__name {
+    font-size: 18px;
+  }
+
+  body.dark-theme .topbar-brand__romaji {
+    font-size: 8px;
+  }
+
+  body.dark-theme .topbar #header-menu-toggle-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    &.hidden {
+      display: none;
+    }
+  }
+}
