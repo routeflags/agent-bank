@@ -58,6 +58,10 @@
   %meta{ :property => "fb:app_id", :content => "#{@current_community.facebook_connect_id}" }
 
 / CSS
+-# Issue #116: ヒーロー画像は background-image のためブラウザの先読み対象に
+-# ならず LCP が遅れる。トップページのみ先読みして初回表示を速める。
+- if params[:controller] == "homepage" && params[:action] == "index"
+  %link{rel: "preload", as: "image", href: image_path("rakuichi/raku_hero.png"), fetchpriority: "high"}
 = stylesheet_link_tag "application"
 
 - if @current_community.has_customizations?
