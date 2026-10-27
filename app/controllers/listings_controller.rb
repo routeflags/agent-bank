@@ -224,7 +224,9 @@ class ListingsController < ApplicationController
       @listing.reorder_listing_images(params, @current_user.id)
       flash[:notice] = update_flash(old_availability: old_availability, new_availability: shape[:availability])
       Delayed::Job.enqueue(ListingUpdatedJob.new(@listing.id, @current_community.id))
-      reprocess_missing_image_styles(@listing) if @listing.closed?
+      # 画像スタイルの再生成は「非公開→公開に戻した」ときだけでよい。
+      # 閉じたままの保存ではキューを積まない（Issue #72）。
+      reprocess_missing_image_styles(@listing) if @listing.open? && @listing.saved_change_to_open?
       service.update_by_author_successful(@listing)
       redirect_to @listing
     else

@@ -66,6 +66,16 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     listing = chat_session.listing
     person = chat_session.person
 
+    # 非公開・削除済みの出品では外部 API を呼ばず課金もしない（Issue #72）。
+    # チャンネル側の拒否をすり抜けた送信（投入済みジョブ等）の最終防衛線。
+    unless listing&.chat_available?
+      broadcast_error(
+        I18n.t("lamprey.chat.listing_closed"),
+        error_type: "listing_closed"
+      )
+      return
+    end
+
     # Step 1: Resolve the AI provider adapter
     adapter = Ai::ProviderFactory.for(listing)
 

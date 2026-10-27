@@ -80,6 +80,16 @@ class API::V1::ChatSessionsController < ApplicationController
       return render json: { error: "ペルソナが見つかりません" }, status: :not_found
     end
 
+    # 非公開・削除済みの出品では新規セッションを開始しない（Issue #72）。
+    # 既存セッションの継続停止は PersonaChatChannel と PersonaExecutorJob
+    # 側で行う。ここでは作成だけを拒否し、課金を発生させない。
+    unless listing.chat_available?
+      return render json: {
+        error: I18n.t("lamprey.chat.listing_closed"),
+        error_type: "listing_closed"
+      }, status: :forbidden
+    end
+
     # 残高ゲート（Issue #51）。不足時はチャージ導線を出すため、実行時と同じ
     # `insufficient_balance` を返す。
     unless purchased?(current_user, listing)

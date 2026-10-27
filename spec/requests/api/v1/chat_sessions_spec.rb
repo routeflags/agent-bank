@@ -139,6 +139,32 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
       end
     end
 
+    # Issue #72: 非公開の出品では新規セッションを開始できない（課金停止）。
+    context "非公開の出品でセッション作成を試みる" do
+      let(:closed_listing) do
+        FactoryBot.create(:listing, community_id: community.id, author: other_person, open: false)
+      end
+
+      before do
+        sign_in_as(person)
+        post "/api/v1/chat_sessions", params: { listing_id: closed_listing.id }
+      end
+
+      it "returns 403 Forbidden" do
+        expect(response).to have_http_status(403)
+      end
+
+      it "returns listing_closed error type" do
+        json = JSON.parse(response.body)
+        expect(json["error_type"]).to eq("listing_closed")
+        expect(json["error"]).to eq(I18n.t("lamprey.chat.listing_closed"))
+      end
+
+      it "does not create a session" do
+        expect(ChatSession.count).to eq(0)
+      end
+    end
+
     # Issue #52: 全出品は有料。残高さえあればサブスク無しでセッションを
     # 作成できる（価格による例外なし・残高ゲートのみ）。
     context "有料ペルソナはサブスクなし・残高ありでセッションを作成できる" do

@@ -44,6 +44,21 @@ class PersonaChatChannel < ApplicationCable::Channel
       return
     end
 
+    # 非公開・削除済みの出品への送信は保存・課金せず拒否する（Issue #72）。
+    # 既に投入済みのジョブは PersonaExecutorJob 側で停止する。
+    unless chat_session.listing&.chat_available?
+      Rails.logger.warn("[PersonaChatChannel] Message to unavailable listing rejected: session=#{chat_session.id}")
+      ActionCable.server.broadcast(
+        "persona_chat_#{chat_session.id}",
+        {
+          type: "stream_error",
+          error: I18n.t("lamprey.chat.listing_closed"),
+          error_type: "listing_closed"
+        }
+      )
+      return
+    end
+
     next_seq = chat_session.chat_messages.maximum(:seq)&.next || 1
     metadata = {}
     attachment_id = data['attachment_id'].presence
