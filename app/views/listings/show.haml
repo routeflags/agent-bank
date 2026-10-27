@@ -22,6 +22,8 @@
     };
     document.addEventListener('keydown', function (e) {
       if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') { return; }
+      // Issue #83: 修飾キー付き矢印（Alt+←/→の戻る・進む等）はブラウザに譲る。
+      if (e.altKey || e.ctrlKey || e.metaKey) { return; }
       var tab = e.target && e.target.closest ? e.target.closest('.raku-tabs__item') : null;
       if (!tab || !tab.closest('.raku-tabs')) { return; }
       e.preventDefault();
@@ -84,8 +86,10 @@
         %img{:src => "${url}", :alt => @listing.title, :class => "listing-image ${aspectRatioClass}"}
 
 %script{type: "text/template", class: "template", id: "image-thumbnail-template"}
+  -# Issue #83: サムネイルは role=button 化（thumbnail_stripe.js）されているため
+  -# 名前が必要。img に出品タイトルを載せるとボタンの accessible name になる。
   .listing-image-thumbnail-container
-    %img.listing-image-thumbnail{src: "${url}", alt: ""}
+    %img.listing-image-thumbnail{src: "${url}", alt: @listing.title}
     .fade
 
 .raku-listing-hero
@@ -96,11 +100,11 @@
         .listing-image-carousel
           #listing-image-frame
           - if @listing_presenter.prev_image_id && @listing_presenter.next_image_id
-            = link_to params.permit(:id, :locale).merge(image: @listing_presenter.prev_image_id), class: "listing-image-navi listing-image-navi-left", id: "listing-image-navi-left" do
+            = link_to params.permit(:id, :locale).merge(image: @listing_presenter.prev_image_id), class: "listing-image-navi listing-image-navi-left", id: "listing-image-navi-left", aria: {label: t('lamprey.listings.prev_image')} do
               .listing-image-navi-arrow-container
                 .listing-image-arrow-icon-container.left
                   = icon_tag("directleft", ["navigate-icon-fix", "listing-image-navi-arrow"])
-            = link_to params.permit(:id, :locale).merge(image: @listing_presenter.next_image_id), class: "listing-image-navi listing-image-navi-right", id: "listing-image-navi-right" do
+            = link_to params.permit(:id, :locale).merge(image: @listing_presenter.next_image_id), class: "listing-image-navi listing-image-navi-right", id: "listing-image-navi-right", aria: {label: t('lamprey.listings.next_image')} do
               .listing-image-navi-arrow-container
                 .listing-image-arrow-icon-container.right
                   = icon_tag("directright", ["navigate-icon-fix", "listing-image-navi-arrow"])
@@ -138,7 +142,11 @@
                   %span.raku-features__check ✓
                   = cfv.question&.name || t('lamprey.listings.features_default')
       - else
+        -# Issue #90: 機能はカテゴリのカスタムフィールド値で登録する（出品の新規・編集画面）。
+        -# skill_markdown は AI への指示文のため表示しない。未登録時は出品者本人にだけ編集導線を出す。
         %p.raku-tab-panel__empty= t('lamprey.listings.no_features')
+        - if logged_in? && @listing.author == @current_user
+          = link_to t('listings.edit_links.edit_listing'), edit_listing_path(@listing), class: "raku-link-gold"
 
     -# 概要パネル（デフォルト表示）
     .raku-tab-panel.is-active{id: "panel-overview", role: "tabpanel", "aria-labelledby": "tab-overview", "data-raku-panel" => "overview"}
@@ -217,8 +225,10 @@
       - if @listing.price && @listing.price_cents.to_i.positive?
         .raku-price-box__amount
           = MoneyViewUtils.to_humanized(@listing.price)
-        - with_quantity_text(@current_community, @listing) do |text|
-          .raku-price-box__unit= text
+        -# Issue #93: トークン課金に出品の時間・数量単位は無意味。レガシー形状の
+        -# unit_type（例: :hour）が残っていると「/ 時間」と誤表示されるため、
+        -# with_quantity_text（raku-price-box__unit）は描画しない。単価の意味は
+        -# 下の price_note（100万トークンあたり）で示す。
       - else
         .raku-price-box__amount= t('lamprey.listings.price_unset')
         - if logged_in? && @listing.author == @current_user
