@@ -97,6 +97,9 @@ class ListingsController < ApplicationController
       { listing_id: @listing.id,
         listing_uuid: @listing.uuid_object.to_s,
         payment_process: @listing_presenter.process })
+
+    # Issue #97: 詳細表示を閲覧数に加算（本人・bot 除外はサービス側で判定）。
+    ListingStatsService.record_view(@listing, viewer: @current_user, user_agent: request.user_agent)
   end
 
   def new
