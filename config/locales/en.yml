@@ -2759,6 +2759,9 @@ en:
       stats_personas: "Registered personas"
       stats_total_views: "Total views"
       stats_total_sold: "Total sold"
+      stats_personas_note: "Currently open"
+      stats_total_views_note: "All time"
+      stats_total_sold_note: "All time"
       categories_title: "Popular categories"
       featured_title: "Featured personas"
       tabs_label: "Sort order"
@@ -2783,6 +2786,8 @@ s you."
       feature_guide_body: "Our docs walk you through the marketplace, so first
 -timers are welcome."
       feature_guide_link: "Read the docs →"
+      site_footer_copy: "© 2026 Rakuichi Rakumon"
+      site_footer_note: "Some listings include samples."
     header:
       search_label: "Search"
       search_submit: "Search"

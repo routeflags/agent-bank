@@ -2411,6 +2411,9 @@ ja:
       stats_personas: "登録ペルソナ"
       stats_total_views: "総閲覧数"
       stats_total_sold: "総販売数"
+      stats_personas_note: "公開中"
+      stats_total_views_note: "累計"
+      stats_total_sold_note: "累計"
       categories_title: "人気のカテゴリ"
       featured_title: "注目のペルソナ"
       tabs_label: "並び替え"
@@ -2435,6 +2438,8 @@ ja:
       feature_guide_body: "マーケットの使い方をドキュメントで案内します。初め
 ての方も安心です。"
       feature_guide_link: "ドキュメントを見る →"
+      site_footer_copy: "© 2026 楽市楽問"
+      site_footer_note: "掲載内容にはサンプルが含まれます"
     header:
       search_label: "検索"
       search_submit: "検索する"

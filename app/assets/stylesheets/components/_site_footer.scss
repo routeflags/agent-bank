@@ -1,0 +1,25 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽問 — Site Footer（Issue #112）
+// デザイン正本の .site-footer 相当。トップの最下部にのみ置く。
+// 上罫線の色 #2a252c に既存トークンは無いため SCSS 変数で定義する。
+// ═══════════════════════════════════════════════════════════
+
+$raku-footer-line: #2a252c;
+
+body.dark-theme {
+  .site-footer {
+    text-align: center;
+    color: #8d868c;
+    font-size: 12px;
+    padding: 24px 20px;
+    border-top: 1px solid $raku-footer-line;
+  }
+
+  .site-footer__copy {
+    margin: 0 0 4px;
+  }
+
+  .site-footer__note {
+    margin: 0;
+  }
+}

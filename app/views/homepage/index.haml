@@ -256,3 +256,7 @@
 
 -# ── 使い方・導線（フッター直上、Issue #108） ──────────────────────────
 = render "homepage/features"
+
+-# ── サイトフッター（トップのみ、Issue #112） ───────────────────────────
+- unless @listing_page
+  = render "homepage/site_footer"
