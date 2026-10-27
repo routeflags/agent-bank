@@ -3,17 +3,21 @@
 # 読み方:
 # - サイトアドレスは環境変数 APP_DOMAIN で差し替える（未設定時は localhost）。
 #   compose.production.yaml が .env の値を APP_DOMAIN として渡す。
-# - ドメイン未設定（localhost）のとき、Caddy は証明書の取得も HTTPS への
-#   リダイレクトも行わず、ポート 80 を HTTP のまま提供する。
-#   （Caddy の自動 HTTPS はホスト名が localhost / IP の場合は対象外のため）
-# - APP_DOMAIN に公開 FQDN を設定すると、Caddy が証明書を自動取得・更新し、
-#   HTTP → HTTPS リダイレクトを有効化する。このファイルの変更は不要。
+# - 現状は `http://` を明示して **HTTP のみ**で提供する。Caddy はサイト
+#   アドレスがホスト名（localhost・IP を含む）だと自動 HTTPS を有効にし、
+#   HTTP アクセスを 308 で HTTPS へ飛ばす。TLS 証明書の取得先（ドメイン）が
+#   未確定の段階でこれを有効にすると、自己署名証明書の警告か接続不能になる
+#   ため、意図的に HTTP 固定にしている（Issue #99 実機で確認）。
+# - 公開ドメインが決まったら、次の 1 行を差し替えるだけで自動 HTTPS
+#   （証明書の取得・更新と HTTP → HTTPS リダイレクト）が有効になる。
+#     http://{$APP_DOMAIN:localhost} {   ->   {$APP_DOMAIN:localhost} {
+#   あわせて `.env` の APP_DOMAIN に FQDN を設定する。
 # - /_health を含む全リクエストは Rails（web サービス）に転送する。
 #   /_health は Rack ミドルウェアが直接応答する（DB 到達時は 200、それ以外は 503）。
 #   ミドルウェア層で SSL リダイレクトを回避しているため、内部は HTTP のままでよい。
 # - 詳細な起動・切替手順は documents/plans/20261028-vps-phase4.md を参照。
 
-{$APP_DOMAIN:localhost} {
+http://{$APP_DOMAIN:localhost} {
 	reverse_proxy web:3000
 
 	# アップロード上限（ペルソナ画像等）。Nginx の client_max_body_size 相当。
