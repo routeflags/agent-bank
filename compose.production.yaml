@@ -1,0 +1,129 @@
+# 本番用 Docker Compose 設定（Lamprey / agent-bank）
+#
+# 使い方:
+#   1. `.env.example` を `.env` にコピーし、値を設定する（秘密情報は `.env` のみに書く）
+#   2. `docker compose -f compose.production.yaml config` で展開結果を確認する
+#   3. `docker compose -f compose.production.yaml build`（親の承認後に実行）
+#   4. `docker compose -f compose.production.yaml up -d`
+#
+# 方針（指示書 Phase 3）:
+# - 開発用 `docker-compose.dev.yml` は変更しない。本番設定はこのファイルに分離する
+# - 秘密情報は `.env` からのみ供給し、このファイルに直書きしない
+# - MySQL / Redis はホストへポート公開しない（Docker 内部ネットワークのみ）
+# - `web` はリバースプロキシ（Caddy 等）前提で 127.0.0.1:3000 のみ公開する
+# - Rails のログは標準出力に集約される（config/environments/production.rb の設定による）
+# - DB マイグレーションは `web` 起動時に実行する（script/startup.sh + RUN_DB_MIGRATE）
+#
+# 判断記録:
+# - DB 接続は DATABASE_URL 方式（Rails が database.yml 無しでも DATABASE_URL で起動できる
+#   ことを activerecord-8.1.2 の実装で確認。値は `.env` で指定し、ここでは組み立てない）
+# - プリコンパイル済みアセット（public/assets）はイメージ内に保持し、ボリューム化しない
+#   （空ボリュームを被せるとイメージ内のアセットが隠れて 404 になるため）。
+#   永続化するのはユーザ投稿ファイル（public/system）のみ
+# - redis の永続化はデフォルトの RDB スナップショット（/data）に任せ、appendonly 等の
+#   チューニングは VPS 実測後のフォローアップとする
+# - メモリ上限（mem_limit）は未設定。1.9Gi VPS のため実測後に調整する（フォローアップ）
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sharetribe_production}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$${MYSQL_ROOT_PASSWORD}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - lamprey
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - lamprey
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env
+    environment:
+      RAILS_ENV: production
+      PORT: ${PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      RAILS_SERVE_STATIC_FILES: ${RAILS_SERVE_STATIC_FILES:-true}
+      RUN_DB_MIGRATE: ${RUN_DB_MIGRATE:-true}
+    volumes:
+      - public_system:/opt/app/public/system
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:$${PORT:-3000}/_health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    networks:
+      - lamprey
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      RAILS_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      QUEUES: ${QUEUES:-default,paperclip,mailers}
+      MAGICK_MAP_LIMIT: 64MiB
+      MAGICK_MEMORY_LIMIT: 256MiB
+      MAGICK_TIME_LIMIT: 30
+    volumes:
+      - public_system:/opt/app/public/system
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["script/startup.sh", "worker"]
+    networks:
+      - lamprey
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  public_system:
+    driver: local
+
+networks:
+  lamprey:
+    driver: bridge
