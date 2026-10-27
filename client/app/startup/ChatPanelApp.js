@@ -149,6 +149,7 @@ var DEFAULT_I18N = {
   output_standard: '標準',
   output_long: '長め',
   settings_tone: 'トーン',
+  tone_default: 'ペルソナ既定',
   tone_polite: '丁寧に',
   tone_casual: 'カジュアル',
   tone_professional: 'ビジネス',
@@ -399,7 +400,9 @@ class ChatPanelApp extends React.Component {
       selectedModel: 'gpt-4o',
       tokenLimit: 4000,
       outputLength: 'standard',
-      tone: 'polite',
+      // Issue #102: 既定は「ペルソナ既定」（＝トーン指定なし）。
+      // 明示的に選んだときだけ system prompt に口調の指示が入る。
+      tone: '',
       // History
       sessionHistory: [],
       renamingId: null,
@@ -648,7 +651,7 @@ class ChatPanelApp extends React.Component {
       settings: {
         token_limit: this.state.tokenLimit,
         output_length: this.state.outputLength,
-        tone: this.state.tone
+        tone: this.state.tone || null
       }
     };
     if (attachment && attachment.id) payload.attachment_id = attachment.id;
@@ -1573,6 +1576,7 @@ class ChatPanelApp extends React.Component {
               value: state.tone,
               onChange: function (e) { self.handleToneChange(e.target.value); },
             },
+              React.createElement('option', { value: '' }, t('tone_default')),
               React.createElement('option', { value: 'polite' }, t('tone_polite')),
               React.createElement('option', { value: 'casual' }, t('tone_casual')),
               React.createElement('option', { value: 'professional' }, t('tone_professional')),

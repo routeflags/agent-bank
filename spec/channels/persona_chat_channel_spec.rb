@@ -74,6 +74,36 @@ RSpec.describe PersonaChatChannel, type: :channel do
       expect(settings).not_to have_key("evil")
     end
 
+    # Issue #102: トーン未選択は「ペルソナ既定」として nil を保存する
+    # （以前は polite を補い、ペルソナの文体を毎回上書きしていた）。
+    describe "トーンの既定" do
+      before do
+        allow(Delayed::Job).to receive(:enqueue)
+      end
+
+      def last_tone
+        chat_session.chat_messages.order(:seq).last.metadata["settings"]["tone"]
+      end
+
+      it "tone 未指定なら nil を保存する" do
+        perform :receive, {
+          "chat_session_id" => chat_session.id,
+          "content" => "トーン未指定",
+          "settings" => { "token_limit" => 4000, "output_length" => "standard" }
+        }
+        expect(last_tone).to be_nil
+      end
+
+      it "未知の tone なら nil を保存する" do
+        perform :receive, {
+          "chat_session_id" => chat_session.id,
+          "content" => "未知のトーン",
+          "settings" => { "tone" => "evil" }
+        }
+        expect(last_tone).to be_nil
+      end
+    end
+
     # トークン上限の正規化（Issue #105）。
     # nil は「上限なし」として保存し、サーバーの切り詰め（clamp）はしない。
     describe "トークン上限の正規化" do

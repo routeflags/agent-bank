@@ -69,12 +69,16 @@ class PersonaChatChannel < ApplicationCable::Channel
 
     # Execution settings from the client (token limit, output length, tone).
     # Whitelisted — never trust raw client input beyond these keys.
+    #
+    # `tone` は未選択（nil / 未知値）なら **指定なし** として扱う（Issue #102）。
+    # 以前は既定 `polite` を補っていたが、ペルソナの文体（skill_markdown）を
+    # 「丁寧な敬語」で毎回上書きしてしまうため、ペルソナ定義を優先する。
     settings = data['settings']
     if settings.is_a?(Hash)
       metadata['settings'] = {
         'token_limit' => normalize_token_limit(settings['token_limit']),
         'output_length' => %w[short standard long].include?(settings['output_length']) ? settings['output_length'] : 'standard',
-        'tone' => %w[polite casual professional friendly].include?(settings['tone']) ? settings['tone'] : 'polite'
+        'tone' => %w[polite casual professional friendly].include?(settings['tone']) ? settings['tone'] : nil
       }
     end
 
