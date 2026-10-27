@@ -100,7 +100,7 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
       broadcast_error(
         "残高が不足しています。ウォレットにチャージしてください。",
         error_type: "insufficient_balance",
-        current_balance: wallet.balance_cents
+        current_balance: wallet.balance_cents.to_f
       )
       return
     end
@@ -207,7 +207,7 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     # Issue #82: 課金後の残高を返し、フロントの表示を更新する。
     # ウォレットが無い/取得できない場合は nil（フロントは無視する）。
     current_balance = begin
-      person.wallet.reload.balance_cents
+      person.wallet.reload.balance_cents&.to_f
     rescue StandardError
       nil
     end

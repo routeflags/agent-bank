@@ -7,7 +7,7 @@
 #  id            :bigint           not null, primary key
 #  person_id     :string(22)       not null
 #  community_id  :integer          not null
-#  balance_cents :integer          default(0), not null
+#  balance_cents :decimal(14, 2)   default(0.0), not null
 #  currency      :string           default("USD"), not null
 #  created_at    :datetime         not null
 #  updated_at    :datetime         not null
@@ -35,7 +35,7 @@ class Wallet < ApplicationRecord
   # and the credit run inside a row lock so concurrent duplicate
   # deliveries cannot double-credit.
   #
-  # @param amount_cents [Integer] amount to credit (positive)
+  # @param amount_cents [Numeric] amount to credit (positive, yen with up to 2 decimals)
   # @param stripe_payment_id [String, nil] Stripe PaymentIntent ID for audit trail
   # @param freemius_payment_id [String, nil] Freemius payment ID for audit trail
   # @return [CreditTransaction, nil] the created record, or nil if already credited
@@ -150,13 +150,13 @@ class Wallet < ApplicationRecord
   # unique index on (transaction_type, reference_type, reference_id) backs
   # the check so concurrent duplicate deliveries cannot double-credit.
   #
-  # @param amount_cents [Integer] amount to credit (positive)
-  # @param usage_record [UsageRecord] the billed usage this payout belongs to
+  # @param amount_cents [Numeric] amount to credit (positive, yen with up to 2 decimals)
+  # @param usage_record [UsageRecord] usage the billed usage this payout belongs to
   # @param listing [Listing, nil] the persona that was used
   # @param breakdown [Hash] charge breakdown (base/fee/payout/tokens)
   # @return [CreditTransaction, nil] the created record, or nil if already credited
   def credit_seller_earning!(amount_cents, usage_record:, listing: nil, breakdown: {})
-    return nil if amount_cents.to_i <= 0
+    return nil if amount_cents.nil? || amount_cents <= 0
     return nil if seller_earning_credited?(usage_record)
 
     created = nil
@@ -173,10 +173,10 @@ class Wallet < ApplicationRecord
           reference_id: usage_record.id,
           metadata: {
             listing_id: listing&.id,
-            base_cost_cents: breakdown[:base_cost_cents],
+            base_cost_cents: breakdown[:base_cost_cents]&.to_f,
             platform_commission_pct: breakdown[:platform_commission_pct],
-            platform_commission_cents: breakdown[:platform_commission_cents],
-            seller_payout_cents: breakdown[:seller_payout_cents] || amount_cents,
+            platform_commission_cents: breakdown[:platform_commission_cents]&.to_f,
+            seller_payout_cents: breakdown[:seller_payout_cents]&.to_f || amount_cents.to_f,
             tokens: breakdown[:tokens] || usage_record.total_tokens
           }.compact.to_json
         )
@@ -206,7 +206,7 @@ class Wallet < ApplicationRecord
   # Deduct funds for AI usage. Raises InsufficientBalanceError if balance is too low.
   # Uses row-level lock to prevent race conditions between concurrent deductions.
   #
-  # @param amount_cents [Integer] amount to debit (positive value, stored as negative)
+  # @param amount_cents [Numeric] amount to debit (positive value, stored as negative)
   # @param tokens_used [Integer] number of tokens consumed
   # @return [CreditTransaction] the created transaction record
   # @raise [InsufficientBalanceError] when balance < amount
@@ -274,7 +274,7 @@ class Wallet < ApplicationRecord
 
   # Check whether the balance has fallen below a threshold.
   #
-  # @param threshold_cents [Integer] threshold in cents
+  # @param threshold_cents [Numeric] threshold in yen
   # @return [Boolean]
   def below_threshold?(threshold_cents)
     balance_cents < threshold_cents

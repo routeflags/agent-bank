@@ -96,7 +96,7 @@ class API::V1::ChatSessionsController < ApplicationController
       return render json: {
         error: "残高が不足しています。チャージしてください",
         error_type: "insufficient_balance",
-        current_balance: current_user.wallet&.balance_cents.to_i
+        current_balance: (current_user.wallet&.balance_cents || 0).to_f
       }, status: :forbidden
     end
 
@@ -174,7 +174,7 @@ class API::V1::ChatSessionsController < ApplicationController
     wallet = person.wallet
     return false if wallet.nil?
 
-    wallet.balance_cents.to_i >= PersonaExecutorJob::MIN_BALANCE_CENTS
+    wallet.balance_cents.to_f >= PersonaExecutorJob::MIN_BALANCE_CENTS
   end
 
   # Determines the billing model server-side based on subscription status.

@@ -10,8 +10,8 @@
 #  input_tokens               :integer          default(0)
 #  output_tokens              :integer          default(0)
 #  total_tokens               :integer          default(0)
-#  cost_cents                 :integer          default(0)
-#  charge_cents               :integer          default(0)
+#  cost_cents                 :decimal(14, 2)   default(0.0)
+#  charge_cents               :decimal(14, 2)   default(0.0)
 #  billing_model              :string
 #  currency                   :string           default("USD")
 #  metadata                   :json

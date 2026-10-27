@@ -59,7 +59,7 @@ module API
         wallet = find_or_create_wallet!
 
         render json: {
-          balance_cents: wallet.balance_cents,
+          balance_cents: wallet.balance_cents.to_f,
           currency: wallet.currency
         }
       end
@@ -384,7 +384,7 @@ module API
         if credited.nil?
           return render json: {
             status: "ok",
-            balance_cents: wallet.reload.balance_cents,
+            balance_cents: wallet.reload.balance_cents.to_f,
             amount_credited: 0,
             message: "既に処理済みです"
           }
@@ -392,7 +392,7 @@ module API
 
         render json: {
           status: "ok",
-          balance_cents: wallet.reload.balance_cents,
+          balance_cents: wallet.reload.balance_cents.to_f,
           amount_credited: payload["amt"],
           dev_mode: true
         }

@@ -8,7 +8,10 @@ RSpec.describe "チャット課金のE2E（Issue #82）", type: :model do
   let(:community) { FactoryBot.create(:community) }
   let(:person) { FactoryBot.create(:person, community_id: community.id) }
   let(:seller) { FactoryBot.create(:person, community_id: community.id) }
-  let(:listing) { FactoryBot.create(:listing, community_id: community.id, author: seller) }
+  let(:listing) do
+    FactoryBot.create(:listing, community_id: community.id, author: seller,
+                                price: Money.new(1_000, "JPY"))
+  end
   let(:chat_session) do
     FactoryBot.create(:chat_session, person_id: person.id, listing_id: listing.id)
   end
@@ -29,7 +32,7 @@ RSpec.describe "チャット課金のE2E（Issue #82）", type: :model do
     allow(ActionCable.server).to receive(:broadcast)
   end
 
-  it "課金で残高が減り、stream_done に課金後残高が載る" do
+  it "課金で残高が減り、stream_done に課金後残高が載る（150トークン × 単価1,000円 = 0.15円）" do
     broadcasts = []
     allow(ActionCable.server).to receive(:broadcast) do |channel, payload|
       broadcasts << [channel, payload]
@@ -39,10 +42,10 @@ RSpec.describe "チャット課金のE2E（Issue #82）", type: :model do
     PersonaExecutorJob.new(chat_session.id, "msg-1", "こんにちは").perform
     after_balance = wallet.reload.balance_cents
 
-    expect(after_balance).to be < before_balance
+    expect(after_balance.to_f).to be_within(0.0001).of(before_balance.to_f - 0.15)
     done = broadcasts.find { |(_ch, p)| p[:type] == "stream_done" }
     expect(done).not_to be_nil
-    expect(done[1][:current_balance]).to eq(wallet.reload.balance_cents)
+    expect(done[1][:current_balance]).to eq(wallet.reload.balance_cents.to_f)
     expect(UsageRecord.count).to be >= 1
   end
 end

@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 # == Schema Information
 #
 # Table name: credit_transactions
@@ -6,7 +7,7 @@
 #  id               :integer          not null, primary key
 #  wallet_id        :integer          not null
 #  transaction_type :string(255)      not null
-#  amount_cents     :integer          not null
+#  amount_cents     :decimal(14, 2)   not null
 #  reference_type   :string(255)
 #  reference_id     :integer
 #  metadata         :text(65535)

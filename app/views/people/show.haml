@@ -94,7 +94,7 @@
           .raku-summary__label
             %span.raku-summary__icon 💰
             = t('lamprey.mypage.wallet_balance_label')
-          .raku-summary__value= "¥#{number_with_delimiter(wallet_balance_cents)}"
+          .raku-summary__value= "¥#{number_with_precision(wallet_balance_cents, precision: 2, strip_insignificant_zeros: true, delimiter: ',')}"
           .raku-summary__action
             = raw(react_component("MypageWalletApp", props: { i18n: mypage_wallet_i18n, balance_cents: wallet_balance_cents }, prerender: false).to_s.gsub(/^[ \t]+\n/, ""))
         -# 出品収益の受取累計（Issue #59）: 本人のみ。残高と同じウォレットの seller_earning。
@@ -102,7 +102,7 @@
           .raku-summary__label
             %span.raku-summary__icon 💰
             = t('lamprey.mypage.seller_earning_label')
-          .raku-summary__value= "¥#{number_with_delimiter(@seller_earning_total_cents.to_i)}"
+          .raku-summary__value= "¥#{number_with_precision(@seller_earning_total_cents, precision: 2, strip_insignificant_zeros: true, delimiter: ',')}"
 
     -# ── Seller earnings（受取履歴・本人のみ）──────────────
     - if current_user?(person)

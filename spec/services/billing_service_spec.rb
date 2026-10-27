@@ -3,9 +3,10 @@
 require 'rails_helper'
 
 # Issue #59（新仕様）: トークン単価課金＋出品者収益分配。
+# Issue #94: 最小 1 円の切り上げを撤去し、小数 2 桁（銭）で課金する。
 #
-# - base = ceil(price_cents × total_tokens / 1_000_000)、最低 1、上乗せなし（total = base）
-# - fee = floor(base × platform_commission_rate / 100)
+# - base = round(price_cents × total_tokens / 1_000_000, 2)（四捨五入。0.005 未満は切り捨て）
+# - fee = floor(base × platform_commission_rate / 100, 2)
 # - payout = base - fee を店子のウォレットへ seller_earning として付与（請求と同一Tx）
 RSpec.describe BillingService, type: :model do
   let(:community) { FactoryBot.create(:community) }
@@ -40,38 +41,38 @@ RSpec.describe BillingService, type: :model do
   end
 
   describe "受入例1: 単価1,000円/100万トークン × 1,000トークン、手数料率10%" do
-    it "base=1・fee=0・payout=1・total=1 になる" do
+    it "base=1.0・fee=0.1・payout=0.9・total=1.0 になる" do
       service, _listing, _usage = build_service(buyer_balance_cents: 100, price_cents: 1_000)
 
       charges = service.process!
 
-      expect(charges[:base_cost_cents]).to eq(1)
+      expect(charges[:base_cost_cents]).to eq(1.0)
       expect(charges[:platform_commission_pct]).to eq(10)
-      expect(charges[:platform_commission_cents]).to eq(0)
-      expect(charges[:seller_payout_cents]).to eq(1)
-      expect(charges[:total_charge_cents]).to eq(1)
+      expect(charges[:platform_commission_cents]).to eq(0.1)
+      expect(charges[:seller_payout_cents]).to eq(0.9)
+      expect(charges[:total_charge_cents]).to eq(1.0)
       expect(charges).not_to have_key(:seller_commission_cents)
       expect(charges).not_to have_key(:seller_commission_pct)
     end
 
-    it "購入者は1減り、店子は1増える" do
+    it "購入者は1.0減り、店子は0.9増える" do
       service, listing, usage_record = build_service(buyer_balance_cents: 100, price_cents: 1_000)
       seller_wallet = seller.find_or_create_wallet!(community: community)
 
       service.process!
 
-      expect(buyer.wallet.reload.balance_cents).to eq(99)
-      expect(seller_wallet.reload.balance_cents).to eq(1)
+      expect(buyer.wallet.reload.balance_cents).to eq(99.0)
+      expect(seller_wallet.reload.balance_cents).to eq(0.9)
       earning = seller_wallet.credit_transactions.find_by(
         transaction_type: "seller_earning",
         reference_type: "UsageRecord",
         reference_id: usage_record.id
       )
       expect(earning).to be_present
-      expect(earning.amount_cents).to eq(1)
+      expect(earning.amount_cents).to eq(0.9)
       meta = JSON.parse(earning.metadata)
       expect(meta["listing_id"]).to eq(listing.id)
-      expect(meta["seller_payout_cents"]).to eq(1)
+      expect(meta["seller_payout_cents"]).to eq(0.9)
     end
   end
 
@@ -98,15 +99,49 @@ RSpec.describe BillingService, type: :model do
     end
   end
 
-  describe "切り上げ" do
-    it "端数は切り上げ・最低1（単価150万円 × 1トークン = 2）" do
+  describe "小数課金（Issue #94）" do
+    it "端数は四捨五入で銭止めにする（単価150万円 × 1トークン = 1.5）" do
       service, _listing, _usage = build_service(
         buyer_balance_cents: 100, price_cents: 1_500_000, usage: build_usage(input_tokens: 1, output_tokens: 0)
       )
 
       charges = service.calculate_charges
 
-      expect(charges[:base_cost_cents]).to eq(2)
+      expect(charges[:base_cost_cents]).to eq(1.5)
+    end
+
+    it "226トークン × 単価1,000円で 0.23 円を課金する" do
+      service, _listing, _usage = build_service(
+        buyer_balance_cents: 100, price_cents: 1_000, usage: build_usage(input_tokens: 200, output_tokens: 26)
+      )
+
+      charges = service.calculate_charges
+
+      expect(charges[:base_cost_cents].to_f).to be_within(0.0001).of(0.23)
+    end
+
+    it "残高 10,000 円から 226 トークン分を引くと 9,999.77 円になる" do
+      service, _listing, usage_record = build_service(
+        buyer_balance_cents: 10_000, price_cents: 1_000, usage: build_usage(input_tokens: 200, output_tokens: 26)
+      )
+
+      service.process!
+
+      expect(buyer.wallet.reload.balance_cents.to_f).to be_within(0.0001).of(9_999.77)
+      expect(usage_record.reload.charge_cents.to_f).to be_within(0.0001).of(0.23)
+    end
+
+    it "0.005 未満の端数は切り捨てて無料にする（1トークン × 単価1,000円 = 0.00）" do
+      service, _listing, usage_record = build_service(
+        buyer_balance_cents: 100, price_cents: 1_000, usage: build_usage(input_tokens: 1, output_tokens: 0)
+      )
+
+      charges = service.process!
+
+      expect(charges[:base_cost_cents]).to eq(0.0)
+      expect(charges[:total_charge_cents]).to eq(0.0)
+      expect(buyer.wallet.reload.balance_cents).to eq(100)
+      expect(usage_record.reload.charge_cents).to eq(0.0)
     end
   end
 

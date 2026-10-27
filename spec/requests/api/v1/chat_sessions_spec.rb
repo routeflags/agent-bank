@@ -126,7 +126,9 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
 
       it "returns the current balance" do
         json = JSON.parse(response.body)
-        expect(json["current_balance"]).to be_a(Integer)
+        # Issue #94: 残高は円の小数（JSON 数値）で返す
+        expect(json["current_balance"]).to be_a(Numeric)
+        expect(json["current_balance"]).to eq(0.0)
       end
 
       it "returns Japanese error message" do

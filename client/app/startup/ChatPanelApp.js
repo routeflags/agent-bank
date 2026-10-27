@@ -185,6 +185,16 @@ function tFormat(key, vars) {
   });
   return s;
 }
+// ─── Balance formatting (Issue #94: 小数残高を 2 桁まで表示) ───
+// サーバーは残高を円の小数（Float または数値文字列）で返す。数値化して
+// 3 桁区切り・小数 2 桁まで（末尾の 0 は落とす）で表示する。
+function toBalanceNumber(v) {
+  var n = Number(v);
+  return isFinite(n) ? n : 0;
+}
+function formatBalanceYen(v) {
+  return toBalanceNumber(v).toLocaleString('ja-JP', { maximumFractionDigits: 2 });
+}
 // ─── Wallet Top-up Modal (Issue #58: 共通化) ───────────────
 // WalletTopupModal / TOPUP_AMOUNTS / formatJpy / formatUsd は
 // client/app/components/WalletTopup/ に移動。ChatPanel とマイページで共用。
@@ -681,10 +691,11 @@ class ChatPanelApp extends React.Component {
   }
 
   handleDone(data) {
-    // Issue #82: 課金後の残高が数値で届いたら表示を更新（追加リクエストなし）。
-    // null/欠落時は何もしない（後方互換）。
-    if (data && typeof data.current_balance === 'number') {
-      this.setState({ walletBalance: data.current_balance });
+    // Issue #82: 課金後の残高が届いたら表示を更新（追加リクエストなし）。
+    // Issue #94: 残高は小数（Float または数値文字列）で届く。数値化できなければ無視。
+    if (data && data.current_balance !== null && data.current_balance !== undefined &&
+        isFinite(Number(data.current_balance))) {
+      this.setState({ walletBalance: Number(data.current_balance) });
     }
     if (this.streamingId) {
       // サーバーは messageId（camelCase）で送る。旧形式 message_id も受ける（#32）。
@@ -720,8 +731,10 @@ class ChatPanelApp extends React.Component {
 
     if (data.error_type === 'insufficient_balance') {
       // Update wallet balance if server sent current_balance
-      if (typeof data.current_balance === 'number') {
-        this.setState({ walletBalance: data.current_balance });
+      // Issue #94: 小数（Float または数値文字列）で届く。数値化できなければ無視。
+      if (data.current_balance !== null && data.current_balance !== undefined &&
+          isFinite(Number(data.current_balance))) {
+        this.setState({ walletBalance: Number(data.current_balance) });
       }
       // 課金は残高一本（Issue #51）。残高不足時はチャージ導線のみを出す。
       this.setState(function (prev) {
@@ -1065,7 +1078,7 @@ class ChatPanelApp extends React.Component {
       })
       .then(function (data) {
         if (data) {
-          self.setState({ walletBalance: data.balance_cents || 0, walletLoading: false });
+          self.setState({ walletBalance: toBalanceNumber(data.balance_cents), walletLoading: false });
         } else {
           self.setState({ walletLoading: false });
         }
@@ -1104,7 +1117,7 @@ class ChatPanelApp extends React.Component {
   }
 
   handleTopupSuccess(newBalance) {
-    this.setState({ walletBalance: newBalance });
+    this.setState({ walletBalance: toBalanceNumber(newBalance) });
   }
 
   // ─── Lifecycle ────────────────────────────────────────
@@ -1460,7 +1473,7 @@ class ChatPanelApp extends React.Component {
               state.walletLoading
                 ? React.createElement('div', { className: 'wallet-balance__skeleton' })
                 : React.createElement('span', { className: 'wallet-balance__amount' },
-                    '¥', state.walletBalance.toLocaleString(),
+                    '¥', formatBalanceYen(state.walletBalance),
                     React.createElement('span', { className: 'wallet-balance__currency' }, ' ')
                   )
             ),

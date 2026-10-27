@@ -3,10 +3,15 @@
 # トークン単価課金＋出品者収益分配の請求サービス（Issue #59）
 #
 # 出品価格は 1M トークンあたりの単価（listings.price_cents、「円 / 100万トークン」）。
-#   base（購入者の消費ポイント） = ceil(price_cents × total_tokens / 1_000_000)、最低 1
-#   fee（プラットフォーム取り分） = floor(base × platform_commission_rate / 100)
+#   base（購入者の消費ポイント） = round(price_cents × total_tokens / 1_000_000, 2)
+#     （Issue #94: 最小 1 円の切り上げは撤去。小数 2 桁（銭）で四捨五入し、
+#       0.005 未満の端数は切り捨てる。結果が 0.00 なら無料で請求しない）
+#   fee（プラットフォーム取り分） = floor(base × platform_commission_rate / 100, 2)
 #   payout（店子の受取） = base - fee（店子のウォレットへ seller_earning として付与）
 # 上乗せなし: total_charge_cents = base。
+#
+# 金額の単位はすべて「円」（小数 2 桁まで）。カラム名の _cents は歴史的経緯
+# （Issue #94 で decimal(14,2) に変更済み）。
 #
 class BillingService
   TOKENS_PER_MILLION = 1_000_000
@@ -45,7 +50,7 @@ class BillingService
   def calculate_charges
     base_cost_cents = calculate_base_cost_cents
     platform_commission_pct = get_platform_commission_rate
-    platform_commission_cents = base_cost_cents * platform_commission_pct / 100
+    platform_commission_cents = (base_cost_cents * platform_commission_pct / 100).floor(2)
     seller_payout_cents = base_cost_cents - platform_commission_cents
 
     {
@@ -63,16 +68,19 @@ class BillingService
 
   # Calculate the buyer's consumption in points from the listing unit price.
   #
-  # The listing price is the per-1M-token unit price. Rounds up so that
-  # truncation can never make usage free (minimum 1). A listing without a
+  # The listing price is the per-1M-token unit price. Rounded to 2 decimals
+  # (sen) with half-up: remainders below 0.005 are truncated so tiny usage
+  # bills 0.00 (free) instead of rounding up to 1. A listing without a
   # unit price (nil/0) bills 0 with no seller payout (price is mandatory
   # since Issue #52, so this only covers legacy rows).
+  #
+  # @return [BigDecimal] charge in yen (2 decimals)
   def calculate_base_cost_cents
     unit_price = listing&.price_cents
-    return 0 unless unit_price && unit_price > 0
+    return BigDecimal("0") unless unit_price && unit_price > 0
 
     tokens = usage_record.total_tokens.to_i
-    [(unit_price * tokens + TOKENS_PER_MILLION - 1) / TOKENS_PER_MILLION, 1].max
+    (BigDecimal(unit_price.to_s) * tokens / TOKENS_PER_MILLION).round(2)
   end
 
   # Get the platform commission rate from payment settings.
@@ -107,10 +115,10 @@ class BillingService
         charge_cents: charges[:total_charge_cents],
         billing_model: "pay_per_use",
         metadata: {
-          base_cost_cents: charges[:base_cost_cents],
+          base_cost_cents: charges[:base_cost_cents].to_f,
           platform_commission_pct: charges[:platform_commission_pct],
-          platform_commission_cents: charges[:platform_commission_cents],
-          seller_payout_cents: charges[:seller_payout_cents]
+          platform_commission_cents: charges[:platform_commission_cents].to_f,
+          seller_payout_cents: charges[:seller_payout_cents].to_f
         }.to_json
       )
       grant_seller_earning!(charges)
@@ -177,8 +185,8 @@ class BillingService
   # No-op when there is no author or nothing to pay out (base 0 /
   # fee covering the whole base). Idempotent per usage_record.
   def grant_seller_earning!(charges)
-    payout_cents = charges[:seller_payout_cents].to_i
-    return if payout_cents <= 0
+    payout_cents = charges[:seller_payout_cents]
+    return if payout_cents.nil? || payout_cents <= 0
 
     seller = listing&.author
     return unless seller
