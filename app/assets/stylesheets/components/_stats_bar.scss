@@ -5,7 +5,9 @@
 body.dark-theme {
   .raku-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    // 実データの3指標（登録ペルソナ / 総閲覧数 / 総販売数）。
+    // 評価は #106 保留のため含めない（Issue #108）。
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     max-width: 1000px;
     margin: -20px auto 40px;
@@ -64,7 +66,20 @@ body.dark-theme {
 
 @media (max-width: 767px) {
   body.dark-theme .raku-stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  // 375px でも折り返さず3列を保つ（受入基準: 横スクロールなし）
+  body.dark-theme .raku-stats__item {
+    padding: 14px 8px;
+  }
+
+  body.dark-theme .raku-stats__value {
+    font-size: 20px;
+  }
+
+  body.dark-theme .raku-stats__label {
+    font-size: 11px;
   }
 }

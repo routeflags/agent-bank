@@ -1,0 +1,26 @@
+-# 楽市楽問 — Features（Issue #108、新規）
+-# ═══════════════════════════════════════════════════════════
+-# モックの 3 カラム（.benefits）を移植したもの。
+-# 方針差分:
+-#   - 「開発者コミュニティ」は既存ルートが無いため出さない。
+-#     代わりに使い方ガイド（docs）への導線にする。
+-#   - 「安心・安全」はレビュー・評価に触れず、出品情報の確認と
+-#     マーケットへの導線にする（評価機能は #106 で保留）。
+-#   - 文言は「ペルソナ」に統一する（#96 の方針）。
+-#   - お気に入り（♡）は保存機能が無いため出さない。
+%section.raku-features{aria: {label: t('lamprey.homepage.features_heading')}}
+  .raku-features__item
+    %span.raku-features__icon{aria: {hidden: "true"}} ¥
+    %h2.raku-features__title= t('lamprey.homepage.feature_sell_title')
+    %p.raku-features__body= t('lamprey.homepage.feature_sell_body')
+    = link_to t('lamprey.homepage.feature_sell_link'), new_listing_path, class: "raku-features__link"
+  .raku-features__item
+    %span.raku-features__icon{aria: {hidden: "true"}} ⬡
+    %h2.raku-features__title= t('lamprey.homepage.feature_safety_title')
+    %p.raku-features__body= t('lamprey.homepage.feature_safety_body')
+    = link_to t('lamprey.homepage.feature_safety_link'), browse_path, class: "raku-features__link"
+  .raku-features__item
+    %span.raku-features__icon{aria: {hidden: "true"}} 📚
+    %h2.raku-features__title= t('lamprey.homepage.feature_guide_title')
+    %p.raku-features__body= t('lamprey.homepage.feature_guide_body')
+    = link_to t('lamprey.homepage.feature_guide_link'), docs_path, class: "raku-features__link"

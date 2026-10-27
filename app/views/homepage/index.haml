@@ -104,6 +104,21 @@
       start();
     })();
 
+    // 楽市楽問 — `/` キーでヒーローの検索欄へフォーカス（Issue #108）。
+    // 入力欄・セレクト・テキストエリアにフォーカスがある場合は何もしない。
+    // ヒーローが無い画面（/browse）ではクエリ欄が無いためガードする。
+    (function () {
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+        var tag = document.activeElement && document.activeElement.tagName;
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+        var query = document.getElementById('raku-hero-query');
+        if (!query) return;
+        e.preventDefault();
+        query.focus();
+      });
+    })();
+
 -# ═══════════════════════════════════════════════════════════
 -# ヒーロー/統計/カテゴリ（トップ用）— 一覧ページ(/browse)では非表示
 - unless @listing_page
@@ -224,5 +239,8 @@
           - else
             = t(".no_listings_notification", add_listing_link: link_to(t(".add_listing_link_text"), new_listing_path(ref: "add_listing_link"))).html_safe
 
--# ── 注目のスキル（フッター直上） ──────────────────────────
+-# ── 注目のペルソナ ──────────────────────────
 = render "homepage/featured"
+
+-# ── 使い方・導線（フッター直上、Issue #108） ──────────────────────────
+= render "homepage/features"

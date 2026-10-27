@@ -146,9 +146,6 @@ class HomepageController < ApplicationController
         @listings = listings
         # Exclude test listings from public view
         @listings = exclude_test_listings(@listings)
-        # 「注目のスキル」の高評価タブ用。検索結果（Sphinx）は avg_rating を
-        # 持たないため、カードの評価は DB から1クエリで補う（Issue #6）。
-        @featured_ratings = featured_ratings_for(@listings)
         render locals: locals.merge(
                  seo_pagination_links: seo_pagination_links(params, @listings.current_page, @listings.total_pages))
       }.on_error { |e|
@@ -176,14 +173,13 @@ class HomepageController < ApplicationController
   # Issue #98: currently_open = 未削除・公開中・承認済み・有効期限内（Listing:165）。
   # 下請けの書き込み元: total_views は ListingsController#show→ListingStatsService（#97）、
   # total_sold は ChatMessage 確定時フック（課金成功と同一トランザクション）。
-  # avg_rating は算出元が未定のため対象外（Issue #98 の親判断事項を参照）。
+  # 評価（avg_rating）は #106 で保留のため集計・表示しない（Issue #108）。
   def marketplace_metrics
     open_listings = Listing.currently_open.where(community_id: @current_community.id)
     {
       personas: open_listings.count,
       total_views: open_listings.sum(:times_viewed).to_i,
-      total_sold: open_listings.sum(:total_sold).to_i,
-      avg_rating: open_listings.where("avg_rating > 0").average(:avg_rating)&.round(1)
+      total_sold: open_listings.sum(:total_sold).to_i
     }
   end
 
@@ -457,17 +453,6 @@ class HomepageController < ApplicationController
       query_count += 1
       Rails.logger.debug("[Query##{query_count}] #{payload[:name]} #{payload[:sql]}")
     end
-  end
-
-  # 「注目のスキル」カードの評価値（listing_id => avg_rating）。
-  #
-  # 検索結果（Sphinx 経由のオブジェクト/struct）には評価値が含まれないため、
-  # 高評価タブの並び替え用に DB からまとめて取得する（Issue #6）。
-  def featured_ratings_for(listings)
-    ids = Array(listings).map(&:id).compact
-    return {} if ids.empty?
-
-    Listing.where(id: ids).pluck(:id, :avg_rating).to_h
   end
 
   # Exclude test listings whose titles start with 'Test' or whose description

@@ -1,217 +1,208 @@
 // ═══════════════════════════════════════════════════════════
-// 楽市楽問 — Hero Section
+// 楽市楽問 — Hero Section（Issue #108: 検索中心ヒーロー）
+// 検索ボックスの見た目・挙動は rakuichi-rakumon.html を踏襲する。
+// モック由来の固定値は $raku-search-* に集約し、既存トークンを使う
+// 箇所（gold 等）は var() で参照する。
 // ═══════════════════════════════════════════════════════════
 
+// ── 検索ボックスの固定値（モック実測） ─────────────────────
+$raku-search-frame-bg: #08080a;
+$raku-search-frame-border: #fff;
+$raku-search-shadow: #df2633;
+$raku-search-row-bg: #f3f1ef;
+$raku-search-row-min-height: 55px;
+$raku-search-ink: #161219;
+$raku-search-select-bg: #e8e4e0;
+$raku-search-select-divider: #bcb5b0;
+$raku-search-submit-bg: #ec1029;
+$raku-search-tag-bg: #23212a;
+$raku-search-tag-border: #48414a;
+$raku-search-box-width: 970px;
+
 body.dark-theme {
+  // ヒーロー画像（トリミング済み raku_hero.png）を全幅背景にし、
+  // 検索ボックスだけを中央に置く。キャッチコピーは入れない
+  // （画像自体に baked-in のため）。上下が切れないよう center。
   .raku-hero {
-    position: relative;
-    padding: 80px 20px 60px;
-    text-align: center;
-    overflow: hidden;
-    // オーバーレイを濃くして背景画像の金色グロー上のテキストコントラストを確保
-    // （WCAG AA: タイトル 3:1 / 本文・タグ 4.5:1。pixyel 計測で最悪 1.6-2.4:1 だったため）
-    background:
-      linear-gradient(135deg, rgba(10, 10, 12, 0.78) 0%, rgba(18, 18, 30, 0.65) 50%, rgba(10, 10, 12, 0.78) 100%),
-      image-url('raku/hero_bg.jpg') center / cover no-repeat,
-      linear-gradient(135deg, var(--bg-primary) 0%, #1e1e2e 50%, var(--bg-primary) 100%);
-
-    // Decorative diagonal accent line
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 120%;
-      height: 1px;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        var(--accent-red) 30%,
-        var(--accent-gold) 70%,
-        transparent
-      );
-    }
-  }
-
-  .raku-hero__badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 16px;
-    // 赤 #c41e3a は暗地でも 2.95:1 で不合格のため、明るい赤へ（#ff6b6b ≒ 6.2:1）。
-    // 背景グローが透けないようチップ地は 0.9 不透明度に
-    background-color: rgba(25, 8, 12, 0.9);
-    border: 1px solid rgba(255, 107, 107, 0.45);
-    color: #ff6b6b;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 24px;
-    letter-spacing: 0.5px;
-  }
-
-  .raku-hero__title {
-    font-size: clamp(32px, 5vw, 56px);
-    font-weight: 800;
-    color: var(--text-primary);
-    margin: 0 0 16px;
-    line-height: 1.2;
-    letter-spacing: -0.5px;
-  }
-
-  .raku-hero__title-accent {
-    color: var(--accent-gold);
-  }
-
-  .raku-hero__subtitle {
-    font-size: clamp(16px, 2vw, 20px);
-    // #999 は背景画像のグロー上で最悪 3.03:1。#c9c9c9 ≒ 5.6:1 以上を確保
-    color: #c9c9c9;
-    margin: 0 0 32px;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-    line-height: 1.6;
-  }
-
-  // ── Search bar ─────────────────────────────────────────
-  .raku-hero__search {
+    background-image: image-url('rakuichi/raku_hero.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #0a0a0c;
+    border-bottom: 2px solid $raku-search-shadow;
+    padding: 72px 20px;
+    min-height: 420px;
     display: flex;
     align-items: center;
-    max-width: 640px;
-    margin: 0 auto 24px;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-
-    &:focus-within {
-      border-color: var(--accent-gold);
-      box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.15);
-    }
+    justify-content: center;
   }
 
-  .raku-hero__search-type {
+  .raku-search-box {
+    width: 100%;
+    max-width: $raku-search-box-width;
+    background: $raku-search-frame-bg;
+    border: 3px solid $raku-search-frame-border;
+    box-shadow: 8px 8px 0 $raku-search-shadow;
+    padding: 9px;
+    transform: skew(-3deg);
+  }
+
+  .raku-search-box__row {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 14px 16px;
-    border-right: 1px solid var(--border-color);
-    font-size: 14px;
-    color: var(--text-secondary);
-    // 装飾表示（非対話要素）のため default。対話化する場合は select / button 化 + JS 接続が必要（Issue #78）
-    cursor: default;
-    white-space: nowrap;
-    transition: color var(--transition-fast);
-
-    &:hover { color: var(--text-primary); }
-
-    svg {
-      width: 16px;
-      height: 16px;
-      fill: currentColor;
-    }
+    align-items: stretch;
+    background: $raku-search-row-bg;
+    min-height: $raku-search-row-min-height;
+    margin: 0;
   }
 
-  .raku-hero__search-input {
+  .raku-search-box__symbol {
+    display: grid;
+    place-items: center;
+    color: #0b0b0c;
+    font-size: 26px;
+    padding: 0 16px;
+    flex-shrink: 0;
+  }
+
+  // `.raku-search-box` を挟んで詳細度を上げ、dark-theme 全体の
+  // input/select 既定値（ダーク背景等）より本セクションを優先させる。
+  .raku-search-box .raku-search-box__input {
+    min-width: 0;
     flex: 1;
-    padding: 14px 16px;
     background: transparent;
-    border: none;
+    border: 0;
+    outline: 0;
+    color: $raku-search-ink;
+    padding: 13px 0;
+    font-weight: 600;
     font-size: 16px;
-    color: var(--text-primary);
-    outline: none;
+    border-radius: 0;
+    -webkit-appearance: none;
+    appearance: none;
 
     &::placeholder {
-      color: var(--text-muted);
+      color: #6b6660;
     }
   }
 
-  .raku-hero__search-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    margin: 4px;
-    background-color: var(--accent-red);
-    color: #fff;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background-color var(--transition-fast);
-
-    &:hover { background-color: var(--accent-red-hover); }
-
-    svg {
-      width: 20px;
-      height: 20px;
-      fill: currentColor;
-    }
-  }
-
-  // ── Popular search tags ────────────────────────────────
-  .raku-hero__tags {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    max-width: 640px;
-    margin: 0 auto;
-  }
-
-  .raku-hero__tag {
-    padding: 6px 14px;
-    // 透過チップだと背後のグローが透けて #999 で最悪 1.83:1 まで落ちる。
-    // 暗いチップ地 + 明るい文字で背景画像に依存しないコントラストを確保
-    background-color: rgba(12, 12, 18, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 16px;
-    color: #d4d4d4;
+  .raku-search-box .raku-search-box__select {
+    background: $raku-search-select-bg;
+    border: 0;
+    border-left: 1px solid $raku-search-select-divider;
+    padding: 0 12px;
+    color: #151115;
+    max-width: 130px;
     font-size: 13px;
-    text-decoration: none;
-    transition: all var(--transition-fast);
+    font-weight: 600;
+    border-radius: 0;
+  }
+
+  .raku-search-box .raku-search-box__submit {
+    background: $raku-search-submit-bg;
+    border: 0;
+    color: #fff;
+    font-weight: 950;
+    font-size: 17px;
+    padding: 0 30px;
+    white-space: nowrap;
+    cursor: pointer;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.14);
-      color: var(--text-primary);
-      border-color: rgba(255, 255, 255, 0.32);
+      filter: brightness(1.1);
+    }
+  }
+
+  // ── 人気の検索タグ ───────────────────────────────────
+  .raku-search-box__tags {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 15px 2px 4px;
+  }
+
+  .raku-search-box__tags-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--accent-gold);
+    margin-right: 5px;
+  }
+
+  .raku-search-box__tag {
+    background: $raku-search-tag-bg;
+    border: 1px solid $raku-search-tag-border;
+    color: #eee;
+    border-radius: 18px;
+    padding: 6px 12px;
+    font-size: 11px;
+    text-decoration: none;
+    line-height: 1.4;
+
+    &:hover {
+      background: $raku-search-submit-bg;
+      border-color: $raku-search-submit-bg;
+      color: #fff;
+    }
+  }
+
+  // 検索ボックス内のフォーカスはモック通り gold 3px アウトライン。
+  // dark-theme 全体の :focus グロー（teal）は打ち消す。
+  .raku-search-box .raku-search-box__input:focus-visible,
+  .raku-search-box .raku-search-box__select:focus-visible,
+  .raku-search-box .raku-search-box__submit:focus-visible,
+  .raku-search-box .raku-search-box__tag:focus-visible {
+    outline: 3px solid var(--accent-gold);
+    outline-offset: 3px;
+    box-shadow: none;
+  }
+}
+
+// ── Tablet ────────────────────────────────────────────
+@media (max-width: 768px) {
+  body.dark-theme {
+    .raku-hero {
+      min-height: 0;
+      padding: 48px 17px 44px;
+    }
+
+    .raku-search-box__row {
+      flex-wrap: wrap;
+    }
+
+    .raku-search-box .raku-search-box__input {
+      min-width: 120px;
+    }
+
+    .raku-search-box .raku-search-box__select {
+      width: 110px;
+      max-width: none;
+      font-size: 11px;
+    }
+
+    .raku-search-box .raku-search-box__submit {
+      padding: 0 18px;
+      font-size: 15px;
     }
   }
 }
 
-// ── Mobile ────────────────────────────────────────────
-@media (max-width: 767px) {
-  body.dark-theme .raku-hero {
-    padding: 48px 16px 40px;
-
-    .raku-hero__search {
-      flex-direction: column;
-      border-radius: var(--radius-md);
+// ── Compact phones ────────────────────────────────────
+@media (max-width: 480px) {
+  body.dark-theme {
+    .raku-search-box .raku-search-box__input {
+      flex-basis: calc(100% - 60px);
     }
 
-    .raku-hero__search-type {
-      width: 100%;
-      border-right: none;
-      border-bottom: 1px solid var(--border-color);
+    .raku-search-box .raku-search-box__select {
+      height: 42px;
+      flex: 1;
+      width: auto;
     }
 
-    .raku-hero__search-input {
-      width: 100%;
-    }
-
-    .raku-hero__search-btn {
-      width: 100%;
-      border-radius: var(--radius-md);
-      height: 44px;
-      margin: 8px;
-    }
-
-    .raku-hero__tags {
-      gap: 6px;
+    .raku-search-box .raku-search-box__submit {
+      height: 42px;
+      flex: 1;
+      padding: 0 12px;
     }
   }
 }

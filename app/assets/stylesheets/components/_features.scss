@@ -1,0 +1,82 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽問 — Features（Issue #108）
+// モックの 3 カラム（.benefits）を既存トーンに移植したもの。
+// 上下の罫線と skew 見出しでモックの帯感を再現する。
+// ═══════════════════════════════════════════════════════════
+
+body.dark-theme {
+  .raku-features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    max-width: 1200px;
+    margin: 0 auto 42px;
+    padding: 0 20px;
+    border-top: 1px solid var(--accent-gold);
+    border-bottom: 1px solid var(--accent-gold);
+  }
+
+  .raku-features__item {
+    position: relative;
+    padding: 24px 24px 25px;
+    border-right: 1px solid var(--border-color);
+    background: linear-gradient(130deg, #25151c, #111116);
+    min-height: 160px;
+
+    &:nth-child(2) {
+      background: #18171b;
+    }
+
+    &:last-child {
+      border-right: 0;
+    }
+  }
+
+  .raku-features__title {
+    color: var(--accent-gold);
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+
+  .raku-features__body {
+    line-height: 1.8;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0 0 12px;
+  }
+
+  .raku-features__link {
+    font-size: 12px;
+    color: var(--accent-gold);
+    font-weight: 900;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .raku-features__icon {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    font-size: 50px;
+    opacity: 0.26;
+  }
+}
+
+@media (max-width: 767px) {
+  body.dark-theme .raku-features {
+    grid-template-columns: 1fr;
+  }
+
+  body.dark-theme .raku-features__item {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-color);
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+}

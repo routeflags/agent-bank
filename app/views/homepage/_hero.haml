@@ -1,36 +1,35 @@
--# 楽市楽問 — Hero Section
+-# 楽市楽問 — Hero Section（Issue #108: 検索中心ヒーロー）
 -# ═══════════════════════════════════════════════════════════
 -# application.haml が main.page-content 直下（.wrapper と
 -# #homepage-filters フォームの外）に render するトップ専用パーシャル。
 -# フォームの外に出ることで以下を両立している:
--#   1. 背景がビューポート全幅に広がる（#3）
--#   2. 検索バー自身の GET フォームで /browse へ送信できる（#4）。
--#      #homepage-filters の内側に置くと form のネストになるため不可
--#      （_intro.haml の旧 NOTE 参照）。
-.raku-hero
-  .raku-hero__badge
-    🚀
-    = t('lamprey.homepage.hero_tagline')
-  %h1.raku-hero__title
-    = t('lamprey.homepage.hero_title')
-  %p.raku-hero__subtitle
-    = t('lamprey.homepage.hero_subtitle')
+-#   1. 背景（トリミング済み raku_hero.png）がビューポート全幅に広がる
+-#   2. 検索バー自身の GET フォームで /browse へ送信できる。
+-#      #homepage-filters の内側に置くと form のネストになるため不可。
+-# 検索ボックスの見た目・挙動は rakuichi-rakumon.html を踏襲する
+-# （白枠 3px・赤オフセット影・skew・カテゴリセレクト・人気タグ・/ キー）。
+-# キャッチコピーは入れない（ヒーロー画像自体に baked-in のため）。
+-# 見出し順のため h1 は sr-only で置く。
+%section.raku-hero{aria: {label: t('lamprey.homepage.hero_heading')}}
+  %h1.sr-only= t('lamprey.homepage.hero_heading')
 
-  -# Search bar — 一覧画面（/browse）へ遷移させる独立した GET フォーム
-  %form.raku-hero__search{action: browse_path, method: "get"}
-    -# 検索種別表示は装飾（絞り込み機能の JS は未接続）のため非対話要素のままにする。
-    -# 対話化する場合は select / button 化 + JS 接続が必要（Issue #78）。
-    .raku-hero__search-type
-      = t('lamprey.homepage.search_type_all')
-      %svg{viewBox: "0 0 20 20", fill: "currentColor"}
-        %path{d: "M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"}
-    %input.raku-hero__search-input{type: "text", name: "q", placeholder: t('lamprey.homepage.search_placeholder'), aria: { label: t('lamprey.homepage.search_placeholder') }}
-    %button.raku-hero__search-btn{type: "submit", aria: { label: t('lamprey.homepage.search_button') }}
-      %svg{viewBox: "0 0 20 20", fill: "currentColor"}
-        %path{d: "M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"}
-
-  -# Popular search tags — 検索導線を統一し /browse へ遷移させる
-  .raku-hero__tags
-    = link_to "SEO", browse_path(q: "SEO"), class: "raku-hero__tag"
-    - t("lamprey.homepage.hero_tags").each do |tag|
-      = link_to tag, browse_path(q: tag), class: "raku-hero__tag"
+  -# Search box — 一覧画面（/browse）へ遷移させる独立した GET フォーム。
+  -# q（キーワード）+ category（URL スラッグ）をそのまま渡し、
+  -# 絞り込みはサーバー側（既存の一覧検索）に任せる。
+  .raku-search-box
+    %form.raku-search-box__row{action: browse_path, method: "get", role: "search"}
+      %span.raku-search-box__symbol{aria: {hidden: "true"}} ⌕
+      %input.raku-search-box__input{id: "raku-hero-query", type: "search", name: "q", value: params[:q], placeholder: t('lamprey.homepage.search_placeholder'), aria: {label: t('lamprey.homepage.search_placeholder')}, autocomplete: "off"}
+      - categories = @main_categories.presence || []
+      - if categories.any?
+        - selected_url = params[:category].to_s
+        %select.raku-search-box__select{name: "category", aria: {label: t('lamprey.homepage.search_category_label')}}
+          %option{value: "", selected: selected_url.blank?}= t('lamprey.homepage.search_category_all')
+          - categories.each do |category|
+            - name = (@category_display_names && @category_display_names[category.id]) || category.display_name(I18n.locale)
+            %option{value: category.url, selected: selected_url == category.url}= name
+      %button.raku-search-box__submit{type: "submit"}= t('lamprey.homepage.search_button')
+    .raku-search-box__tags
+      %span.raku-search-box__tags-label= t('lamprey.homepage.tags_label')
+      - t("lamprey.homepage.hero_tags").each do |tag|
+        = link_to tag, browse_path(q: tag), class: "raku-search-box__tag"

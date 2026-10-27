@@ -45,4 +45,14 @@ RSpec.describe "トップの注目カード", type: :view do
     expect(html).to include("テスト出品")
     expect(html).not_to include("¥0")
   end
+
+  # Issue #108: 評価（★・レビュー件数・高評価タブ）は #106 保留のため
+  # トップに出さない。タブはおすすめ・新着の 2 つのみ。
+  it "評価も高評価タブも表示しない" do
+    html = render_featured([build_item(Money.new(1000, "JPY"))])
+
+    expect(html).not_to include("★")
+    expect(html).not_to include("rating")
+    expect(Nokogiri::HTML(html).css(".raku-featured__tab").map { |tab| tab["data-sort"] }).to eq(%w[popular newest])
+  end
 end

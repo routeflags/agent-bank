@@ -1,69 +1,39 @@
--# 楽市楽問 — 統計・カテゴリ（トップ用）
+-# 楽市楽問 — 実績サマリー・カテゴリ（トップ用、Issue #108）
 -# ヒーロー（.raku-hero）は _hero.haml に分離し、application.haml が
 -# .wrapper の外（全幅）に render している。
 -# ═══════════════════════════════════════════════════════════
--# Marketplace metrics（DESIGN.md §12 — 実データ集計はコントローラ）
+-# 実績サマリー: 実データの集計のみ表示する（デモ数値は出さない）。
+-# 評価（平均評価・★）は #106 保留のため表示しない。
+-# 実データ集計はコントローラの marketplace_metrics。
 -# ═══════════════════════════════════════════════════════════
-.raku-stats
+.raku-stats{aria: {label: t('lamprey.homepage.stats_heading')}}
   .raku-stats__item
-    %span.raku-stats__icon 🤖
+    %span.raku-stats__icon{aria: {hidden: "true"}} 🤖
     .raku-stats__value= number_with_delimiter(@marketplace_metrics[:personas])
-    .raku-stats__label= t('lamprey.homepage.stats_agents')
+    .raku-stats__label= t('lamprey.homepage.stats_personas')
   .raku-stats__item
-    %span.raku-stats__icon 👁️
+    %span.raku-stats__icon{aria: {hidden: "true"}} 👁️
     .raku-stats__value= number_with_delimiter(@marketplace_metrics[:total_views])
     .raku-stats__label= t('lamprey.homepage.stats_total_views')
   .raku-stats__item
-    %span.raku-stats__icon 💰
+    %span.raku-stats__icon{aria: {hidden: "true"}} 💰
     .raku-stats__value= number_with_delimiter(@marketplace_metrics[:total_sold])
     .raku-stats__label= t('lamprey.homepage.stats_total_sold')
-  .raku-stats__item
-    %span.raku-stats__icon ★
-    .raku-stats__value
-      - if @marketplace_metrics[:avg_rating]
-        %span.raku-link-gold= "★ #{@marketplace_metrics[:avg_rating]}"
-      - else
-        = "—"
-    .raku-stats__label= t('lamprey.homepage.stats_avg_rating')
 
 -# ═══════════════════════════════════════════════════════════
--# Category Grid
+-# Category Grid — 既存のルートカテゴリから動的生成する。
+-# ハードコードのスラッグだと実データの URL と一致せず絞り込みが
+-# 効かないため、コントローラの @main_categories をそのまま使う。
+-# クリックで該当カテゴリの一覧（/browse?category=<url>）へ遷移する。
 -# ═══════════════════════════════════════════════════════════
-.raku-categories
-  %h2.raku-categories__title= t('lamprey.homepage.categories_title')
-  .raku-categories__grid
-    = link_to browse_path(category: "generation-ai"), class: "raku-categories__item" do
-      %span.raku-categories__icon 🎨
-      %span.raku-categories__name= t('lamprey.homepage.category_generation_ai')
-    = link_to browse_path(category: "data-analysis"), class: "raku-categories__item" do
-      %span.raku-categories__icon 📊
-      %span.raku-categories__name= t('lamprey.homepage.category_data_analysis')
-    = link_to browse_path(category: "development"), class: "raku-categories__item" do
-      %span.raku-categories__icon 💻
-      %span.raku-categories__name= t('lamprey.homepage.category_development')
-    = link_to browse_path(category: "marketing"), class: "raku-categories__item" do
-      %span.raku-categories__icon 📣
-      %span.raku-categories__name= t('lamprey.homepage.category_marketing')
-    = link_to browse_path(category: "automation"), class: "raku-categories__item" do
-      %span.raku-categories__icon ⚙️
-      %span.raku-categories__name= t('lamprey.homepage.category_automation')
-    = link_to browse_path(category: "design"), class: "raku-categories__item" do
-      %span.raku-categories__icon 🖼️
-      %span.raku-categories__name= t('lamprey.homepage.category_design')
-    = link_to browse_path(category: "research"), class: "raku-categories__item" do
-      %span.raku-categories__icon 🔬
-      %span.raku-categories__name= t('lamprey.homepage.category_research')
-    = link_to browse_path(category: "education"), class: "raku-categories__item" do
-      %span.raku-categories__icon 📖
-      %span.raku-categories__name= t('lamprey.homepage.category_education')
-    = link_to browse_path(category: "writing"), class: "raku-categories__item" do
-      %span.raku-categories__icon ✍️
-      %span.raku-categories__name= t('lamprey.homepage.category_writing')
-    = link_to browse_path(category: "media"), class: "raku-categories__item" do
-      %span.raku-categories__icon 🎵
-      %span.raku-categories__name= t('lamprey.homepage.category_media')
-    = link_to browse_path(category: "other"), class: "raku-categories__item" do
-      %span.raku-categories__icon 📁
-      %span.raku-categories__name= t('lamprey.homepage.category_other')
+- if @main_categories.present?
+  .raku-categories
+    %h2.raku-categories__title= t('lamprey.homepage.categories_title')
+    .raku-categories__grid
+      - @main_categories.each do |category|
+        - name = (@category_display_names && @category_display_names[category.id]) || category.display_name(I18n.locale)
+        = link_to browse_path(category: category), class: "raku-categories__item" do
+          %span.raku-categories__icon{aria: {hidden: "true"}} 🗂️
+          %span.raku-categories__name= name
 
 -# ═══════════════════════════════════════════════════════════

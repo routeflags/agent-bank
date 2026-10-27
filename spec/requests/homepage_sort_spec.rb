@@ -13,7 +13,7 @@ describe "一覧の並び順タブ", type: :request do
 
     @domain = "homepage-sort.custom.org"
     @community = FactoryBot.create(:community, domain: @domain, use_domain: true,
-                                                settings: { "locales" => ["en", "ja"] })
+                                               settings: { "locales" => ["en", "ja"] })
     @category = FactoryBot.create(:category, community: @community)
     @category.translation_attributes = { en: { name: "Sorting Category" } }
     @category.save!
@@ -32,9 +32,9 @@ describe "一覧の並び順タブ", type: :request do
 
   def create_listing(title, sort_date:, created_at:, avg_rating:)
     listing = FactoryBot.create(:listing, community_id: @community.id,
-                                           category: @category,
-                                           title: title,
-                                           avg_rating: avg_rating)
+                                          category: @category,
+                                          title: title,
+                                          avg_rating: avg_rating)
     listing.update_columns(sort_date: sort_date, created_at: created_at)
     listing
   end
@@ -74,15 +74,18 @@ describe "一覧の並び順タブ", type: :request do
     expect(featured_titles).to eq(["Sort Newest", "Sort Rated", "Sort Oldest"])
   end
 
-  it "タブはサーバー側の並べ替え用リンクで、現在の並び順が is-active になる" do
-    get "http://#{@domain}/ja/browse?sort=rating"
+  # Issue #108: 評価タブ（高評価）は #106 保留のため表示しない。
+  # タブは「おすすめ / 新着」の 2 つのみ。?sort=rating の直接指定は
+  # 引き続きサーバー側で有効（上記の降順テストが担保する）。
+  it "タブはおすすめ・新着の2つのみで、現在の並び順が is-active になる" do
+    get "http://#{@domain}/ja/browse?sort=newest"
 
     doc = Nokogiri::HTML(response.body)
     tabs = doc.css(".raku-featured__tab")
-    expect(tabs.map { |tab| tab["data-sort"] }).to eq(%w[popular newest rating])
+    expect(tabs.map { |tab| tab["data-sort"] }).to eq(%w[popular newest])
 
     active = tabs.select { |tab| tab["class"].to_s.include?("is-active") }
-    expect(active.map { |tab| tab["data-sort"] }).to eq(["rating"])
+    expect(active.map { |tab| tab["data-sort"] }).to eq(["newest"])
 
     # リンクは現在のパスと他のクエリを保持する
     expect(tabs.map { |tab| tab["href"] }).to include("/ja/browse?sort=newest")
