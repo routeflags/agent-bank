@@ -23,11 +23,11 @@
   .raku-sidebar
     .raku-profile
       - if person.image.present?
-        %img.raku-profile__avatar{src: person.image.url(:medium), alt: person.username}
+        %img.raku-profile__avatar{src: person.image.url(:medium), alt: ""}
       - else
         .raku-profile__avatar.raku-avatar-placeholder
           = person.username[0].upcase
-      %h2.raku-profile__name= PersonViewUtils.person_display_name(person, @service.community)
+      %h1.raku-profile__name= PersonViewUtils.person_display_name(person, @service.community)
       %p.raku-profile__username @#{person.username}
       .raku-profile__verified= t('lamprey.mypage.verified_seller')
       .raku-profile__tags
@@ -44,8 +44,8 @@
           .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_tokens])
           .raku-profile__stat-label= t('lamprey.mypage.stats_total_tokens')
 
-    .raku-sidebar__nav
-      .raku-sidebar__section-label= t('lamprey.mypage.menu')
+    %nav.raku-sidebar__nav{aria: {label: t('lamprey.mypage.menu')}}
+      %h2.raku-sidebar__section-label= t('lamprey.mypage.menu')
       %a.raku-sidebar__link{class: (closed_view ? nil : "is-active"), href: person_path(username: person.username)}
         %span.raku-sidebar__icon 📊
         = t('lamprey.mypage.dashboard')
@@ -53,7 +53,7 @@
         %span.raku-sidebar__icon 📦
         = t('lamprey.mypage.manage_listings')
       .raku-sidebar__divider
-      .raku-sidebar__section-label= t('lamprey.mypage.account')
+      %h2.raku-sidebar__section-label= t('lamprey.mypage.account')
       - if current_user?(person)
         %a.raku-sidebar__link{href: person_settings_path(person)}
           %span.raku-sidebar__icon ⚙️
@@ -112,9 +112,9 @@
           %table.raku-table
             %thead
               %tr
-                %th= t('lamprey.mypage.seller_earning_th_listing')
-                %th= t('lamprey.mypage.seller_earning_th_date')
-                %th= t('lamprey.mypage.seller_earning_th_amount')
+                %th{scope: "col"}= t('lamprey.mypage.seller_earning_th_listing')
+                %th{scope: "col"}= t('lamprey.mypage.seller_earning_th_date')
+                %th{scope: "col"}= t('lamprey.mypage.seller_earning_th_amount')
             %tbody
               - @seller_earning_items.each do |item|
                 %tr
@@ -149,12 +149,12 @@
       %table.raku-table
         %thead
           %tr
-            %th= t('lamprey.mypage.th_skill')
-            %th= t('lamprey.mypage.th_views')
-            %th= t('lamprey.mypage.th_rating')
-            %th= t('lamprey.mypage.th_price')
-            %th= t('lamprey.mypage.th_status')
-            %th= t('lamprey.mypage.th_actions')
+            %th{scope: "col"}= t('lamprey.mypage.th_skill')
+            %th{scope: "col"}= t('lamprey.mypage.th_views')
+            %th{scope: "col"}= t('lamprey.mypage.th_rating')
+            %th{scope: "col"}= t('lamprey.mypage.th_price')
+            %th{scope: "col"}= t('lamprey.mypage.th_status')
+            %th{scope: "col"}= t('lamprey.mypage.th_actions')
         %tbody
           - @skill_listings.each do |listing|
             %tr
@@ -194,8 +194,8 @@
                     = t('lamprey.mypage.status_closed')
               %td
                 .raku-table__actions
-                  %a.raku-table__action-btn{href: edit_listing_path(listing), title: t('lamprey.mypage.action_edit')} ✏️
-                  %a.raku-table__action-btn{href: listing_path(listing), title: t('lamprey.mypage.action_view')} 👁️
+                  %a.raku-table__action-btn{href: edit_listing_path(listing), title: t('lamprey.mypage.action_edit'), aria: {label: t('lamprey.mypage.action_edit')}} ✏️
+                  %a.raku-table__action-btn{href: listing_path(listing), title: t('lamprey.mypage.action_view'), aria: {label: t('lamprey.mypage.action_view')}} 👁️
     - else
       .raku-table__empty
         .raku-table__empty-icon 📦

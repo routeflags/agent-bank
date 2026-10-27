@@ -32,21 +32,22 @@
     -# Display name
     .inline-label-container
       = form.label :display_name, t("settings.profile.display_name"), class: "inline"
-    %span.alert-box-icon
+    %span.alert-box-icon{"aria-hidden" => "true"}
       = icon_tag("information", ["icon-fix"])
-    %small
+    %small#person_display_name_description
       = t("settings.profile.display_name_description")
-    = form.text_field :display_name, class: "text_field", :maxlength => "100"
+    = form.text_field :display_name, class: "text_field", :maxlength => "100", "aria-describedby" => "person_display_name_description"
 
     -# username
     .inline-label-container
       = form.label :username, t("settings.profile.username"), class: "inline"
-    %span.alert-box-icon
+    %span.alert-box-icon{"aria-hidden" => "true"}
       = icon_tag("information", ["icon-fix"])
-    %small
+    %small#person_username_description
       = t("settings.profile.username_description")
     = form.text_field :username, class: "text_field", required: true,
       minlength: 3, maxlength: 20, valid_username: true,
+      "aria-describedby" => "person_username_description",
       remote: check_username_availability_person_path(target_user.username),
       data: {'msg-remote': t('errors.messages.username_is_invalid')},
       'data-msg-valid_username': t('errors.messages.username_is_invalid')

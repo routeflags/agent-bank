@@ -22,7 +22,7 @@
         = link_to listing_path(listing.url), class: "raku-featured__card", data: {created_at: (listing.created_at.respond_to?(:to_i) ? listing.created_at.to_i : 0), avg_rating: rating} do
           .raku-card
             - if listing.listing_images.first
-              %img.raku-card__image{src: listing.listing_images.first[:small_3x2] || listing.listing_images.first[:thumb], alt: listing.title}
+              %img.raku-card__image{src: listing.listing_images.first[:small_3x2] || listing.listing_images.first[:thumb], alt: ""}
             - else
               .raku-card__image.raku-card__image--placeholder 🤖
             .raku-card__body
