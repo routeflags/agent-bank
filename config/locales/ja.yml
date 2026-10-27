@@ -2421,6 +2421,7 @@ ja:
       empty_title: "まだペルソナが登録されていません"
       empty_subtitle: "第1号のAIペルソナを出品しませんか？"
       card_author_unknown: "出品者"
+      card_details: "%{title}の詳細を見る"
       features_heading: "楽市楽問の使い方"
       feature_sell_title: "出品して収益化"
       feature_sell_body: "あなたのAIペルソナを公開して、新しい収益の可能性を広げ

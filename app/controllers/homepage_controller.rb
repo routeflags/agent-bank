@@ -113,14 +113,7 @@ class HomepageController < ApplicationController
     elsif request.xhr? # checks if AJAX request
       search_result.on_success { |listings|
         @listings = exclude_test_listings(listings)
-
-        if @view_type == "grid" then
-          render partial: "grid_item", collection: @listings, as: :listing, locals: { show_distance: location_in_use }
-        elsif location_in_use
-          render partial: "list_item_with_distance", collection: @listings, as: :listing, locals: { shape_name_map: shape_name_map, show_distance: location_in_use }
-        else
-          render partial: "list_item", collection: @listings, as: :listing, locals: { shape_name_map: shape_name_map }
-        end
+        render_homepage_xhr_listings(location_in_use, shape_name_map)
       }.on_error {
         # ThinkingSphinx が未起動の場合は DB フォールバックで 200 を返す
         Rails.logger.warn("[Homepage] Search unavailable, falling back to DB results")
@@ -336,6 +329,20 @@ class HomepageController < ApplicationController
     search_params.reject do |search_param|
       numeric_field = numeric_fields.find(search_param[:id])
       search_param.slice(:id, :value) == { id: numeric_field.id, value: (numeric_field.min..numeric_field.max) }
+    end
+  end
+
+  # 無限スクロール（XHR）の継ぎ足し描画（Issue #111）。
+  # トップは新カード（対象コンテナは .cards）。/browse は従来のまま残す。
+  def render_homepage_xhr_listings(location_in_use, shape_name_map)
+    if !@listing_page && @view_type == "grid"
+      render partial: "homepage/persona_card", collection: @listings, as: :listing
+    elsif @view_type == "grid"
+      render partial: "grid_item", collection: @listings, as: :listing, locals: { show_distance: location_in_use }
+    elsif location_in_use
+      render partial: "list_item_with_distance", collection: @listings, as: :listing, locals: { shape_name_map: shape_name_map, show_distance: location_in_use }
+    else
+      render partial: "list_item", collection: @listings, as: :listing, locals: { shape_name_map: shape_name_map }
     end
   end
 

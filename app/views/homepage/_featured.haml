@@ -1,4 +1,4 @@
--# Featured Cards（Issue #108）
+-# Featured Cards（Issue #108 / #111）
 -# ═══════════════════════════════════════════════════════════
 -# 並び順タブ（Issue #80 / #81）。
 -# 以前は JS で DOM を並べ替えていたが、一覧グリッドはサーバーが描画するため
@@ -6,6 +6,10 @@
 -# （注目カードと一覧グリッドの順序が常に一致する）。
 -# 評価（★・レビュー件数・「高評価」タブ）は #106 保留のため出さない。
 -# タブは「おすすめ / 新着」の 2 つにする（Issue #108 決定事項）。
+-# ───────────────────────────────────────────────────────────
+-# Issue #111: トップは新デザインの .cards グリッド（_persona_card）で描画する。
+-# /browse（@listing_page）は Sharetribe 由来のスライダーのまま維持する。
+-# トップでは home-toolbar と旧一覧グリッドを描画しない（index.haml 側で制御）。
 - featured_sort = params[:sort].to_s == "newest" ? "newest" : "popular"
 - featured_tab_href = ->(key) { "#{request.path}?#{request.query_parameters.except("page").merge("sort" => key).to_query}" }
 .raku-featured
@@ -14,31 +18,40 @@
     .raku-featured__tabs{role: "group", aria: {label: t('lamprey.homepage.tabs_label')}}
       - [["popular", t('lamprey.homepage.tab_popular')], ["newest", t('lamprey.homepage.tab_newest')]].each do |key, label|
         %a.raku-featured__tab{class: (featured_sort == key ? "is-active" : nil), href: featured_tab_href.call(key), data: {sort: key}}= label
-  .raku-featured__slider
-    %button.raku-featured__arrow.raku-featured__arrow--prev{type: "button", "aria-label": t('lamprey.homepage.slide_prev'), onclick: "RakuFeatured.slide(-1)"} ‹
-    .raku-featured__scroll#raku-featured-scroll
-      - @listings.each do |listing|
-        = link_to listing_path(listing.url), class: "raku-featured__card", data: {created_at: (listing.created_at.respond_to?(:to_i) ? listing.created_at.to_i : 0)} do
-          .raku-card
-            - if listing.listing_images.first
-              %img.raku-card__image{src: listing.listing_images.first[:small_3x2] || listing.listing_images.first[:thumb], alt: ""}
-            - else
-              .raku-card__image.raku-card__image--placeholder{aria: {hidden: "true"}} 🤖
-            .raku-card__body
-              %h3.raku-card__title= listing.title
-              .raku-card__author
-                - if listing.author
-                  %span= listing.author.display_name || listing.author.username
-                - else
-                  %span= t('lamprey.homepage.card_author_unknown')
-              %p.raku-card__description= StringUtils.first_words(listing.description, 60)
-            .raku-card__footer
-              .raku-card__price
-                -# Issue #52: 価格未設定の出品は非公開のため一覧に出ない。価格がある場合のみ表示する。
-                -# 検索結果の `price` は Money で、`ListingItem` に `price_cents` は無い（Issue #52 で追加した判定が 500 の原因だった）。
-                - if listing.price && listing.price.to_f.positive?
-                  = MoneyViewUtils.to_humanized(listing.price)
-    %button.raku-featured__arrow.raku-featured__arrow--next{type: "button", "aria-label": t('lamprey.homepage.slide_next'), onclick: "RakuFeatured.slide(1)"} ›
+  - if @listing_page
+    .raku-featured__slider
+      %button.raku-featured__arrow.raku-featured__arrow--prev{type: "button", "aria-label": t('lamprey.homepage.slide_prev'), onclick: "RakuFeatured.slide(-1)"} ‹
+      .raku-featured__scroll#raku-featured-scroll
+        - @listings.each do |listing|
+          = link_to listing_path(listing.url), class: "raku-featured__card", data: {created_at: (listing.created_at.respond_to?(:to_i) ? listing.created_at.to_i : 0)} do
+            .raku-card
+              - if listing.listing_images.first
+                %img.raku-card__image{src: listing.listing_images.first[:small_3x2] || listing.listing_images.first[:thumb], alt: ""}
+              - else
+                .raku-card__image.raku-card__image--placeholder{aria: {hidden: "true"}} 🤖
+              .raku-card__body
+                %h3.raku-card__title= listing.title
+                .raku-card__author
+                  - if listing.author
+                    %span= listing.author.display_name || listing.author.username
+                  - else
+                    %span= t('lamprey.homepage.card_author_unknown')
+                %p.raku-card__description= StringUtils.first_words(listing.description, 60)
+              .raku-card__footer
+                .raku-card__price
+                  -# Issue #52: 価格未設定の出品は非公開のため一覧に出ない。価格がある場合のみ表示する。
+                  -# 検索結果の `price` は Money で、`ListingItem` に `price_cents` は無い（Issue #52 で追加した判定が 500 の原因だった）。
+                  - if listing.price && listing.price.to_f.positive?
+                    = MoneyViewUtils.to_humanized(listing.price)
+      %button.raku-featured__arrow.raku-featured__arrow--next{type: "button", "aria-label": t('lamprey.homepage.slide_next'), onclick: "RakuFeatured.slide(1)"} ›
+
+      - if @listings.empty?
+        .raku-featured__empty
+          %p= t('lamprey.homepage.empty_title')
+          %p= t('lamprey.homepage.empty_subtitle')
+  - else
+    .cards
+      = render partial: "homepage/persona_card", collection: @listings, as: :listing
 
     - if @listings.empty?
       .raku-featured__empty

@@ -2769,6 +2769,7 @@ en:
       empty_title: "No personas registered yet"
       empty_subtitle: "Be the first to publish an AI persona!"
       card_author_unknown: "Seller"
+      card_details: "View details for %{title}"
       features_heading: "How to use Rakuichi Rakumon"
       feature_sell_title: "Sell and earn"
       feature_sell_body: "Publish your AI persona and open up new earning oppo

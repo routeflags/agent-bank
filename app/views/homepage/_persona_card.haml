@@ -1,0 +1,24 @@
+-# 楽市楽問 — ペルソナカード（Issue #111）
+-# デザイン正本（rakuichi-rakumon.html）の article.product 相当。
+-# visual の --tone・英字・絵文字はカテゴリの固定表（HomepageHelper::PERSONA_CARD_STYLES）。
+-# ★・レビュー件数は #106 保留のため出さない。footer には価格のみ置く。
+- category_name = persona_category_name(listing, @category_display_names)
+- style = persona_card_style(category_name)
+%article.product
+  = link_to listing_path(listing.url), class: "product-link", aria: { label: t("lamprey.homepage.card_details", title: listing.title) } do
+    .visual{ style: "--tone:#{style[:tone]}" }
+      %span.visual-word= style[:word]
+      %span.avatar{ aria: { hidden: "true" } }= style[:emoji]
+    .product-content
+      %h3= listing.title
+      .maker
+        - if listing.author
+          by #{listing.author.display_name || listing.author.username}
+        - else
+          by #{t("lamprey.homepage.card_author_unknown")}
+      - if category_name.present?
+        %span.card-type= category_name
+      %p= truncate(listing.description.to_s.lines.first.to_s.strip, length: 60)
+      %footer
+        - if listing.respond_to?(:price) && listing.price && listing.price.to_f.positive?
+          %span.price= MoneyViewUtils.to_humanized(listing.price)
