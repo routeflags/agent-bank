@@ -730,7 +730,7 @@ Rails.application.routes.draw do
         resources :attachments, only: [:create], controller: 'chat_attachments'
       end
 
-      # Wallet top-up: create PaymentIntent + confirm after Stripe checkout
+      # Wallet top-up: fixed prepaid via Freemius hosted Checkout (confirm is dev-only)
       resources :wallet_topup, only: [:create], controller: 'wallet_topup' do
         collection do
           post :confirm
