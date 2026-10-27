@@ -1,5 +1,5 @@
 - person = @service.person
-- provide_react_app :mypage_wallet
+- provide_react_app :mypage_wallet if current_user?(person)
 -# 「出品管理」タブ（?show_closed=true）かどうか。サイドバーの活性表示、
 -# 見出し、空状態の文言を切り替える（Issue #14）。
 - closed_view = params[:show_closed].present? && current_user?(person)

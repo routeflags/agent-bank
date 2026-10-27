@@ -870,19 +870,3 @@
   font-size: 11px;
   margin-top: 6px;
 }
-
-.chatPanel__resultJump {
-  margin-top: 8px;
-  background: none;
-  border: 1px solid #3a3a3a;
-  color: #a7a7a7;
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.chatPanel__resultJump:hover {
-  color: #fff;
-  border-color: var(--chat-brand-gold);
-}

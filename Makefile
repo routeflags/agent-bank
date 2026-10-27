@@ -41,6 +41,18 @@ build-test-assets-stub: ## スタブファイルでテスト用アセットを�
 	@touch app/assets/webpack/vendor-bundle.js
 	@touch app/assets/webpack/app-bundle.js
 	@touch app/assets/webpack/server-bundle.js
+	@touch app/assets/webpack/webpack_bundles.js
+	@touch app/assets/webpack/common-bundle.js
+	@touch app/assets/webpack/sections-bundle.js
+	@touch app/assets/webpack/sections-bundle.css
+	@touch app/assets/webpack/vendor_dates-bundle.js
+	@touch app/assets/webpack/topbar-bundle.js
+	@touch app/assets/webpack/chat_panel-bundle.js
+	@touch app/assets/webpack/mypage_wallet-bundle.js
+	@touch app/assets/webpack/onboarding-bundle.js
+	@touch app/assets/webpack/search_page-bundle.js
+	@touch app/assets/webpack/availability-bundle.js
+	@touch app/assets/webpack/lodash_restore.js
 	@echo "$(GREEN)✔ スタブアセットを作成しました$(RESET)"
 
 .PHONY: setup-db

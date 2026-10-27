@@ -10,7 +10,7 @@ require "rails_helper"
 #   * operator 必須（未指定なら中断し何も付与しない）
 #   * 冪等性（active な購入権利があれば二重付与しない）
 #   * payment_reference の形式（manual_grant:<operator>:<ISO8601>）
-#   * production 環境でも動作すること（DevPersonaPurchase とは別経路）
+#   * production 環境でも動作すること
 #   * 実行ログに operator と対象が残ること
 RSpec.describe "lamprey:purchases:grant", type: :task do
   before(:all) do
@@ -107,7 +107,7 @@ RSpec.describe "lamprey:purchases:grant", type: :task do
     expect { run_task(listing.id.to_s, "grantbuyer", "owner1") }.not_to change(CreditTransaction, :count)
   end
 
-  it "production 環境でも動作する（DevPersonaPurchase の production ガードとは別経路）" do
+  it "production 環境でも動作する" do
     allow(Rails).to receive(:env).and_return(ActiveSupport::EnvironmentInquirer.new("production"))
 
     expect { run_task(listing.id.to_s, "grantbuyer", "owner1") }

@@ -1,5 +1,11 @@
 # 購入→チャット利用の再現手順（開発環境）
 
+> **Issue #84 で撤去済み**: dev 専用の購入再現（`POST /api/v1/dev/persona_purchases`、
+> `DevPersonaPurchase`、`lamprey:dev:grant_persona`）は撤去した。チャット開始の判定は
+> 残高ゲート（#51）に一本化されている。開発・検証での付与は管理者の手動付与
+> （`lamprey:purchases:grant`、[manual_purchase_grant.md](./manual_purchase_grant.md)）を使うこと。
+> 以下は履歴として残す。
+
 > **目的**: AI ペルソナの「購入 → チャット利用」を、実課金なしで開発環境で再現する
 > **対象**: routeflags/agent-bank（Issue #18）
 > **作成日**: 2026-10-23
@@ -15,7 +21,7 @@
 | 購入権利の付与（本番・Freemius） | `payment.completed` Webhook（persona_purchase）→ サーバー側検証 → `UserPlanSubscriptionService.create_for`（[Issue #23](https://github.com/routeflags/agent-bank/issues/23)。**キー投入は未実施**。詳細は §11） |
 | 購入権利の付与（本番・取引） | 取引ステートマシンの `confirmed` 遷移（実決済の完了） |
 | 購入権利の付与（管理者） | 手動付与 Rake（`lamprey:purchases:grant`。**production でも可**。運用手順は [manual_purchase_grant.md](./manual_purchase_grant.md)） |
-| 購入権利の付与（開発/テスト） | `DevPersonaPurchase`（API / Rake。**production では常に無効**） |
+| 購入権利の付与（開発/テスト） | **Issue #84 で撤去済み**（旧 `DevPersonaPurchase`。API / Rake ともに削除） |
 | 決済プロバイダ | Freemius（Merchant of Record）。開発環境ではキー未設定のため実決済不可 |
 
 > `free` 遷移（コンタクト等、決済なしで成立した取引）では購入権利を付与しない。
@@ -38,7 +44,9 @@
 
 ---
 
-## 3. 手順 A: ブラウザ UI で通す（推奨）
+## 3. 手順 A: ブラウザ UI で通す（推奨）【Issue #84 で撤去済み】
+
+> 開発購入 API は撤去済みのため、この手順はもう使えない。履歴として残す。
 
 ### 3.1 開発購入を有効化する
 
@@ -76,7 +84,10 @@ bin/rails server -b 0.0.0.0 -p 3000
 
 ---
 
-## 4. 手順 B: Rake タスクで付与する（サーバー不要）
+## 4. 手順 B: Rake タスクで付与する（サーバー不要）【Issue #84 で撤去済み】
+
+> `lamprey:dev:grant_persona` は撤去済みのため、この手順はもう使えない。履歴として残す。
+> 代わりに `lamprey:purchases:grant`（[manual_purchase_grant.md](./manual_purchase_grant.md)）を使うこと。
 
 サーバーを起動せず、コマンドだけで購入状態を作れる。環境フラグは不要（オペレーターの明示操作とみなす）
 が、`production` では実行できない。
@@ -100,7 +111,9 @@ bin/rails 'lamprey:dev:grant_persona[123,buyer@example.com]'
 
 ---
 
-## 5. 手順 C: API を直接叩く（検証・自動化用）
+## 5. 手順 C: API を直接叩く（検証・自動化用）【Issue #84 で撤去済み】
+
+> `POST /api/v1/dev/persona_purchases` は撤去済みのため、この手順はもう使えない。履歴として残す。
 
 ```http
 POST /api/v1/dev/persona_purchases
@@ -165,10 +178,13 @@ Content-Type: application/json
 
 ---
 
-## 8. 動作確認済みの検証（実測）
+## 8. 動作確認済みの検証（実測）【一部は Issue #84 で撤去済み】
+
+> `dev_persona_purchases_spec.rb` / `dev_persona_purchase_spec.rb` /
+> `lamprey_dev_spec.rb` は Issue #84 で削除済み。以下は履歴として残す。
 
 ```bash
-# 購入 → チャットの通しシナリオを含む
+# 購入 → チャットの通しシナリオを含む（※ dev 購入の 3 件は Issue #84 で削除済み）
 bundle exec rspec spec/requests/api/v1/dev_persona_purchases_spec.rb
 bundle exec rspec spec/requests/api/v1/chat_sessions_spec.rb
 bundle exec rspec spec/services/dev_persona_purchase_spec.rb
@@ -196,7 +212,7 @@ cd client && npm install && npm run build:client && cd ..
 
 ---
 
-## 9. トラブルシューティング
+## 9. トラブルシューティング【Issue #84 で撤去済み・履歴として残す】
 
 | 症状 | 原因と対処 |
 |------|------------|
@@ -208,11 +224,11 @@ cd client && npm install && npm run build:client && cd ..
 
 ---
 
-## 10. セキュリティ留意事項
+## 10. セキュリティ留意事項【開発購入は Issue #84 で撤去済み・履歴として残す】
 
-- 開発購入は `Rails.env.production?` で**常に**無効。`development` / `test` でも環境フラグが真のときのみ有効。
-- `spec/[REDACTED]/dev_persona_purchase_spec.rb` / `spec/requests/api/v1/dev_persona_purchases_spec.rb` で
-  「production では無効」「フラグ無効時は 404 で DB 不変」を固定している。
+- 開発購入は `Rails.env.production?` で**常に**無効だった。`development` / `test` でも環境フラグが真のときのみ有効だった。
+- `spec/services/dev_persona_purchase_spec.rb` / `spec/requests/api/v1/dev_persona_purchases_spec.rb` で
+  「production では無効」「フラグ無効時は 404 で DB 不変」を固定していた（いずれも Issue #84 で削除済み）。
 - 本番の購入導線（Freemius Checkout → 購入権利作成）は Issue #23 で実装済み（§11）。
   ただし **`FREEMIUS_API_KEY` / `FREEMIUS_WEBHOOK_SECRET` のキー投入は未実施**のため、
   現時点の全環境で 503（`purchase_not_configured`）になる。実 E2E（実決済を含む）も未実測。

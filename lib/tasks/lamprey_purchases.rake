@@ -10,10 +10,9 @@
 #   * Freemius 有効化後の例外対応（返金・オフライン決済の記録など）
 # 運用手順・承認フローは documents/guides/manual_purchase_grant.md を参照。
 #
-# lamprey:dev:grant_persona（DevPersonaPurchase）とは**別物**:
-#   * DevPersonaPurchase は「購入の再現」で production では常に無効
-#   * 本タスクは「管理者の明示的な付与」で production でも動作する
-#     （実決済の代替としてオーナーが判断・記録する正規の経路）
+# 本タスクは「管理者の明示的な付与」で production でも動作する
+# （実決済の代替としてオーナーが判断・記録する正規の経路）。
+# 開発/テスト専用の購入再現は Issue #84 で撤去済み。
 #
 # 使い方:
 #   bin/rails 'lamprey:purchases:grant[<listing_id>,<person>,<operator>]'

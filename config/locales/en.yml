@@ -2967,7 +2967,6 @@ en:
       tone_friendly: "Friendly"
       message_tokens: "%{count} tokens"
       result_panel_heading: "Latest result"
-      result_panel_jump: "Jump to conversation"
       result_badge: "RESULT"
       result_title: "Best Answer"
       attach_button: "Attach image"
