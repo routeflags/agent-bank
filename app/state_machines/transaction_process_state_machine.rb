@@ -98,9 +98,8 @@ class TransactionProcessStateMachine
     # 「有料ペルソナにコンタクトしただけで購入権利と初回トークンが得られる」
     # 実課金なしの購入偽装になってしまう（旧実装の逆ガード）。
     #
-    # 購入権利は次の 2 経路でのみ付与する:
-    #   * `confirmed` 遷移（実決済の完了）
-    #   * DevPersonaPurchase（開発/テスト専用の購入再現。production では無効）
+    # 購入権利は `confirmed` 遷移（実決済の完了）でのみ付与する
+    # （開発/テスト専用の購入再現は Issue #84 で撤去）。
     # なお無料ペルソナは存在しない（Issue #52）。チャット開始の可否は
     # 残高ゲート（API::V1::ChatSessionsController#purchased?）でのみ判定する。
   end
