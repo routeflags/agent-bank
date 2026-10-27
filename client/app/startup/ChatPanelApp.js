@@ -110,8 +110,6 @@ var DEFAULT_I18N = {
   wallet_submit: '追加する',
   wallet_redirecting: '決済ページへ移動しています…',
   wallet_add_credits: 'クレジットを追加する',
-  wallet_add_preparing: '追加する（準備中）',
-  wallet_add_preparing_body: 'ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。',
   wallet_topup_unavailable_reason: '決済が未設定のため、現在チャージできません。',
   topup_fixed_title: '固定額チャージ',
   topup_select_plan: '金額を選択',
@@ -1439,7 +1437,7 @@ class ChatPanelApp extends React.Component {
               type: 'button',
               disabled: !state.topupEnabled,
               title: state.topupEnabled ? null : t('wallet_topup_unavailable_reason'),
-            }, state.topupEnabled ? t('wallet_submit') : t('wallet_add_preparing'))
+            }, t('wallet_submit'))
           ),
 
           // Top-up unavailable reason (Issue #34): visible only when the

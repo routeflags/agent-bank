@@ -2928,8 +2928,6 @@ en:
       wallet_submit: "Add"
       wallet_redirecting: "Redirecting to checkout…"
       wallet_add_credits: "Add credits"
-      wallet_add_preparing: "Add (coming soon)"
-      wallet_add_preparing_body: "Wallet top-up is coming soon. Please wait for the official release."
       wallet_topup_unavailable_reason: "Top-up is currently unavailable (payments are not configured)."
       topup_fixed_title: "Fixed-amount top-up"
       topup_select_plan: "Choose an amount"

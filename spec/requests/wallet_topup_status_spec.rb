@@ -2,16 +2,16 @@
 
 require "spec_helper"
 
-# Issue #62: Freemius 設定済みならチャージボタンは「準備中」にならない。
+# Issue #62: Freemius 設定済みならチャージボタンは無効化されない（Issue #85 で「準備中」表記を廃止）。
 #
 # ChatPanel は起動時に GET /api/v1/wallet_topup/status を叩き、
-# topup_enabled=false のときだけ「追加する（準備中）」を出す。
+# topup_enabled=false のときはボタンを無効化し、理由文（wallet_topup_unavailable_reason）を出す。
 describe "チャージ可否のステータス API", type: :request do
   before(:all) do
     DatabaseCleaner.start
     @domain = "topup-status.custom.org"
     @community = FactoryBot.create(:community, domain: @domain, use_domain: true,
-                                                settings: { "locales" => ["ja"] })
+                                               settings: { "locales" => ["ja"] })
     @person = FactoryBot.create(:person, username: "topupstatus", community_id: @community.id)
     FactoryBot.create(:community_membership, person: @person, community: @community)
     @community.reload
@@ -43,7 +43,7 @@ describe "チャージ可否のステータス API", type: :request do
     expect(payload["denominations"]).not_to be_empty
   end
 
-  it "未設定なら topup_enabled=false と理由を返す（「準備中」の分岐）" do
+  it "未設定なら topup_enabled=false と理由を返す（ボタン無効化の分岐）" do
     allow(FreemiusClient).to receive(:configured?).and_return(false)
 
     sign_in
