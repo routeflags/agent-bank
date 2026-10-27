@@ -31,6 +31,12 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
   # Any other reason ("stop" / "end_turn" / nil) is a normal completion.
   TRUNCATED_FINISH_REASONS = %w[length max_tokens].freeze
 
+  # Issue #104: 入力見積りの換算係数（文字 → トークン）。
+  # 実測で 1 文字 ≒ 0.79〜0.84 トークンのため、1.0 で安全側に見積もる。
+  ESTIMATED_TOKENS_PER_CHAR = 1.0
+  # Issue #104: メッセージごとのオーバーヘッド（role 境界等の換算。安全側で 4）。
+  INPUT_OVERHEAD_TOKENS_PER_MESSAGE = 4
+
   # Provider error codes that keep failing until an operator fixes billing
   # or spend limits. Retrying or asking the user to resend cannot help.
   PROVIDER_BILLING_ERROR_CODES = %w[
@@ -86,9 +92,6 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     # Step 2: Build the messages array from session history
     messages = Ai::ChatCompletionsBuilder.new(chat_session, settings).build
 
-    # Resolve the output token cap: client override clamped to sane bounds.
-    max_tokens = settings.is_a?(Hash) && settings["token_limit"].to_i.positive? ? settings["token_limit"].to_i : nil
-
     # Step 3: Check wallet balance before making the API call
     wallet = person.wallet
     if wallet.nil?
@@ -97,6 +100,20 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
     end
 
     if wallet.below_threshold?(MIN_BALANCE_CENTS)
+      broadcast_error(
+        "残高が不足しています。ウォレットにチャージしてください。",
+        error_type: "insufficient_balance",
+        current_balance: wallet.balance_cents.to_f
+      )
+      return
+    end
+
+    # Issue #104: 残高の安全弁。生成前に残高から出力上限をクリップする。
+    # 残高チェックの後・API 呼び出しの前。入力だけで予算超過なら
+    # API を呼ばず insufficient_balance で拒否する。
+    user_max_tokens = settings.is_a?(Hash) && settings["token_limit"].to_i.positive? ? settings["token_limit"].to_i : nil
+    max_tokens = affordable_output_cap(user_max_tokens, messages, listing, wallet, adapter)
+    if max_tokens == :insufficient_balance
       broadcast_error(
         "残高が不足しています。ウォレットにチャージしてください。",
         error_type: "insufficient_balance",
@@ -262,6 +279,47 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
   # rubocop:enable Metrics/MethodLength, Metrics/AbcSize
 
   private
+
+  # Estimates input tokens from the messages sent to the provider (Issue #104).
+  #
+  # 「system prompt + 履歴 + 今回の発言」の文字数 × 1.0（安全側）+
+  # メッセージ数ぶんのオーバーヘッド。切り上げで安全側に倒す。
+  #
+  # @param messages [Array<Hash>] role + content hashes
+  # @return [Integer] estimated input tokens
+  def estimate_input_tokens(messages)
+    chars = messages.sum { |message| message[:content].to_s.length }
+    (chars * ESTIMATED_TOKENS_PER_CHAR).ceil + messages.size * INPUT_OVERHEAD_TOKENS_PER_MESSAGE
+  end
+
+  # Clips the output token cap against the wallet balance (Issue #104).
+  #
+  # 予算 = 残高(円) × 1_000_000 / 単価(円/100万トークン)（入力+出力の合計）。
+  # 出力上限の候補 = 予算 - 入力見積り。候補が 0 以下なら生成前に拒否する
+  # （空回答に課金しない）。無料出品（単価 nil/0）は課金が発生しないため
+  # クリップしない。
+  #
+  # 「上限なし」は残高候補とモデル上限の小さい方に確定する。有限値の指定は
+  # 残高だけでクリップし、モデル上限では切らない（#105 の素通し契約を維持。
+  # 超過分はプロバイダー側が頭打ちする）。
+  #
+  # @return [Integer, nil, Symbol] 有効な max_tokens（nil は無料出品の上限なし）、
+  #   拒否時は :insufficient_balance（呼び出し側で broadcast して return する）
+  def affordable_output_cap(user_max_tokens, messages, listing, wallet, adapter)
+    unit_price = listing&.price_cents
+    return user_max_tokens unless unit_price && unit_price > 0
+
+    budget_tokens = (BigDecimal(wallet.balance_cents.to_s) * BillingService::TOKENS_PER_MILLION / unit_price).floor
+    candidate = budget_tokens - estimate_input_tokens(messages)
+    return :insufficient_balance if candidate <= 0
+
+    model_cap = adapter.ai_model&.max_tokens
+    if user_max_tokens.nil?
+      model_cap ? [candidate, model_cap].min : candidate
+    else
+      [user_max_tokens, candidate].min
+    end
+  end
 
   # Extracts execution settings (token limit, output length, tone) saved on
   # the triggering user message by PersonaChatChannel.

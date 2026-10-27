@@ -349,9 +349,13 @@ RSpec.describe PersonaExecutorJob, type: :model do
       PersonaExecutorJob.new(chat_session.id, user_message.id, "Hello").perform
     end
 
-    it "nil は max_tokens: nil としてアダプターに渡す（上限なし）" do
+    it "nil（上限なし）は残高候補とモデル上限の小さい方を渡す（Issue #104）" do
+      # #105 の素通しは #104 の安全弁で上書きされる。「上限なし」は無限ではなく
+      # min(残高候補, モデル上限) に確定する。ここでは残高が潤沢なためモデル上限になる。
       perform_with_token_limit(nil)
-      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: nil))
+      expect(adapter).to have_received(:stream).with(
+        anything, hash_including(max_tokens: adapter.ai_model.max_tokens)
+      )
     end
 
     it "20_000 は切り詰めずそのまま渡す" do
@@ -462,6 +466,96 @@ RSpec.describe PersonaExecutorJob, type: :model do
         job = PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello")
         job.perform
       end
+    end
+  end
+  # ── 残高による出力上限のクリップ（Issue #104） ──────────────────
+
+  describe "残高による出力上限のクリップ" do
+    let(:listing) do
+      FactoryBot.create(:listing, community_id: community.id, author: person,
+                                  price: Money.new(1_000, "JPY"))
+    end
+    let(:ai_model) do
+      FactoryBot.create(:ai_model, ai_provider: FactoryBot.create(:ai_provider),
+                                    max_tokens: 16_384)
+    end
+    let!(:wallet) { FactoryBot.create(:wallet, person: person, community: community, balance_cents: 10) }
+
+    before do
+      allow_any_instance_of(Person).to receive(:wallet).and_return(wallet)
+      allow(adapter).to receive(:ai_model).and_return(ai_model)
+      allow(adapter).to receive(:stream).and_yield({ content: "Hi" })
+      allow(adapter).to receive(:last_usage).and_return(
+        OpenStruct.new(input_tokens: 10, output_tokens: 5)
+      )
+      allow(adapter).to receive(:last_finish_reason).and_return("stop")
+      billing_service = instance_double(BillingService)
+      allow(BillingService).to receive(:new).and_return(billing_service)
+      allow(billing_service).to receive(:process!).and_return(
+        { base_cost_cents: 1, platform_commission_cents: 0, seller_payout_cents: 1, total_charge_cents: 1 }
+      )
+      allow(ActionCable.server).to receive(:broadcast)
+    end
+
+    def perform_with_content(content, token_limit)
+      user_message = chat_session.chat_messages.create!(
+        content: content,
+        sender_type: "Person",
+        sender_id: person.id,
+        role: "user",
+        seq: 1,
+        metadata: { "settings" => { "token_limit" => token_limit } }
+      )
+      PersonaExecutorJob.new(chat_session.id, user_message.id, content).perform
+    end
+
+    it "残高10円・上限なし・入力223文字なら 9,777 以下にクリップする" do
+      perform_with_content("あ" * 223, nil)
+      # 予算 10,000 - 入力見積り (223 + 4) = 9,773（モデル上限 16,384 より小さい）
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 9_773))
+    end
+
+    it "残高1,000円・上限なしなら残高クリップは働かずモデル上限になる" do
+      wallet.update!(balance_cents: 1_000)
+      perform_with_content("Hello", nil)
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 16_384))
+    end
+
+    it "ユーザー指定値は残高候補との小さい方になる" do
+      perform_with_content("あ" * 223, 20_000)
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 9_773))
+    end
+
+    it "ユーザー指定値が候補より小さければ指定どおりになる" do
+      perform_with_content("Hello", 4_000)
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 4_000))
+    end
+
+    it "入力だけで予算超過なら API を呼ばず insufficient_balance で拒否する" do
+      expect(ActionCable.server).to receive(:broadcast).with(
+        "persona_chat_#{chat_session.id}",
+        hash_including(type: "stream_error", error_type: "insufficient_balance")
+      )
+      perform_with_content("あ" * 12_000, nil)
+      expect(adapter).not_to have_received(:stream)
+    end
+
+    it "残高5円・履歴が長い場合は拒否される（開始時ゲート）" do
+      wallet.update!(balance_cents: 5)
+      expect(ActionCable.server).to receive(:broadcast).with(
+        "persona_chat_#{chat_session.id}",
+        hash_including(type: "stream_error", error_type: "insufficient_balance")
+      )
+      perform_with_content("あ" * 6_000, nil)
+      expect(adapter).not_to have_received(:stream)
+    end
+
+    it "単価未設定の出品はクリップせず素通しする" do
+      listing.update_column(:price_cents, nil)
+      perform_with_content("Hello", 4_000)
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 4_000))
+      perform_with_content("Hello", nil)
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: nil))
     end
   end
 end
