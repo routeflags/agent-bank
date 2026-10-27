@@ -358,9 +358,14 @@ RSpec.describe PersonaExecutorJob, type: :model do
       )
     end
 
-    it "20_000 は切り詰めずそのまま渡す" do
+    it "20_000 はモデル上限でクリップして渡す（Issue #102(1) 解決順 3）" do
+      # #105 の素通し契約は #102(1) で上書きされる。係数適用後（ここでは
+      # output_length 未指定 = standard ×1.0）の値がモデル上限を超える場合は
+      # モデル上限が勝つ。残高が潤沢なため残高クリップは働かない。
       perform_with_token_limit(20_000)
-      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 20_000))
+      expect(adapter).to have_received(:stream).with(
+        anything, hash_including(max_tokens: adapter.ai_model.max_tokens)
+      )
     end
 
     it "4_000 は従来どおり渡す" do
@@ -468,7 +473,10 @@ RSpec.describe PersonaExecutorJob, type: :model do
       end
     end
   end
+
   # ── 残高による出力上限のクリップ（Issue #104） ──────────────────
+  # 当 worktree には #104 が未存在だったため、同等ロジックの移植とともに
+  # 受入表を spec で固定する（main の 2278e1fd8 と同内容）。
 
   describe "残高による出力上限のクリップ" do
     let(:listing) do
@@ -477,7 +485,7 @@ RSpec.describe PersonaExecutorJob, type: :model do
     end
     let(:ai_model) do
       FactoryBot.create(:ai_model, ai_provider: FactoryBot.create(:ai_provider),
-                                    max_tokens: 16_384)
+                                   max_tokens: 16_384)
     end
     let!(:wallet) { FactoryBot.create(:wallet, person: person, community: community, balance_cents: 10) }
 
@@ -556,6 +564,97 @@ RSpec.describe PersonaExecutorJob, type: :model do
       expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 4_000))
       perform_with_content("Hello", nil)
       expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: nil))
+    end
+  end
+
+  # ── output_length の max_tokens 連動（Issue #102(1)） ──────────
+  #
+  # 解決順: 1. token_limit（nil = 上限なし）→ 2. 係数を掛ける（short ×0.5 /
+  # standard ×1.0 / long ×2.0、端数切捨て）→ 3. モデル上限でクリップ →
+  # 4. 残高クリップと min。受入基準の 6 行を固定する。
+
+  describe "output_length の max_tokens 連動" do
+    let(:listing) do
+      FactoryBot.create(:listing, community_id: community.id, author: person,
+                                  price: Money.new(1_000, "JPY"))
+    end
+    let(:ai_model) do
+      FactoryBot.create(:ai_model, ai_provider: FactoryBot.create(:ai_provider),
+                                   max_tokens: 16_384)
+    end
+    let!(:wallet) { FactoryBot.create(:wallet, person: person, community: community, balance_cents: 100_000) }
+
+    before do
+      allow_any_instance_of(Person).to receive(:wallet).and_return(wallet)
+      allow(adapter).to receive(:ai_model).and_return(ai_model)
+      allow(adapter).to receive(:stream).and_yield({ content: "Hi" })
+      allow(adapter).to receive(:last_usage).and_return(
+        OpenStruct.new(input_tokens: 10, output_tokens: 5)
+      )
+      allow(adapter).to receive(:last_finish_reason).and_return("stop")
+      billing_service = instance_double(BillingService)
+      allow(BillingService).to receive(:new).and_return(billing_service)
+      allow(billing_service).to receive(:process!).and_return(
+        { base_cost_cents: 1, platform_commission_cents: 0, seller_payout_cents: 1, total_charge_cents: 1 }
+      )
+      allow(ActionCable.server).to receive(:broadcast)
+    end
+
+    def perform_with_output_length(content, token_limit, output_length)
+      user_message = chat_session.chat_messages.create!(
+        content: content,
+        sender_type: "Person",
+        sender_id: person.id,
+        role: "user",
+        seq: 1,
+        metadata: { "settings" => { "token_limit" => token_limit, "output_length" => output_length } }
+      )
+      PersonaExecutorJob.new(chat_session.id, user_message.id, content).perform
+    end
+
+    it "token_limit=8_000 + long → 16_000（モデル上限 16,384 に収まる）" do
+      perform_with_output_length("Hello", 8_000, "long")
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 16_000))
+    end
+
+    it "token_limit=8_000 + short → 4_000" do
+      perform_with_output_length("Hello", 8_000, "short")
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 4_000))
+    end
+
+    it "token_limit=8_000 + standard → 8_000（従来どおり）" do
+      perform_with_output_length("Hello", 8_000, "standard")
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 8_000))
+    end
+
+    it "token_limit=nil（上限なし）は係数を適用せずモデル上限に従う" do
+      perform_with_output_length("Hello", nil, "long")
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 16_384))
+    end
+
+    it "残高クリップが係数適用後より小さい場合は残高側が勝つ" do
+      wallet.update!(balance_cents: 10)
+      # 予算 10,000 - 入力見積り ((223 + 24) + 4×2 = 255) = 9,745 < 16_000（8_000 × long）。
+      # long の指示文（24字）が system として送られる分も入力見積りに含まれる。
+      perform_with_output_length("あ" * 223, 8_000, "long")
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 9_745))
+    end
+
+    it "モデル上限が係数適用後より小さい場合はモデル上限が勝つ" do
+      ai_model.update!(max_tokens: 8_192)
+      # 8_000 × long = 16_000 > 8_192。残高は潤沢なため残高クリップは働かない。
+      perform_with_output_length("Hello", 8_000, "long")
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 8_192))
+    end
+
+    it "未知の output_length は standard 扱い（係数 1.0）" do
+      perform_with_output_length("Hello", 8_000, "evil")
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 8_000))
+    end
+
+    it "端数は切り捨てる（トークンは整数）" do
+      perform_with_output_length("Hello", 3_333, "short")
+      expect(adapter).to have_received(:stream).with(anything, hash_including(max_tokens: 1_666))
     end
   end
 end

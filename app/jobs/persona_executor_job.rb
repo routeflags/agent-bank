@@ -31,6 +31,16 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
   # Any other reason ("stop" / "end_turn" / nil) is a normal completion.
   TRUNCATED_FINISH_REASONS = %w[length max_tokens].freeze
 
+  # Issue #102(1): output_length を max_tokens に反映する係数。
+  # 文言の指示（Ai::ChatCompletionsBuilder の LENGTH_INSTRUCTIONS）ではなく、
+  # 数値上限の解決（ユーザー指定 × 係数 → モデル上限 → 残高クリップ）は
+  # affordable_output_cap と同じ解決順に属するため job 側に置く。
+  OUTPUT_LENGTH_FACTORS = {
+    "short" => 0.5,
+    "standard" => 1.0,
+    "long" => 2.0
+  }.freeze
+
   # Issue #104: 入力見積りの換算係数（文字 → トークン）。
   # 実測で 1 文字 ≒ 0.79〜0.84 トークンのため、1.0 で安全側に見積もる。
   ESTIMATED_TOKENS_PER_CHAR = 1.0
@@ -108,11 +118,10 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
       return
     end
 
-    # Issue #104: 残高の安全弁。生成前に残高から出力上限をクリップする。
+    # Issue #104 / #102(1): 残高の安全弁。生成前に残高から出力上限をクリップする。
     # 残高チェックの後・API 呼び出しの前。入力だけで予算超過なら
     # API を呼ばず insufficient_balance で拒否する。
-    user_max_tokens = settings.is_a?(Hash) && settings["token_limit"].to_i.positive? ? settings["token_limit"].to_i : nil
-    max_tokens = affordable_output_cap(user_max_tokens, messages, listing, wallet, adapter)
+    max_tokens = resolve_max_tokens(settings, messages, listing, adapter, wallet)
     if max_tokens == :insufficient_balance
       broadcast_error(
         "残高が不足しています。ウォレットにチャージしてください。",
@@ -305,6 +314,41 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
   #
   # @return [Integer, nil, Symbol] 有効な max_tokens（nil は無料出品の上限なし）、
   #   拒否時は :insufficient_balance（呼び出し側で broadcast して return する）
+  # Resolves the output token cap (Issues #102(1), #104).
+  #
+  # 解決順:
+  #   1. 基準値 = ユーザー指定の token_limit（nil = 上限なし のときは基準なし）
+  #   2. output_length の係数を掛ける（基準が無ければ係数は無視。端数は切り捨て）
+  #   3. モデルの最大出力（ai_model.max_tokens）でクリップ
+  #   4. #104 の残高クリップと min を取る
+  #
+  # @return [Integer, nil, Symbol] 有効な max_tokens（nil は無料出品の上限なし）、
+  #   拒否時は :insufficient_balance（呼び出し側で broadcast して return する）
+  def resolve_max_tokens(settings, messages, listing, adapter, wallet)
+    user_max_tokens = settings.is_a?(Hash) && settings["token_limit"].to_i.positive? ? settings["token_limit"].to_i : nil
+    factored_max_tokens = apply_output_length_factor(user_max_tokens, settings)
+    model_cap = adapter.ai_model&.max_tokens
+    capped_max_tokens = factored_max_tokens && model_cap ? [factored_max_tokens, model_cap].min : factored_max_tokens
+    affordable_output_cap(capped_max_tokens, messages, listing, wallet, adapter)
+  end
+
+  # Applies the output_length factor to the user's token limit (Issue #102(1)).
+  #
+  # short ×0.5 / standard ×1.0 / long ×2.0。基準値が nil（上限なし）のときは
+  # 係数を適用せず nil を返す。未知・未指定の output_length は standard 扱い
+  # （係数 1.0）。端数は切り捨て（トークンは整数）。
+  #
+  # @param user_max_tokens [Integer, nil] ユーザー指定の token_limit
+  # @param settings [Hash, nil] 実行設定（output_length を参照）
+  # @return [Integer, nil] 係数適用後の上限（nil は上限なしのまま）
+  def apply_output_length_factor(user_max_tokens, settings)
+    return nil if user_max_tokens.nil?
+
+    output_length = settings.is_a?(Hash) ? settings["output_length"] : nil
+    factor = OUTPUT_LENGTH_FACTORS.fetch(output_length, 1.0)
+    (user_max_tokens * factor).floor
+  end
+
   def affordable_output_cap(user_max_tokens, messages, listing, wallet, adapter)
     unit_price = listing&.price_cents
     return user_max_tokens unless unit_price && unit_price > 0
