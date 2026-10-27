@@ -48,4 +48,24 @@ RSpec.describe "チャット課金のE2E（Issue #82）", type: :model do
     expect(done[1][:current_balance]).to eq(wallet.reload.balance_cents.to_f)
     expect(UsageRecord.count).to be >= 1
   end
+
+  # Issue #82 受入基準: 1 円未満の変化も stream_done で届く。
+  # 226 トークン × 単価1,000円 = 0.23円 → 残高 10,000 円が 9,999.77 円になる。
+  it "1円未満の課金を stream_done の残高に載せる（226トークン = 0.23円）" do
+    allow(adapter).to receive(:last_usage).and_return(
+      OpenStruct.new(input_tokens: 200, output_tokens: 26)
+    )
+    broadcasts = []
+    allow(ActionCable.server).to receive(:broadcast) do |channel, payload|
+      broadcasts << [channel, payload]
+    end
+
+    PersonaExecutorJob.new(chat_session.id, "msg-1", "こんにちは").perform
+
+    done = broadcasts.find { |(_ch, p)| p[:type] == "stream_done" }
+    expect(done).not_to be_nil
+    expect(done[1][:current_balance].to_f).to be_within(0.0001).of(9_999.77)
+    expect(wallet.reload.balance_cents.to_f).to be_within(0.0001).of(9_999.77)
+    expect(UsageRecord.last.charge_cents.to_f).to be_within(0.0001).of(0.23)
+  end
 end
