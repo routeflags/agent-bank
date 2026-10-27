@@ -236,13 +236,6 @@ ul {
 
 }
 
-// 設定系画面は左ナビを持たないため全幅表示にする（Issue #71）
-.left-navi-section.settings-no-nav {
-  @include media(tablet) {
-    margin-left: 0;
-  }
-}
-
 // Left hand navigation menu
 .left-navi {
   $selected-highlight-padding: lines(0.25);

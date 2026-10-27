@@ -11,9 +11,9 @@
   - content_for :banner_warning do
     = t('settings.profile.editing_profile_of', name: target_user.full_name)
 
-%p.back-to-mypage= link_to "← #{t('lamprey.mypage.dashboard')}", person_path(username: @current_user.username)
+= render :partial => "layouts/left_hand_navigation", :locals => { :links => settings_links_for(target_user, @current_community, @service.admin_acts_as_person?) }
 
-#person_settings_form.left-navi-section.settings-section.settings-no-nav
+#person_settings_form.left-navi-section.settings-section
   %p
     = t("settings.profile.these_fields_are_shown_in_your")
     = link_to(t("settings.profile.profile_page"), target_user) + "."
