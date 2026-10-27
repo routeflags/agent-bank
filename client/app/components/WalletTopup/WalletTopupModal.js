@@ -241,7 +241,10 @@ class WalletTopupModal extends React.Component {
       });
   }
 
+  // Issue #78 R7: モーダル内のクリックを外側（ChatPanel のオーバーレイ）へ
+  // 伝播させない。背景クリック時は Wallet だけを閉じ、常に伝播を止める。
   handleOverlayClick(e) {
+    e.stopPropagation();
     if (e.target === e.currentTarget) this.props.onClose();
   }
 
@@ -256,8 +259,10 @@ class WalletTopupModal extends React.Component {
       React.createElement('div', {
         className: 'wallet-topup-modal',
         ref: function (el) { self.dialogRef = el; },
+        onClick: function (e) { e.stopPropagation(); },
         onKeyDown: this.handleDialogKeyDown,
         role: 'dialog',
+        tabIndex: '-1',
         'aria-modal': 'true',
         'aria-label': self.t('wallet_topup_title'),
       },
@@ -321,7 +326,7 @@ class WalletTopupModal extends React.Component {
           if (denoms.length > 0 && !self.props.devMode) return null;
           if (denoms.length > 0 && self.props.devMode) {
             return React.createElement('div', {
-              style: { fontSize: '11px', color: '#666', margin: '8px 0' }
+              style: { fontSize: '11px', color: '#999', margin: '8px 0' }
             }, '--- dev: ' + self.t('wallet_custom_label') + ' ---');
           }
           return React.createElement('div', null,
@@ -351,8 +356,9 @@ class WalletTopupModal extends React.Component {
 
         // Status messages
         state.error && React.createElement('div', { className: 'wallet-topup-modal__error', role: 'alert' }, state.error),
-        state.success && React.createElement('div', { className: 'wallet-topup-modal__success' }, self.t('wallet_success')),
-        state.redirecting && React.createElement('div', { className: 'wallet-topup-modal__success' }, self.t('wallet_redirecting')),
+        // Issue #78 R9: 成功・遷移中は role=status で SR に通知する。
+        state.success && React.createElement('div', { className: 'wallet-topup-modal__success', role: 'status' }, self.t('wallet_success')),
+        state.redirecting && React.createElement('div', { className: 'wallet-topup-modal__success', role: 'status' }, self.t('wallet_redirecting')),
 
         // Submit
         React.createElement('button', {

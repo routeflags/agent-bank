@@ -19,6 +19,7 @@ module ChatPanelHelper
     wallet_insufficient connect_failed session_create_failed
     history_title history_new history_today
     history_past_week history_earlier history_empty
+    history_rename
     loading empty_state input_placeholder
     disclaimer balance_label settings_title
     settings_model settings_token_limit settings_tokens_unit

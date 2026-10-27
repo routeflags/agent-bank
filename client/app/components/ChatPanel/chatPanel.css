@@ -77,6 +77,13 @@
   transition: background-color 0.15s ease;
 }
 
+.chatPanel__newChatBtn:focus-visible {
+  /* Issue #78 R12: ボタン塗り（#c41e3a）は白文字 6.6:1 で維持し、
+     フォーカスリングだけ #ff6b6b（#1e1e1e 上 6.0:1）に統一する。 */
+  outline: 2px solid #ff6b6b;
+  outline-offset: 2px;
+}
+
 .chatPanel__newChatBtn:hover {
   background: #a81830;
 }
@@ -93,7 +100,8 @@
 
 .chatPanel__historyGroupLabel {
   font-size: 11px;
-  color: #666;
+  /* Issue #78 R11: 補助テキストは #999 以上（#1e1e1e 上で 4.5:1 以上）。 */
+  color: #999;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 8px 8px 4px;
@@ -130,6 +138,30 @@
   flex-shrink: 0;
 }
 
+/* 履歴の選択ボタン（Issue #78 R1）。行自体は操作要素にせず、
+   選択とリネームの2ボタン構成にする。ネイティブ button のため
+   Enter/Space がそのまま使える。 */
+.chatPanel__historyItemSelect {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.chatPanel__historyItemSelect:focus-visible {
+  outline: 2px solid #ff6b6b;
+  outline-offset: 2px;
+}
+
 .chatPanel__historyItemText {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -141,16 +173,27 @@
   flex-shrink: 0;
   background: none;
   border: none;
-  color: #666;
+  /* Issue #78 R11: #1e1e1e 上で 4.5:1 以上。 */
+  color: #999;
   font-size: 12px;
   cursor: pointer;
   padding: 0 2px;
   opacity: 0;
   transition: opacity 0.15s ease, color 0.15s ease;
+  border-radius: 4px;
 }
 
-.chatPanel__historyItem:hover .chatPanel__historyRenameBtn {
+.chatPanel__historyItem:hover .chatPanel__historyRenameBtn,
+.chatPanel__historyItem:focus-within .chatPanel__historyRenameBtn,
+.chatPanel__historyRenameBtn:focus-visible,
+.chatPanel__historyRenameBtn:focus {
+  /* Issue #78 R4: キーボード到達時は必ず可視化する。 */
   opacity: 1;
+}
+
+.chatPanel__historyRenameBtn:focus-visible {
+  outline: 2px solid #ff6b6b;
+  outline-offset: 2px;
 }
 
 .chatPanel__historyRenameBtn:hover {
@@ -161,7 +204,8 @@
   flex: 1;
   min-width: 0;
   background: #2a2a2a;
-  border: 1px solid #c41e3a;
+  /* Issue #78 R10: 暗背景上の赤系インジケータは #ff6b6b に統一（3:1 以上）。 */
+  border: 1px solid #ff6b6b;
   border-radius: 6px;
   color: #fff;
   font-size: 13px;
@@ -209,7 +253,8 @@
 }
 
 .chatPanel__connectionDot--disconnected {
-  background: #666;
+  /* Issue #78 R11: 状態ドットも #1e1e1e 上で 3:1 以上。 */
+  background: #999;
 }
 
 .chatPanel__closeBtn {
@@ -246,7 +291,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #666;
+  /* Issue #78 R11: #1a1a1a 上で 4.5:1 以上。 */
+  color: #999;
   font-size: 14px;
   text-align: center;
   padding: 40px 20px;
@@ -275,7 +321,8 @@
 
 .chatMessage__meta {
   font-size: 11px;
-  color: #666;
+  /* Issue #78 R11: #1a1a1a 上で 4.5:1 以上。 */
+  color: #999;
   margin-top: 4px;
 }
 
@@ -302,7 +349,7 @@
 .chatMessage__copyBtn:focus-visible {
   color: #e0e0e0;
   border-color: #7cc3b6;
-  outline: 2px solid #c41e3a;
+  outline: 2px solid #ff6b6b;
   outline-offset: 2px;
 }
 
@@ -390,7 +437,8 @@
   display: inline-block;
   width: 4px;
   height: 14px;
-  background: #c41e3a;
+  /* Issue #78 R10: バブル（#242424）上で 3:1 以上。 */
+  background: #ff6b6b;
   margin-left: 2px;
   vertical-align: text-bottom;
   animation: chatPanel__blink 0.8s step-end infinite;
@@ -454,7 +502,8 @@
 }
 
 .chatMessage--assistant .chatMessage__bubble blockquote {
-  border-left: 3px solid #c41e3a;
+  /* Issue #78 R10: バブル（#242424）上で 3:1 以上。 */
+  border-left: 3px solid #ff6b6b;
   padding-left: 12px;
   margin: 8px 0;
   color: #999;
@@ -502,14 +551,15 @@
 }
 
 .chatMessage__continueBtn:focus-visible {
-  outline: 2px solid #c41e3a;
+  outline: 2px solid #ff6b6b;
   outline-offset: 2px;
 }
 
 /* ── Token usage display ────────────────────────────────────── */
 .chatMessage__tokens {
   font-size: 11px;
-  color: #555;
+  /* Issue #78 R11: #1a1a1a 上で 4.5:1 以上。 */
+  color: #999;
   margin-top: 2px;
 }
 
@@ -542,12 +592,18 @@
 }
 
 .chatPanel__input:focus {
-  border-color: #c41e3a;
-  box-shadow: 0 0 0 2px rgba(196, 30, 58, 0.3);
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.3);
+}
+
+.chatPanel__input:focus-visible {
+  outline: 2px solid #ff6b6b;
+  outline-offset: 2px;
 }
 
 .chatPanel__input::placeholder {
-  color: #666;
+  /* Issue #78 R11: 入力欄（#2a2a2a）上で 4.5:1 以上。 */
+  color: #999;
 }
 
 .chatPanel__sendBtn {
@@ -579,7 +635,8 @@
   padding: 8px 16px;
   border-top: 1px solid #333;
   font-size: 11px;
-  color: #666;
+  /* Issue #78 R11: #1e1e1e 上で 4.5:1 以上。 */
+  color: #999;
   text-align: center;
   background: #1e1e1e;
 }
@@ -627,7 +684,12 @@
 }
 
 .chatPanel__settingsSelect:focus {
-  border-color: #c41e3a;
+  border-color: #ff6b6b;
+}
+
+.chatPanel__settingsSelect:focus-visible {
+  outline: 2px solid #ff6b6b;
+  outline-offset: 2px;
 }
 
 .chatPanel__settingsSlider {
@@ -644,9 +706,15 @@
   -webkit-appearance: none;
   width: 16px;
   height: 16px;
-  background: #c41e3a;
+  /* Issue #78 R10/R12: トラック（#333）上で 3:1 以上。 */
+  background: #ff6b6b;
   border-radius: 50%;
   cursor: pointer;
+}
+
+.chatPanel__settingsSlider:focus-visible {
+  outline: 2px solid #ff6b6b;
+  outline-offset: 4px;
 }
 
 .chatPanel__settingsValue {
@@ -680,14 +748,27 @@
 }
 
 .chatPanel__toneBtn:hover:not(.is-active) {
-  border-color: #666;
+  /* Issue #78 R11: ボタン（#2a2a2a）上で 3:1 以上。 */
+  border-color: #888;
   color: #fff;
 }
 
+.chatPanel__toneBtn:focus-visible {
+  outline: 2px solid #ff6b6b;
+  outline-offset: 2px;
+}
+
 /* ── Focus-visible rings (keyboard accessibility) ──────────── */
+/* Issue #78 R10/R12: リング色は #ff6b6b に統一（暗背景で 3:1 以上）。 */
 .chatPanel__closeBtn:focus-visible,
 .chatPanel__sendBtn:focus-visible {
-  outline: 2px solid #c41e3a;
+  outline: 2px solid #ff6b6b;
+  outline-offset: 2px;
+}
+
+.chatPanel__attachBtn:focus-visible,
+.chatPanel__attachRemove:focus-visible {
+  outline: 2px solid #ff6b6b;
   outline-offset: 2px;
 }
 
@@ -763,7 +844,8 @@
 
 .chatPanel__attachBtn:hover:not(:disabled) {
   color: #fff;
-  border-color: #555;
+  /* Issue #78 R11: 背景（#1e1e1e）上で 3:1 以上。 */
+  border-color: #888;
 }
 
 .chatPanel__attachBtn:disabled {
@@ -866,7 +948,8 @@
 }
 
 .chatPanel__resultMeta {
-  color: #707070;
+  /* Issue #78 R11: 4.5:1 以上。 */
+  color: #999;
   font-size: 11px;
   margin-top: 6px;
 }

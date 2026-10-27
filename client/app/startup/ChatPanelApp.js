@@ -2,7 +2,7 @@ import React from 'react';
 import '../components/ChatPanel/chatPanel.css';
 import WalletTopupModal from '../components/WalletTopup/WalletTopupModal';
 import { csrfToken, jsonHeaders, fetchTopupStatus as fetchTopupStatusFromServer } from '../components/WalletTopup/walletTopupApi';
-import { saveActiveElement, restoreFocus, focusInitial, trapTabKey } from '../utils/modalDialog';
+import { saveActiveElement, restoreFocus, focusInitial, trapTabKey, pullFocusInside } from '../utils/modalDialog';
 
 /**
  * ChatPanelApp — AI persona chat panel with 3-column layout.
@@ -131,6 +131,9 @@ var DEFAULT_I18N = {
   history_past_week: '過去7日',
   history_earlier: 'それ以前',
   history_empty: 'まだチャット履歴がありません。',
+  // Issue #78 R2: リネームボタンの accessible name 用（%{title} に履歴名）。
+  // Rails 側の lamprey.chat.history_rename が正本。ここはフォールバック。
+  history_rename: '「%{title}」の名前を変更',
   loading: '接続中...',
   empty_state: '%{name} にメッセージを送信してください。',
   input_placeholder: 'メッセージを入力してください...',
@@ -438,8 +441,11 @@ class ChatPanelApp extends React.Component {
     this.handleTopupSuccess = this.handleTopupSuccess.bind(this);
     this.handleContinue = this.handleContinue.bind(this);
     this.handleDialogKeyDown = this.handleDialogKeyDown.bind(this);
+    this.handleDocumentKeyDown = this.handleDocumentKeyDown.bind(this);
     // モーダルのフォーカス管理（Issue #78）。開く直前の要素を覚え、
     // ダイアログ内で Tab を循環・Esc で閉じる・閉じたら元へ戻す。
+    // overlayRef は document レベルの復帰（R6）用。dialogRef はパネル本体。
+    this.overlayRef = null;
     this.dialogRef = null;
     this.inputRef = null;
     this.previouslyFocused = null;
@@ -1113,8 +1119,17 @@ class ChatPanelApp extends React.Component {
     }
   }
 
+  // フォーカスがダイアログ外に逃げた場合の復帰（Issue #78 R6）。
+  // ダイアログ内の Tab は各 onKeyDown が循環させるため、ここでは
+  // 「外にいる場合だけ」最前面のモーダル先頭へ戻す。Esc は各ダイアログが処理する。
+  handleDocumentKeyDown(e) {
+    if (!this.state.isOpen) return;
+    pullFocusInside(e, this.overlayRef);
+  }
+
   componentDidMount() {
     this.mounted = true;
+    document.addEventListener('keydown', this.handleDocumentKeyDown);
     // Expose a global hook so server-rendered CTAs (e.g. the
     // "このスキルを利用する" button) can open this chat panel.
     var self = this;
@@ -1125,6 +1140,7 @@ class ChatPanelApp extends React.Component {
 
   componentWillUnmount() {
     this.mounted = false;
+    document.removeEventListener('keydown', this.handleDocumentKeyDown);
     this.disconnect();
     if (window.LampreyChat) delete window.LampreyChat;
   }
@@ -1136,6 +1152,9 @@ class ChatPanelApp extends React.Component {
     var state = this.state;
     var isRenaming = state.renamingId === item.id;
 
+    // 履歴名の変更ラベル（Issue #78 R2）。ボタン・入力の accessible name に使う。
+    var renameLabel = tFormat('history_rename', { title: item.title });
+
     if (isRenaming) {
       return React.createElement('div', {
         key: item.id,
@@ -1145,6 +1164,7 @@ class ChatPanelApp extends React.Component {
           className: 'chatPanel__renameInput',
           value: state.renameValue,
           autoFocus: true,
+          'aria-label': renameLabel,
           onChange: function (e) { self.setState({ renameValue: e.target.value }); },
           onBlur: function () { self.handleRenameSession(item.id, state.renameValue); },
           onKeyDown: function (e) {
@@ -1152,6 +1172,8 @@ class ChatPanelApp extends React.Component {
               e.preventDefault();
               self.handleRenameSession(item.id, state.renameValue);
             } else if (e.key === 'Escape') {
+              // 入力の Esc はリネーム取消だけにし、パネル全体は閉じない（R3）。
+              e.stopPropagation();
               self.setState({ renamingId: null, renameValue: '' });
             }
           },
@@ -1159,31 +1181,30 @@ class ChatPanelApp extends React.Component {
       );
     }
 
+    // 行自体は操作要素にせず、選択ボタンとリネームボタンの2ボタン構成にする
+    // （Issue #78 R1）。div role=button 内の入れ子 button を解消し、
+    // 選択はネイティブ button（Enter/Space 対応）、有効行は aria-current で示す。
+    var isActive = item.id === state.sessionId;
     return React.createElement('div', {
       key: item.id,
-      className: 'chatPanel__historyItem' + (item.id === state.sessionId ? ' is-active' : ''),
-      role: 'button',
-      tabIndex: 0,
-      'aria-label': item.title,
-      // ダブルクリックのリネームは既存の ✎ ボタンに一本化し、行自体は
-      // クリック / Enter / Space の選択操作にする（Issue #78）。
-      onClick: function () { self.handleSelectSession(item.id); },
-      onKeyDown: function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          self.handleSelectSession(item.id);
-        }
-      },
-      title: item.title,
+      className: 'chatPanel__historyItem' + (isActive ? ' is-active' : ''),
     },
-      React.createElement('span', { className: 'chatPanel__historyItemIcon' }, '💬'),
-      React.createElement('span', { className: 'chatPanel__historyItemText' }, item.title),
+      React.createElement('button', {
+        className: 'chatPanel__historyItemSelect',
+        type: 'button',
+        title: item.title,
+        'aria-current': isActive ? 'true' : undefined,
+        onClick: function () { self.handleSelectSession(item.id); },
+      },
+        React.createElement('span', { className: 'chatPanel__historyItemIcon', 'aria-hidden': 'true' }, '💬'),
+        React.createElement('span', { className: 'chatPanel__historyItemText' }, item.title)
+      ),
       React.createElement('button', {
         className: 'chatPanel__historyRenameBtn',
         type: 'button',
-        title: '名前を変更',
-        onClick: function (e) {
-          e.stopPropagation();
+        title: renameLabel,
+        'aria-label': renameLabel,
+        onClick: function () {
           self.setState({ renamingId: item.id, renameValue: item.title });
         },
       }, '✎')
@@ -1228,6 +1249,7 @@ class ChatPanelApp extends React.Component {
     return React.createElement('div', {
       className: 'chatPanel__overlay',
       onClick: this.handleClose,
+      ref: function (el) { self.overlayRef = el; },
     },
       React.createElement('div', {
         className: 'chatPanel',
@@ -1235,7 +1257,11 @@ class ChatPanelApp extends React.Component {
         onKeyDown: this.handleDialogKeyDown,
         ref: function (el) { self.dialogRef = el; },
         role: 'dialog',
-        'aria-modal': 'true',
+        tabIndex: '-1',
+        // Wallet モーダル展開中は親子で aria-modal が二重にならないよう、
+        // 最前面の Wallet 側だけをモーダルにし、親パネルは背景として隠す（R8）。
+        'aria-modal': state.showTopupModal ? undefined : 'true',
+        'aria-hidden': state.showTopupModal ? 'true' : undefined,
         'aria-label': t('a11y_dialog'),
         style: {
           display: 'flex',
@@ -1312,14 +1338,15 @@ class ChatPanelApp extends React.Component {
           // Error
           state.error && React.createElement('div', { className: 'chatPanel__error', role: 'alert' }, state.error),
 
-          // Loading
-          state.isLoading && React.createElement('div', { className: 'chatPanel__loading' }, t('loading')),
+          // Loading（Issue #78 R9）。状態変化を SR に通知する。
+          state.isLoading && React.createElement('div', { className: 'chatPanel__loading', role: 'status' }, t('loading')),
 
-          // Messages
+          // Messages（Issue #78 R9）。ストリーミング中の文字単位の読み上げを避けるため
+          // 追加ノードのみ通知する（additions。text 変更は通知しない）。
           React.createElement('div', {
             className: 'chatPanel__messages',
             'aria-live': 'polite',
-            'aria-relevant': 'additions text',
+            'aria-relevant': 'additions',
           },
             state.messages.length === 0 && !state.isLoading
               ? React.createElement('div', { className: 'chatPanel__emptyState' },

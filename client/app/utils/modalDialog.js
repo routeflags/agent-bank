@@ -60,17 +60,65 @@ export function trapTabKey(event, container) {
   return false;
 }
 
+// 優先要素がフォーカス可能かを判定する（Issue #78 R5）。
+// disabled・aria-hidden・非表示の要素を初期フォーカス先にすると
+// フォーカスが body に逃げるため、該当時はフォールバックへ譲る。
+function isFocusablePreferred(el) {
+  if (!el || !el.focus || el.disabled) return false;
+  if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return false;
+  if (el.getBoundingClientRect) {
+    var rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return false;
+  }
+  return true;
+}
+
 // モーダルを開いたときの初期フォーカス。優先要素があればそこへ、
 // なければダイアログ内の最初のフォーカス可能要素へ移動する。
+// 優先要素が disabled 等で受け付けない場合は先頭要素へフォールバックし、
+// どちらも無ければダイアログ自体（tabIndex="-1" 付与が前提）に置く。
 export function focusInitial(container, preferred) {
   if (typeof document === 'undefined') return;
-  var target = preferred || getFocusableElements(container)[0];
+  var target = isFocusablePreferred(preferred)
+    ? preferred
+    : getFocusableElements(container)[0] || null;
+  if (!target && container && container.focus && container.hasAttribute &&
+      container.hasAttribute('tabindex')) {
+    target = container;
+  }
   if (!target || !target.focus) return;
   try { target.focus(); } catch (e) {}
   // setState 直後の ref 未確定に備え、フォーカスが当たらなければ再試行する。
   if (document.activeElement !== target) {
     setTimeout(function () { try { target.focus(); } catch (err) {} }, 0);
   }
+}
+
+// フォーカスがモーダル外に逃げた場合の復帰用（Issue #78 R6）。
+// document レベルの keydown から呼び出す。ダイアログ内の Tab は各ダイアログの
+// onKeyDown が循環させるため、ここでは「外にいる場合だけ」先頭へ戻す。
+// 背景はオーバーレイがポインタを塞ぎ aria-modal が SR から隠すため、
+// inert 属性を付けずともキーボード・SR の到達をこの復帰で抑止する。
+// root 内に Wallet 決済モーダルがあれば、最前面のそちらを優先する。
+export function pullFocusInside(event, root) {
+  if (!event || event.key !== 'Tab' || !root) return false;
+  if (typeof document === 'undefined') return false;
+  var active = document.activeElement;
+  if (active && root.contains && root.contains(active)) return false;
+  var top = root;
+  if (root.querySelector) {
+    var nested = root.querySelector('.wallet-topup-modal');
+    if (nested) top = nested;
+  }
+  var focusables = getFocusableElements(top);
+  var target = focusables[0] || null;
+  if (!target && top.focus && top.hasAttribute && top.hasAttribute('tabindex')) {
+    target = top;
+  }
+  if (!target) return false;
+  event.preventDefault();
+  try { target.focus(); } catch (e) {}
+  return true;
 }
 
 // モーダルを開く直前のフォーカス位置を保存する（閉じたら戻すため）。

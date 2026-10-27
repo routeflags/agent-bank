@@ -60,4 +60,75 @@ RSpec.describe "アクセシビリティ残件", type: :model do
     expect(settings).to include('"aria-describedby" => "person_image_description"')
     expect(settings).to include('"aria-describedby" => "person_description_description"')
   end
+
+  # Issue #78 再オープン指摘の回帰。ChatPanel のモーダル・履歴・色の契約を
+  # ソース断面で担保する（ブラウザ実機・axe は未実施のため対象外）。
+  describe "チャットパネルのモーダルと履歴（#78）" do
+    let(:chat) { File.read(Rails.root.join("client/app/startup/ChatPanelApp.js")) }
+    let(:dialog) { File.read(Rails.root.join("client/app/utils/modalDialog.js")) }
+    let(:wallet) { File.read(Rails.root.join("client/app/components/WalletTopup/WalletTopupModal.js")) }
+    let(:chat_css) { File.read(Rails.root.join("client/app/components/ChatPanel/chatPanel.css")) }
+    let(:wallet_css) { File.read(Rails.root.join("client/app/components/WalletTopup/wallet-topup.css")) }
+
+    it "履歴行は div role=button と入れ子 button を持たない" do
+      expect(chat).not_to include("role: 'button'")
+      expect(chat).to include("chatPanel__historyItemSelect")
+    end
+
+    it "リネームボタンと入力に履歴名入りの accessible name がある" do
+      expect(chat).to include("tFormat('history_rename'")
+      expect(I18n.t("lamprey.chat.history_rename", locale: :ja)).to include("%{title}")
+      expect(I18n.t("lamprey.chat.history_rename", locale: :en)).to include("%{title}")
+    end
+
+    it "有効な履歴行は aria-current で示す" do
+      expect(chat).to include("'aria-current'")
+    end
+
+    it "リネーム入力の Esc はパネル全体に伝播しない" do
+      expect(chat).to match(/e\.key === 'Escape'[\s\S]*?e\.stopPropagation\(\);[\s\S]*?renamingId: null/)
+    end
+
+    it "初期フォーカスは disabled の要素を避けてフォールバックする" do
+      expect(dialog).to include("el.disabled")
+    end
+
+    it "フォーカスが外に逃げた場合は document レベルで復帰させる" do
+      expect(chat).to include("pullFocusInside(e, this.overlayRef)")
+      expect(dialog).to include("pullFocusInside")
+    end
+
+    it "Wallet モーダルのクリックは外側オーバーレイに伝播しない" do
+      expect(wallet).to include("onClick: function (e) { e.stopPropagation(); }")
+    end
+
+    it "Wallet 展開中は親パネルの aria-modal を二重化しない" do
+      expect(chat).to include("'aria-hidden': state.showTopupModal")
+    end
+
+    it "メッセージ欄は追加のみ通知し、成功・接続中は role=status で通知する" do
+      expect(chat).to include("'aria-relevant': 'additions'")
+      expect(chat).to include("role: 'status'")
+      expect(wallet).to include("role: 'status'")
+    end
+
+    it "キーボード到達するリネームボタンはフォーカス時に可視化される" do
+      expect(chat_css).to include(".chatPanel__historyItem:focus-within .chatPanel__historyRenameBtn")
+      expect(chat_css).to include(".chatPanel__historyRenameBtn:focus-visible")
+      expect(chat_css).to include(".chatPanel__historyItemSelect:focus-visible")
+    end
+
+    it "フォーカスリングは 3:1 以上の #ff6b6b に統一する" do
+      expect(chat_css).to include("outline: 2px solid #ff6b6b")
+      expect(chat_css).not_to include("outline: 2px solid #c41e3a")
+    end
+
+    it "暗背景の通常テキストに 3:1 未満のグレーを使わない" do
+      [chat_css, wallet_css].each do |css|
+        expect(css).not_to include("color: #666")
+        expect(css).not_to include("color: #555")
+        expect(css).not_to include("color: #707070")
+      end
+    end
+  end
 end

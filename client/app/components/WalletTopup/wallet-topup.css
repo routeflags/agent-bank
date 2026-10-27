@@ -56,7 +56,8 @@
 
 .wallet-balance__currency {
   font-size: 12px;
-  color: #666;
+  /* Issue #78 R11: #1e1e1e 上で 4.5:1 以上。 */
+  color: #999;
   font-weight: 400;
 }
 
@@ -175,6 +176,12 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+.wallet-topup-modal__closeBtn:focus-visible {
+  /* Issue #78 R12: 閉じるボタンにも可視リングを付与する。 */
+  outline: 2px solid var(--wallet-success);
+  outline-offset: 2px;
+}
+
 /* ── Amount selection grid ──────────────────────────────────── */
 .wallet-topup-modal__amounts {
   display: grid;
@@ -197,7 +204,8 @@
 }
 
 .wallet-topup-modal__amountBtn:hover {
-  border-color: #666;
+  /* Issue #78 R11: ボタン（#2a2a2a）上で 3:1 以上。 */
+  border-color: #888;
   background: #333;
 }
 
@@ -243,7 +251,8 @@
 }
 
 .wallet-topup-modal__customInput::placeholder {
-  color: #666;
+  /* Issue #78 R11: 入力欄（#2a2a2a）上で 4.5:1 以上。 */
+  color: #999;
 }
 
 /* ── Submit button ──────────────────────────────────────────── */
@@ -267,6 +276,12 @@
 .wallet-topup-modal__submitBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.wallet-topup-modal__submitBtn:focus-visible {
+  /* Issue #78 R12: 送信ボタンにも可視リングを付与する。 */
+  outline: 2px solid var(--wallet-success);
+  outline-offset: 2px;
 }
 
 /* ── Status messages ────────────────────────────────────────── */

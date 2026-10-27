@@ -2349,6 +2349,7 @@ ja:
       history_past_week: "過去7日"
       history_earlier: "それ以前"
       history_empty: "まだチャット履歴がありません。"
+      history_rename: "「%{title}」の名前を変更"
       loading: "接続中..."
       empty_state: "%{name} にメッセージを送信してください。"
       input_placeholder: "メッセージを入力してください..."
