@@ -26,7 +26,7 @@ module ChatPanelHelper
     settings_output_length output_short output_standard
     output_long settings_tone tone_polite
     tone_casual tone_professional tone_friendly
-    message_tokens result_panel_heading result_panel_jump
+    message_tokens result_panel_heading
     result_badge result_title attach_button
     attach_remove attach_upload_failed attach_invalid_type
     attach_too_large a11y_dialog a11y_open

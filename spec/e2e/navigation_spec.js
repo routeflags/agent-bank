@@ -367,9 +367,8 @@ async function assertUrlContains(page, expected, msg) {
   await run('TC-26: チャット → is_result メッセージに RESULT バッジが付く', async () => {
     await page.goto(`${BASE}/listings/14-sakura-raiteinguasisutanto`);
     await page.waitForTimeout(2500);
-    const trigger = page.locator('.chatPanel__trigger');
-    if ((await trigger.count()) === 0) throw new Error('チャットトリガーがない');
-    await trigger.click();
+    // フローティング trigger は撤去済み（#91）のため CTA 経由で開く
+    await page.evaluate(() => { if (window.LampreyChat) window.LampreyChat.open(); });
     await page.waitForTimeout(2500);
     const status = await page.evaluate(() => {
       const badges = document.querySelectorAll('.chatMessage__result');
