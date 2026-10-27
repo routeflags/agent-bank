@@ -169,10 +169,19 @@ fi
 
 # --- f. UFW（既存ルールは消さない。SSH 保護が最優先） ---
 log "=== [f] UFW ==="
+# 指定ポートの ALLOW ルールが登録済みかを判定する。
+# UFW が無効なときは `ufw status` にルールが出ないため `ufw show added` も見る。
+ufw_rule_allowed() {
+  local port="$1"
+  ufw status 2>/dev/null | grep -qE "${port}/tcp.*ALLOW" && return 0
+  ufw show added 2>/dev/null | grep -qE "ufw allow ${port}/tcp" && return 0
+  return 1
+}
+
 allow_if_missing() {
   # $1: ポート番号。既に ALLOW ルールがあれば追加しない（重複防止）。
   local port="$1"
-  if ufw status | grep -qE "${port}/tcp.*ALLOW"; then
+  if ufw_rule_allowed "${port}"; then
     skip "${port}/tcp の ALLOW ルールは既にあります"
   else
     run ufw allow "${port}/tcp"
@@ -191,7 +200,8 @@ else
   allow_if_missing 443
   # 22 が許可済みであることを確認できなければ enable しない。
   # enable 時のプロンプトで SSH 切断の警告が出ても、22 許可がなければ中止する。
-  if ufw status | grep -qE "22/tcp.*ALLOW"; then
+  # 有効化前は `ufw status` にルールが出ないため、登録済みルールで判定する。
+  if ufw_rule_allowed 22; then
     log "22/tcp の ALLOW を確認しました"
     if ufw status | grep -q "Status: active"; then
       skip "UFW は既に有効です"
