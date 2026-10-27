@@ -2,6 +2,12 @@
 # NOTE: are sensitive to local FS writes, and besides -- it's just not proper
 # NOTE: to have a dev-mode tool do its thing in production.
 if Rails.env.development?
+  # annotate 2.6.5 の db:migrate フックは ENV['skip_on_db_migrate'] だけを見る
+  # （set_defaults の同名オプションは annotate_models タスク用でフックには効かない）。
+  # Fixnum クラッシュと注釈の意図しない書き換えを防ぐため、migrate 後の annotate を無効化する。
+  # 手動の `rake annotate_models` には影響しない。gem の更新はしない。
+  ENV['skip_on_db_migrate'] = 'true'
+
   task :set_annotation_options do
     # You can override any of these by setting an environment variable of the
     # same name.
@@ -20,7 +26,7 @@ if Rails.env.development?
       'exclude_fixtures' => "false",
       'exclude_factories' => "false",
       'ignore_model_sub_dir' => "false",
-      'skip_on_db_migrate' => "false",
+      'skip_on_db_migrate' => "true",
       'format_bare' => "true",
       'format_rdoc' => "false",
       'format_markdown' => "false",

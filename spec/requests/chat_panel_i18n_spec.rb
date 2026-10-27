@@ -4,6 +4,10 @@ require 'rails_helper'
 
 # ChatPanel i18n props (lamprey.chat.* → React props.i18n) — DESIGN.md §13-15
 describe "Chat panel i18n props", type: :request do
+  before do
+    skip "webpack ビルド成果物（app/assets/webpack）が無いため" unless webpack_assets_available?
+  end
+
   around do |example|
     original = ActionController::Base.allow_forgery_protection
     ActionController::Base.allow_forgery_protection = false

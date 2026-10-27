@@ -7,7 +7,7 @@
 #  id                :integer          not null, primary key
 #  name              :string(255)      not null
 #  slug              :string(255)      not null
-#  api_key_encrypted :string(255)
+#  api_key_encrypted :text(65535)
 #  base_url          :string(255)
 #  config            :text(4294967295)
 #  is_active         :boolean          default(TRUE)

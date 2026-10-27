@@ -7,6 +7,10 @@ require 'spec_helper'
 # - 他人のページ・未ログインでは出ない
 # - 表示は読み取り専用（ウォレット行を作らない）
 describe "Mypage seller earning", type: :request do
+  before do
+    skip "webpack ビルド成果物（app/assets/webpack）が無いため" unless webpack_assets_available?
+  end
+
   before(:all) do
     DatabaseCleaner.start
 
