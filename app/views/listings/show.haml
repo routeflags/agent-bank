@@ -206,7 +206,7 @@
       - else
         %p.raku-tab-panel__empty= t('lamprey.listings.no_reviews')
 
-    -# 関連スキルパネル
+    -# 関連ペルソナパネル
     .raku-tab-panel{id: "panel-related", role: "tabpanel", "aria-labelledby": "tab-related", "data-raku-panel" => "related"}
       - related = @listing_presenter.related_listings
       - if related.any?
