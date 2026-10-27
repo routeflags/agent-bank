@@ -4,11 +4,11 @@
     = "-"
     = t("layouts.settings.transactions")
 
-%p.back-to-mypage= link_to "← #{t('lamprey.mypage.dashboard')}", person_path(username: @current_user.username)
+= render :partial => "layouts/left_hand_navigation", :locals => { :links => settings_links_for(@current_user, @current_community) }
 
 -# Issue #69: 出品スキルの第三者利用履歴（Transaction 一覧はこの画面から外す）。
 -# 見た目はマイページの表と同じ .raku-table を流用し、新しい CSS は追加しない。
-.left-navi-section.settings-no-nav
+.left-navi-section
   %h2= t("lamprey.mypage.skill_usage_title")
 
   - if @skill_usage_sessions.total_entries > 0
