@@ -1144,7 +1144,7 @@ class ChatPanelApp extends React.Component {
     this.mounted = true;
     document.addEventListener('keydown', this.handleDocumentKeyDown);
     // Expose a global hook so server-rendered CTAs (e.g. the
-    // "このスキルを利用する" button) can open this chat panel.
+    // "このペルソナを利用する" button) can open this chat panel.
     var self = this;
     window.LampreyChat = {
       open: function () { self.handleOpen(); }
@@ -1240,7 +1240,7 @@ class ChatPanelApp extends React.Component {
     }
 
     // ── Closed state ──────────────────────────────────
-    // チャットの入口は「このスキルを利用する」CTA（window.LampreyChat.open）に一本化する。
+    // チャットの入口は「このペルソナを利用する」CTA（window.LampreyChat.open）に一本化する。
     // フローティング 💬 アイコンは誤解・重複のため描画しない（Issue #31）。
     if (!state.isOpen) {
       return null;

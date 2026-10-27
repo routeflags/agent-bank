@@ -2803,7 +2803,7 @@ s you."
       buy_title: "Buy a persona"
       buy_body: "Start the purchase process from a persona's detail page. After purchase, you can exchange messages and use the service from your mailbox."
       first_time_title: "First time here?"
-      first_time_body: "Start by browsing popular personas in the \"New\" and \"Top rated\" tabs on the home page. Open a persona's detail page to check the persona and pricing."
+      first_time_body: "Start by browsing popular personas in the \"Recommended\" and \"Newest\" tabs on the home page. Open a persona's detail page to check its details and pricing."
     rankings:
       title: "Persona rankings"
       lead: "Personas ranked by average rating and sales."
