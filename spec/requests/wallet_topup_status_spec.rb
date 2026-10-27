@@ -2,10 +2,11 @@
 
 require "spec_helper"
 
-# Issue #62: Freemius 設定済みならチャージボタンは無効化されない（Issue #85 で「準備中」表記を廃止）。
+# Issue #62: Freemius 設定済みならチャージボタンは「準備中」にならない。
 #
-# ChatPanel は起動時に GET /api/v1/wallet_topup/status を叩き、
-# topup_enabled=false のときはボタンを無効化し、理由文（wallet_topup_unavailable_reason）を出す。
+# ChatPanel は起動時に GET /api/v1/wallet_topup/status を叩く。
+# Issue #85: ボタン文言は常に「追加する」。topup_enabled=false のときは
+# ボタンを disabled にし、理由行（wallet_topup_unavailable_reason）を出す。
 describe "チャージ可否のステータス API", type: :request do
   before(:all) do
     DatabaseCleaner.start

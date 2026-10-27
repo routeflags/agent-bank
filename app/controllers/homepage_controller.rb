@@ -173,6 +173,10 @@ class HomepageController < ApplicationController
   private
 
   # DESIGN.md §12: Marketplace metrics（即時集計・集計クエリは4本まで）
+  # Issue #98: currently_open = 未削除・公開中・承認済み・有効期限内（Listing:165）。
+  # 下請けの書き込み元: total_views は ListingsController#show→ListingStatsService（#97）、
+  # total_sold は ChatMessage 確定時フック（課金成功と同一トランザクション）。
+  # avg_rating は算出元が未定のため対象外（Issue #98 の親判断事項を参照）。
   def marketplace_metrics
     open_listings = Listing.currently_open.where(community_id: @current_community.id)
     {

@@ -110,6 +110,8 @@ var DEFAULT_I18N = {
   wallet_submit: '追加する',
   wallet_redirecting: '決済ページへ移動しています…',
   wallet_add_credits: 'クレジットを追加する',
+  // Issue #85: wallet_add_preparing* は廃止。ボタンは wallet_submit に統一し、
+  // 理由表示は wallet_topup_unavailable_reason に一本化する。
   wallet_topup_unavailable_reason: '決済が未設定のため、現在チャージできません。',
   topup_fixed_title: '固定額チャージ',
   topup_select_plan: '金額を選択',
@@ -679,7 +681,24 @@ class ChatPanelApp extends React.Component {
     if (this.streamingId) {
       // サーバーは messageId（camelCase）で送る。旧形式 message_id も受ける（#32）。
       var finalId = data.message_id || data.messageId || this.streamingId;
-      this.finalizeMessage(this.streamingId, finalId, {
+      // Issue #86: チャンク到着順の乱れで逐次組立文が崩れても、確定イベントの
+      // 全文（DB 保存値と同一）で置換して自己修復する。content が無ければ
+      // 組立文を維持する（後方互換）。
+      var streamingId = this.streamingId;
+      if (data && typeof data.content === 'string' && data.content.length > 0) {
+        var fullContent = data.content;
+        this.setState(function (prev) {
+          return {
+            messages: prev.messages.map(function (m) {
+              if (m.id === streamingId) {
+                return Object.assign({}, m, { content: fullContent });
+              }
+              return m;
+            }),
+          };
+        });
+      }
+      this.finalizeMessage(streamingId, finalId, {
         isResult: data.is_result === true,
         truncated: data.truncated === true,
         finishReason: data.finish_reason || null,
@@ -969,29 +988,7 @@ class ChatPanelApp extends React.Component {
     this.fetchTopupStatus();
     this.fetchSessionHistory();
     if (!this.state.sessionId) {
-      this.createSession().then(function (result) {
-        // パネルを開いた直後に未購入で失敗した場合も、メッセージ内に
-        // 購入導線（購入するボタン）を表示する。createSession は
-        // state.error に文言を入れるだけなので、ここで購入メッセージに
-        // 置き換える（送信時と同じ表示にする）。
-        if (result && !result.id && result.error_type === 'purchase_required') {
-          self.setState(function (prev) {
-            var hasPrompt = prev.messages.some(function (m) { return m.showPurchaseButton; });
-            if (hasPrompt) return { error: null };
-            return {
-              error: null,
-              messages: prev.messages.concat([{
-                id: 'sys-purchase-' + Date.now(),
-                role: 'system',
-                content: t('purchase_required'),
-                isStreaming: false,
-                created_at: new Date().toISOString(),
-                showPurchaseButton: true,
-              }]),
-            };
-          });
-        }
-      });
+      this.createSession();
     }
   }
 
@@ -1434,6 +1431,8 @@ class ChatPanelApp extends React.Component {
               type: 'button',
               disabled: !state.topupEnabled,
               title: state.topupEnabled ? null : t('wallet_topup_unavailable_reason'),
+              // Issue #85: チャージ可否にかかわらず文言は「追加する」に統一。
+              // 利用不可の理由は下の wallet-topup-unavailable 行に一本化する。
             }, t('wallet_submit'))
           ),
 
