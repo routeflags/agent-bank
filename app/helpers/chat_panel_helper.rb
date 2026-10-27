@@ -11,7 +11,6 @@ module ChatPanelHelper
     wallet_custom_label wallet_amount_placeholder wallet_invalid_amount
     wallet_pay_failed wallet_success wallet_processing
     wallet_submit wallet_redirecting wallet_add_credits
-    wallet_add_preparing wallet_add_preparing_body
     wallet_topup_unavailable_reason
     topup_fixed_title topup_select_plan topup_fx_note
     topup_usd_estimate topup_credit_label topup_invalid_plan

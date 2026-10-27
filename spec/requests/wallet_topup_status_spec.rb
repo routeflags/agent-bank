@@ -4,8 +4,9 @@ require "spec_helper"
 
 # Issue #62: Freemius 設定済みならチャージボタンは「準備中」にならない。
 #
-# ChatPanel は起動時に GET /api/v1/wallet_topup/status を叩き、
-# topup_enabled=false のときだけ「追加する（準備中）」を出す。
+# ChatPanel は起動時に GET /api/v1/wallet_topup/status を叩く。
+# Issue #85: ボタン文言は常に「追加する」。topup_enabled=false のときは
+# ボタンを disabled にし、理由行（wallet_topup_unavailable_reason）を出す。
 describe "チャージ可否のステータス API", type: :request do
   before(:all) do
     DatabaseCleaner.start
@@ -43,7 +44,7 @@ describe "チャージ可否のステータス API", type: :request do
     expect(payload["denominations"]).not_to be_empty
   end
 
-  it "未設定なら topup_enabled=false と理由を返す（「準備中」の分岐）" do
+  it "未設定なら topup_enabled=false と理由を返す（ボタン無効化の分岐）" do
     allow(FreemiusClient).to receive(:configured?).and_return(false)
 
     sign_in
