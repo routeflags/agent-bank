@@ -160,8 +160,9 @@
             %tr
               %td
                 .raku-table__skill
+                  -# Issue #83: 直後に同名リンクが続くため装飾扱い（alt=""）にして二重読み上げを避ける。
                   - if (listing_image = listing.listing_images.first)
-                    %img.raku-table__skill-thumb{src: listing_image.image.url(:thumb), alt: listing.title}
+                    %img.raku-table__skill-thumb{src: listing_image.image.url(:thumb), alt: ""}
                   - else
                     .raku-table__skill-thumb.raku-thumb-placeholder 🤖
                   %div

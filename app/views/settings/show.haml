@@ -58,11 +58,11 @@
         = form.label :street_address, t("settings.profile.street_address"), :class => "inline"
         %small
           = t('settings.profile.default_in_listing')
-      %span.alert-box-icon
+      %span.alert-box-icon{"aria-hidden" => "true"}
         = icon_tag("information", ["icon-fix"])
-      %small
+      %small#person_street_address_description
         = t("settings.profile.location_description")
-      = form.text_field :street_address, :class => "text_field", :onkeyup => "timed_input(this)"
+      = form.text_field :street_address, :class => "text_field", :onkeyup => "timed_input(this)", "aria-describedby" => "person_street_address_description"
       -# 地図表示は使用しない（計画20261012）。住所はテキスト入力のみ。
 
     -# Phone number
@@ -77,22 +77,22 @@
     -# Profile picture
     .inline-label-container
       = form.label :image, t("settings.profile.profile_picture"), for: "avatar_file"
-    %span.alert-box-icon
+    %span.alert-box-icon{"aria-hidden" => "true"}
       = icon_tag("information", ["icon-fix"])
-    %small
+    %small#person_image_description
       = t("settings.profile.profile_picture_description")
     = render 'layouts/filename', file_field: target_user.image
-    = form.file_field :image, :size => 30, :id => "avatar_file"
+    = form.file_field :image, :size => 30, :id => "avatar_file", "aria-describedby" => "person_image_description"
 
     -# About text
     = form.label :description, t("settings.profile.about_you"), :class => "input"
-    %span.alert-box-icon
+    %span.alert-box-icon{"aria-hidden" => "true"}
       = icon_tag("information", ["icon-fix"])
-    %small
+    %small#person_description_description
       - markdown_popup_link = link_to t("settings.profile.format_markdown_link"), "#", id: "markdown-popup-link"
       = raw t("settings.profile.format_markdown", link: markdown_popup_link)
 
-    = form.text_area :description, :class => "update_profile_description_text_area"
+    = form.text_area :description, :class => "update_profile_description_text_area", "aria-describedby" => "person_description_description"
     = form.fields_for :location do |loc|
       = loc.hidden_field :address, :value => target_user.location.address
       = loc.hidden_field :google_address, :value => target_user.location.google_address
