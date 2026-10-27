@@ -8,6 +8,9 @@ class HomepageController < ApplicationController
   # マップビューは使用しない（計画20261012）ため選択肢から除外。
   VIEW_TYPES = VIEW_TYPES_NO_LOCATION
 
+  # Issue #108: システム用の「デフォルトカテゴリ」は公開ナビに出さない。
+  SYSTEM_CATEGORY_URLS = %w[default-category].freeze
+
   # rubocop:disable AbcSize
   # rubocop:disable MethodLength
   def index
@@ -39,7 +42,7 @@ class HomepageController < ApplicationController
       @view_type = SearchPageHelper.selected_view_type(params[:view], @current_community.default_browse_view, APP_DEFAULT_VIEW_TYPE, allowed_view_types)
       @big_cover_photo = !(@current_user || CustomLandingPage::LandingPageStore.enabled?(@current_community.id)) || params[:big_cover_photo]
 
-      @categories = @current_community.categories.includes(:children)
+      @categories = public_categories
       @main_categories = @categories.select { |c| c.parent_id == nil }
 
       # This assumes that we don't never ever have communities with only 1 main share type and
@@ -168,6 +171,14 @@ class HomepageController < ApplicationController
   end
 
   private
+
+  # Issue #108: システム用の「デフォルトカテゴリ」は公開ナビに出さない。
+  # タイル・ツールバー・検索セレクトのすべてがここを通る。
+  def public_categories
+    @current_community.categories
+                       .includes(:children)
+                       .reject { |c| SYSTEM_CATEGORY_URLS.include?(c.url) }
+  end
 
   # DESIGN.md §12: Marketplace metrics（即時集計・集計クエリは4本まで）
   # Issue #98: currently_open = 未削除・公開中・承認済み・有効期限内（Listing:165）。
