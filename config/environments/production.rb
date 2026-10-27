@@ -83,12 +83,18 @@ Rails.application.configure do
   end
 
   # Use Redis
+  #
+  # 接続先は `REDIS_URL` を単一の真実にする（Issue #99）。
+  # 以前は `redis_host` / `redis_port` / `redis_db` の 3 変数を組み立てていたが、
+  # これらは Convox 由来で Compose 環境では未設定のまま `redis://:/` になり、
+  # DNS 解決に失敗して全リクエストが 500 になっていた。
+  # `config/cable.yml` も同じく `REDIS_URL` を参照している。
   config.cache_store = [:redis_cache_store, {
                           driver: :hiredis,
                           namespace: ENV["redis_cache_namespace"] || "cache",
                           compress: true,
                           timeout: 1,
-                          url: "redis://#{ENV["redis_host"]}:#{ENV["redis_port"]}/#{ENV["redis_db"]}",
+                          url: ENV.fetch("REDIS_URL") { "redis://localhost:6379/0" },
                           expires_in: (ENV["redis_expires_in"] || 240).to_i # default, 4 hours in minutes
                         }]
 

@@ -59,7 +59,9 @@ RUN curl -sfSL \
 # Install:
 # - nginx - used to serve maintenance mode page
 # - libvips - image library
-RUN apt-get install -y nginx libvips
+# - default-mysql-client - `mysql` CLI, required by Rails' structure.sql
+#   load/dump tasks (db:migrate on an empty database calls load_schema)
+RUN apt-get install -y nginx libvips default-mysql-client
 
 # Install latest bundler
 ENV BUNDLE_BIN=

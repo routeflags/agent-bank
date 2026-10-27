@@ -140,13 +140,6 @@ end
 # --- ヒーロー画像（digested URL が 200） ---
 # トップ HTML 直下ではなく、トップが参照する application-*.css 内に
 # /assets/rakuichi/raku_hero-<digest>.png として埋め込まれている。
-check_hero_image(base, top_body, reporter)
-
-# --- 対象外（認証必須）の期待ステータス確認 ---
-# /ja/settings 等は未ログインで 200 にならない。`/` への 302 を期待する。
-code, _body, location = fetch(base, "/ja/settings")
-reporter.call(code == 302, "GET /ja/settings が 302 を返した（実際: #{code}、認証必須のため対象外・200 を期待しない、Location: #{location}）")
-
 # ヒーロー画像の digested URL を CSS から抽出し、200 を返すか確認する。
 # 入れ子が深くなるためメソッドに切り出す（Metrics/BlockNesting 対策）。
 def check_hero_image(base, top_body, reporter)
@@ -176,6 +169,14 @@ def check_hero_image(base, top_body, reporter)
   img_code, _img_body, _loc = fetch(base, hero_url)
   reporter.call(img_code == 200, "ヒーロー画像 #{hero_url} が 200 を返した（実際: #{img_code}）")
 end
+
+check_hero_image(base, top_body, reporter)
+
+# --- 対象外（認証必須）の期待ステータス確認 ---
+# /ja/settings 等は未ログインで 200 にならない。`/` への 302 を期待する。
+code, _body, location = fetch(base, "/ja/settings")
+reporter.call(code == 302, "GET /ja/settings が 302 を返した（実際: #{code}、認証必須のため対象外・200 を期待しない、Location: #{location}）")
+
 elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 failed = results.count(false)
 if failed.zero?

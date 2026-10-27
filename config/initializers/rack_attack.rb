@@ -68,7 +68,19 @@ class Rack::Attack
   if Rails.cache.is_a?(::ActiveSupport::Cache::RedisCacheStore)
     Rack::Attack.blocklist('block') do |req|
       # if variable `block <ip>` exists in cache store, then we'll block the request
-      Rails.cache.redis.sismember('blocked', req.env['action_dispatch.remote_ip'].to_s)
+      #
+      # `Rails.cache.redis` は redis-cache-store の版によって素の Redis か
+      # ConnectionPool を返す（Issue #99）。Pool の場合は `with` で接続を借りる。
+      # 以前は常に Redis を前提にしていたため、本番で
+      # `undefined method 'sismember' for ConnectionPool` となり全リクエストが
+      # 500 になっていた。
+      ip = req.env['action_dispatch.remote_ip'].to_s
+      redis = Rails.cache.redis
+      if redis.respond_to?(:with)
+        redis.with { |conn| conn.sismember('blocked', ip) }
+      else
+        redis.sismember('blocked', ip)
+      end
     end
   end
 

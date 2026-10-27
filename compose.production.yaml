@@ -26,17 +26,23 @@
 
 services:
   mysql:
-    image: mysql:8.4
+    # 開発環境と同じ MariaDB 系にする（Issue #99）。MySQL 8.4 では開発 DB が
+    # 出力する utf8mb3_uca1400_ai_ci を解釈できず、外部キー制約も通らないため。
+    image: mariadb:11.4
     restart: unless-stopped
     environment:
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MYSQL_DATABASE:-[REDACTED]}
+      MARIADB_USER: ${MYSQL_USER}
+      MARIADB_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-sharetribe_production}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-[REDACTED]}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$${MYSQL_ROOT_PASSWORD}\""]
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
       retries: 5
