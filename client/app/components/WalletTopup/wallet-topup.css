@@ -13,6 +13,12 @@
   --wallet-success-bg: rgba(76, 175, 80, 0.12);
   --wallet-success-border: rgba(76, 175, 80, 0.3);
   --wallet-success-bg-hover: rgba(76, 175, 80, 0.2);
+  /* Issue #85: チャージ導線はサイト全体で Gold 統一（#33）。追加ボタン専用。 */
+  --wallet-accent: #d7a43b;
+  --wallet-accent-hover: #efc66c;
+  --wallet-accent-bg: rgba(215, 164, 59, 0.12);
+  --wallet-accent-border: rgba(215, 164, 59, 0.4);
+  --wallet-accent-bg-hover: rgba(215, 164, 59, 0.22);
   --wallet-error: #ff6b6b;
   --wallet-error-bg: rgba(255, 107, 107, 0.1);
   --wallet-error-border: rgba(255, 107, 107, 0.3);
@@ -55,10 +61,11 @@
 }
 
 /* ── Top-up trigger button ──────────────────────────────────── */
+/* Issue #85: Gold 統一（残高数字の緑は維持し、ボタンのみ Gold）。 */
 .wallet-balance__topupBtn {
-  background: var(--wallet-success-bg);
-  color: var(--wallet-success);
-  border: 1px solid var(--wallet-success-border);
+  background: var(--wallet-accent-bg);
+  color: var(--wallet-accent);
+  border: 1px solid var(--wallet-accent-border);
   border-radius: 8px;
   padding: 6px 12px;
   font-size: 12px;
@@ -69,12 +76,12 @@
 }
 
 .wallet-balance__topupBtn:hover {
-  background: var(--wallet-success-bg-hover);
-  border-color: var(--wallet-success);
+  background: var(--wallet-accent-bg-hover);
+  border-color: var(--wallet-accent);
 }
 
 .wallet-balance__topupBtn:focus-visible {
-  outline: 2px solid var(--wallet-success);
+  outline: 2px solid var(--wallet-accent);
   outline-offset: 2px;
 }
 

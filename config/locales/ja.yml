@@ -2329,8 +2329,6 @@ ja:
       wallet_submit: "追加する"
       wallet_redirecting: "決済ページへ移動しています…"
       wallet_add_credits: "クレジットを追加する"
-      wallet_add_preparing: "追加する（準備中）"
-      wallet_add_preparing_body: "ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。"
       wallet_topup_unavailable_reason: "決済が未設定のため、現在チャージできません。"
       topup_fixed_title: "固定額チャージ"
       topup_select_plan: "金額を選択"
@@ -2532,8 +2530,10 @@ ja:
       contact_seller: "💬 出品者に問い合わせ"
       rating_none: "評価なし"
       review_none: "レビューなし"
-      price_note: ※円 / 100万トークンの単価です。トークン消費量に応じて課金されます
+      price_note: ※100万トークンあたりの単価です。トークン消費量に応じて課金されます
       usd_billing_note: "USD請求額の目安: 約 $%{usd}（¥%{jpy}換算）"
+      prev_image: "前の画像"
+      next_image: "次の画像"
       login_required: "ログインが必要です"
       skill_detail: "スキル詳細"
       last_updated: "最終更新日"
