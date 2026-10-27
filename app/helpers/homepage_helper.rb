@@ -1,24 +1,4 @@
 module HomepageHelper
-  # 楽市楽問 — ペルソナカードの見た目（Issue #111）
-  # visual の背景色（--tone）・英字（visual-word）・絵文字はカテゴリの固定表。
-  # デザイン正本（rakuichi-rakumon.html）の tone を日本語カテゴリに割り当てたもの。
-  # 「リサーチ」は正本のカテゴリに存在するため追加（tone は正本の研究アイテムと同系）。
-  # 表に無いカテゴリは既定（末尾）を使う。★・レビュー件数は #106 保留のため持たない。
-  PERSONA_CARD_STYLES = [
-    { match: "生成AI", tone: "#851b31", word: "GENAI", emoji: "✧" },
-    { match: "データ分析", tone: "#176e5c", word: "DATA", emoji: "▥" },
-    { match: "開発", tone: "#22579c", word: "DEV", emoji: "⌘" },
-    { match: "マーケティング", tone: "#a06b13", word: "MARKETING", emoji: "➤" },
-    { match: "デザイン", tone: "#aa267f", word: "DESIGN", emoji: "✎" },
-    { match: "自動化", tone: "#6b4a12", word: "AUTO", emoji: "⚙" },
-    { match: "教育", tone: "#467631", word: "EDU", emoji: "◇" },
-    { match: "学習", tone: "#467631", word: "EDU", emoji: "◇" },
-    { match: "チャット", tone: "#3c5894", word: "CHAT", emoji: "💬" },
-    { match: "会話", tone: "#3c5894", word: "CHAT", emoji: "💬" },
-    { match: "リサーチ", tone: "#3c5894", word: "RESEARCH", emoji: "⌕" }
-  ].freeze
-  PERSONA_CARD_DEFAULT_STYLE = { tone: "#3a3a44", word: "AI", emoji: "🤖" }.freeze
-
   # カードに表示するカテゴリ名。表示名マップが無い場合（描画テスト等）は nil。
   # マップは呼び出し側（ビュー）のインスタンス変数から渡す。
   def persona_category_name(listing, category_names)
@@ -26,10 +6,58 @@ module HomepageHelper
 
     category_names[listing.category_id]
   end
+  # ── カテゴリビジュアルの単一の定義（Issue #117） ─────────────
+  # 「色ブロック＋英字ラベル＋絵文字」の対応表はこの2定数だけに持つ。
+  # 出品詳細（listings/show）は listing_category_visual の呼び出しで供給を
+  # 受け、テンプレート側に色・英字・絵文字の定義を二重に持たない。
+  # トップ（homepage 配下）も将来ここを参照する想定のため、新しい対応の
+  # 追加はこの表への1行追加で行う。
+  #
+  # 色は装飾ブロック用の8色パレット。c0/c1 は Issue #117 指定の Gold
+  # #dfb560・赤 #ec1029、c2 は既存トークン --accent-teal と同値。
+  # UI クローム（CTA・選択状態・枠線の強調）自体は既存トークン
+  # （--accent-gold #d4a853 / --accent-red #c41e3a）のまま変えない。
+  CATEGORY_VISUAL_COLORS = %w[
+    #dfb560 #ec1029 #59b3a2 #8e7cc3
+    #5b9bd5 #7ac74f #e8833a #d66ba0
+  ].freeze
 
-  # カテゴリ名から固定表を引く。見つからなければ既定を返す。
-  def persona_card_style(category_name)
-    PERSONA_CARD_STYLES.find { |entry| category_name.to_s.include?(entry[:match]) } || PERSONA_CARD_DEFAULT_STYLE
+  # アイコン名（Category#icon）→ 絵文字。未登録のアイコンは 🤖 に倒す。
+  CATEGORY_VISUAL_EMOJI = {
+    "text" => "📝", "edit" => "✍️", "code" => "💻", "language" => "🌐",
+    "summary" => "📋", "chat" => "💬", "support" => "🎧", "roleplay" => "🎭",
+    "image" => "🖼️", "art" => "🎨", "photo" => "📷", "video" => "🎬",
+    "audio" => "🔊", "tts" => "🗣️", "stt" => "🎙️", "music" => "🎵",
+    "data" => "📊", "research" => "🔍", "productivity" => "⚡",
+    "email" => "✉️", "notes" => "📓", "education" => "🎓", "tutor" => "👩‍🏫",
+    "item" => "📦", "favor" => "🤝", "rideshare" => "🚗", "housing" => "🏠",
+    "tools" => "🛠️", "sports" => "⚽", "books" => "📚", "games" => "🎮",
+    "furniture" => "🛋️", "outdoors" => "🏕️", "food" => "🍱",
+    "electronics" => "🔌", "pets" => "🐾", "film" => "🎬", "clothes" => "👕",
+    "garden" => "🌱", "travel" => "✈️", "other" => "🗂️"
+  }.freeze
+
+  CATEGORY_VISUAL_DEFAULT_EMOJI = "🤖".freeze
+  CATEGORY_VISUAL_FALLBACK_LABEL = "PERSONA".freeze
+
+  # 出品のカテゴリビジュアル（色・英字ラベル・絵文字・表示名）を返す。
+  # サブカテゴリの出品でも上位カテゴリに寄せて、関連スキルの色を揃える。
+  def listing_category_visual(listing)
+    category_visual(listing&.category)
+  end
+
+  def category_visual(category)
+    top = top_level_category(category)
+    return fallback_visual if top.nil?
+
+    index = visual_color_index(top)
+    {
+      color: CATEGORY_VISUAL_COLORS[index],
+      color_index: index,
+      emoji: CATEGORY_VISUAL_EMOJI.fetch(top.icon.to_s, CATEGORY_VISUAL_DEFAULT_EMOJI),
+      english_label: visual_english_label(top),
+      name: top.display_name(I18n.locale)
+    }
   end
 
   def show_subcategory_list(category, current_category_id)
@@ -55,5 +83,44 @@ module HomepageHelper
   def format_distance(distance)
     precision = (distance < 1) ? 1 : 2
     (distance < 0.1) ? "< #{number_with_delimiter(0.1, locale: locale)}" : number_with_precision(distance, precision: precision, significant: true, locale: locale)
+  end
+
+  private
+
+  # カテゴリ階層をたどって上位カテゴリを返す。nil はそのまま返す。
+  def top_level_category(category)
+    current = category
+    # 深さ制限つきで親をたどる（循環参照の保険）。
+    10.times do
+      parent = current&.parent
+      break if parent.nil?
+
+      current = parent
+    end
+    current
+  end
+
+  # 上位カテゴリの url から決定的にパレット位置を決める。
+  # ID 依存にしないため、環境やシード順が違っても同じカテゴリは同じ色になる。
+  def visual_color_index(top_category)
+    key = top_category.url.to_s
+    key = top_category.icon.to_s if key.empty?
+    key.bytes.sum % CATEGORY_VISUAL_COLORS.size
+  end
+
+  # 英字ラベルは url スラッグ由来（常に ASCII）。空のときだけフォールバック。
+  def visual_english_label(top_category)
+    label = top_category.url.to_s.tr("-_", " ").split.join(" ").upcase
+    label.empty? ? CATEGORY_VISUAL_FALLBACK_LABEL : label
+  end
+
+  def fallback_visual
+    {
+      color: CATEGORY_VISUAL_COLORS[0],
+      color_index: 0,
+      emoji: CATEGORY_VISUAL_DEFAULT_EMOJI,
+      english_label: CATEGORY_VISUAL_FALLBACK_LABEL,
+      name: ""
+    }
   end
 end

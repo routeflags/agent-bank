@@ -78,6 +78,16 @@
     %span.raku-tabs__count (#{@listing.comments_count})
   %button.raku-tabs__item{type: "button", role: "tab", id: "tab-related", "aria-selected": "false", "aria-controls": "panel-related", tabindex: "-1", "data-raku-tab": "related", onclick: "RakuTabs.show('related')"}= t('lamprey.listings.related_skills')
 
+-# ── Category visual（Issue #117: 色ブロック＋英字ラベル＋絵文字） ──
+-# 色・英字・絵文字の定義は HomepageHelper#listing_category_visual に一元化し、
+-# 本テンプレート側に定義を持たない（トップと共有する単一の定義）。
+- visual = listing_category_visual(@listing)
+.raku-listing-visual{class: "raku-listing-visual--c#{visual[:color_index]}"}
+  %span.raku-listing-visual__swatch{aria: {hidden: "true"}}= visual[:emoji]
+  %span.raku-listing-visual__text
+    %span.raku-listing-visual__english= visual[:english_label]
+    %span.raku-listing-visual__name= visual[:name]
+
 -# ── Hero layout ────────────────────────────────────────
 %script{type: "text/template", class: "template", id: "image-frame-template"}
   .listing-image-frame

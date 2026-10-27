@@ -92,6 +92,22 @@ RSpec.describe "出品詳細テンプレート", type: :view do
     expect(panel).not_to include(I18n.t("listings.edit_links.edit_listing", locale: :ja))
   end
 
+  it "#117: カテゴリビジュアル（色ブロック＋英字ラベル＋絵文字）を描画する" do
+    html = render_show(nil)
+    expect(html).to include("raku-listing-visual")
+    expect(html).to match(/raku-listing-visual--c\d/)
+    expect(html).to include("raku-listing-visual__english")
+    expect(html).to include("raku-listing-visual__swatch")
+  end
+
+  it "#117: タブの a11y 属性（tablist・tabpanel・aria-controls）を維持する" do
+    html = render_show(nil)
+    expect(html).to include('role="tablist"')
+    expect(html).to include('role="tabpanel"')
+    expect(html).to include('aria-controls="panel-overview"')
+    expect(html).to include('aria-selected')
+  end
+
   it "#90: カスタムフィールド値があるときは値を表示し空文言を出さない" do
     field = FactoryBot.create(:custom_text_field, required: false)
     TextFieldValue.create!(listing: @listing, question: field,

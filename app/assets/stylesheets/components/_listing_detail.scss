@@ -4,13 +4,17 @@
 
 body.dark-theme {
   // ── Breadcrumbs ────────────────────────────────────────
+  // トレイルは小さく、h1（出品タイトル）は下段にページ見出しとして出す。
+  // DOM・a11y（h1.raku-breadcrumb__current）は変えない。
   .raku-breadcrumb {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
     padding: 16px 0;
     font-size: 13px;
     color: var(--text-secondary);
+    min-width: 0;
   }
 
   .raku-breadcrumb__link {
@@ -27,40 +31,115 @@ body.dark-theme {
   }
 
   .raku-breadcrumb__current {
+    flex-basis: 100%;
+    min-width: 0;
+    margin: 8px 0 0;
     color: var(--text-primary);
-    font-weight: 500;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  // ── Category visual banner（Issue #117） ──────────────
+  // 「色ブロック＋英字ラベル＋絵文字」。色の割当は HomepageHelper の
+  // 単一パレット由来で、ここでは c0〜c7 の適用だけを行う。
+  .raku-listing-visual {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    max-width: 100%;
+    margin-bottom: 24px;
+    padding: 14px 16px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+  }
+
+  .raku-listing-visual__swatch {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    font-size: 30px;
+    line-height: 1;
+  }
+
+  .raku-listing-visual--c0 .raku-listing-visual__swatch { background-color: #dfb560; }
+  .raku-listing-visual--c1 .raku-listing-visual__swatch { background-color: #ec1029; }
+  .raku-listing-visual--c2 .raku-listing-visual__swatch { background-color: #59b3a2; }
+  .raku-listing-visual--c3 .raku-listing-visual__swatch { background-color: #8e7cc3; }
+  .raku-listing-visual--c4 .raku-listing-visual__swatch { background-color: #5b9bd5; }
+  .raku-listing-visual--c5 .raku-listing-visual__swatch { background-color: #7ac74f; }
+  .raku-listing-visual--c6 .raku-listing-visual__swatch { background-color: #e8833a; }
+  .raku-listing-visual--c7 .raku-listing-visual__swatch { background-color: #d66ba0; }
+
+  .raku-listing-visual__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .raku-listing-visual__english {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent-gold);
+    overflow-wrap: anywhere;
+  }
+
+  .raku-listing-visual__name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
   }
 
   // ── Tabs ───────────────────────────────────────────────
+  // 見た目はトップ（.raku-featured__tabs）のピル群に合わせる。
+  // role="tablist"/tab・aria-selected・roving tabindex の a11y 実装は維持し、
+  // 選択表示だけ .is-active（aria-selected と JS で同期）に寄せる。
   .raku-tabs {
     display: flex;
-    gap: 0;
-    border-bottom: 1px solid var(--border-color);
+    gap: 4px;
+    max-width: 100%;
     margin-bottom: 24px;
+    padding: 3px;
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
     overflow-x: auto;
     scrollbar-width: none;
     &::-webkit-scrollbar { display: none; }
   }
 
   .raku-tabs__item {
-    padding: 14px 20px;
+    flex: 0 0 auto;
+    padding: 8px 16px;
     border: none;
+    border-radius: var(--radius-sm);
     background: transparent;
     color: var(--text-secondary);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
-    border-bottom: 2px solid transparent;
-    transition: color var(--transition-fast), border-color var(--transition-fast);
+    transition: color var(--transition-fast), background-color var(--transition-fast);
 
     &:hover {
       color: var(--text-primary);
     }
 
     &.is-active {
+      background-color: var(--bg-card);
       color: var(--accent-gold);
-      border-bottom-color: var(--accent-gold);
+      font-weight: 600;
     }
   }
 
@@ -92,6 +171,8 @@ body.dark-theme {
       font-weight: 600;
       color: var(--text-primary);
       margin-bottom: 12px;
+      border-left: 3px solid var(--accent-gold);
+      padding-left: 10px;
     }
 
     &__steps {
@@ -111,6 +192,7 @@ body.dark-theme {
       display: flex;
       align-items: center;
       gap: 10px;
+      min-width: 0;
       padding: 12px;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -139,9 +221,23 @@ body.dark-theme {
   // ── Listing hero ───────────────────────────────────────
   .raku-listing-hero {
     display: grid;
-    grid-template-columns: 1fr 380px;
+    grid-template-columns: minmax(0, 1fr) 380px;
     gap: 32px;
     margin-bottom: 32px;
+    max-width: 100%;
+  }
+
+  .raku-listing-hero__content {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .listing-image-carousel {
+    max-width: 100%;
+  }
+
+  #thumbnail-stripe.listing-image-thumbnail-stripe {
+    max-width: 100%;
   }
 
   .raku-listing-hero__image {
@@ -156,12 +252,17 @@ body.dark-theme {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    min-width: 0;
+    max-width: 100%;
   }
 
-  // Price box
+  // Price box — 上辺の Gold でトップの選択・強調トーンに寄せる。
   .raku-price-box {
+    min-width: 0;
+    max-width: 100%;
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
+    border-top: 3px solid var(--accent-gold);
     border-radius: var(--radius-md);
     padding: 24px;
   }
@@ -171,6 +272,7 @@ body.dark-theme {
     font-weight: 800;
     color: var(--text-primary);
     line-height: 1.2;
+    overflow-wrap: anywhere;
   }
 
   .raku-price-box__unit {
@@ -202,11 +304,13 @@ body.dark-theme {
     font-size: 13px;
   }
 
-  // CTA buttons
+  // CTA buttons — 狭幅で折り返しても崩れないよう折り返しを許す。
   .raku-cta-group {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .raku-cta-btn {
@@ -215,6 +319,7 @@ body.dark-theme {
     justify-content: center;
     gap: 8px;
     width: 100%;
+    max-width: 100%;
     padding: 14px 20px;
     border: none;
     border-radius: var(--radius-md);
@@ -224,6 +329,8 @@ body.dark-theme {
     transition: all var(--transition-fast);
     text-decoration: none;
     text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
 
     &--primary {
       background-color: var(--accent-gold);
@@ -326,16 +433,21 @@ body.dark-theme {
     padding: 20px;
   }
 
+  // 見出しはトップのドキュメント区画（.raku-docs-section h2）と同じ
+  // Gold 左ボーダーで揃える。
   .raku-detail-panel__title {
     font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
     margin: 0 0 16px;
+    border-left: 3px solid var(--accent-gold);
+    padding-left: 10px;
+    overflow-wrap: anywhere;
   }
 
   .raku-detail-panel__grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 12px;
   }
 
@@ -343,6 +455,7 @@ body.dark-theme {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
   }
 
   .raku-detail-panel__label {
@@ -356,12 +469,62 @@ body.dark-theme {
     font-size: 14px;
     color: var(--text-primary);
     font-weight: 500;
+    overflow-wrap: anywhere;
   }
 }
 
 // ── Mobile ────────────────────────────────────────────
 @media (max-width: 991px) {
   body.dark-theme .raku-listing-hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.dark-theme .raku-price-box__amount {
+    font-size: 28px;
+  }
+}
+
+// ── Compact phones (375px) ─────────────────────────────
+// 価格ボックスと CTA が折り返しても崩れず、ページ横スクロールを出さない。
+@media (max-width: 480px) {
+  body.dark-theme .raku-breadcrumb__current {
+    font-size: 20px;
+  }
+
+  body.dark-theme .raku-listing-visual {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  body.dark-theme .raku-listing-visual__swatch {
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+  }
+
+  body.dark-theme .raku-listing-visual__name {
+    font-size: 16px;
+  }
+
+  body.dark-theme .raku-tabs__item {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  body.dark-theme .raku-price-box {
+    padding: 20px 16px;
+  }
+
+  body.dark-theme .raku-price-box__amount {
+    font-size: 24px;
+  }
+
+  body.dark-theme .raku-cta-btn {
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+
+  body.dark-theme .raku-detail-panel__grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
