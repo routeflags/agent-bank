@@ -338,7 +338,8 @@ class HomepageController < ApplicationController
     if !@listing_page && @view_type == "grid"
       render partial: "homepage/persona_card", collection: @listings, as: :listing
     elsif @view_type == "grid"
-      render partial: "grid_item", collection: @listings, as: :listing, locals: { show_distance: location_in_use }
+      # Issue #115: 一覧の追加読み込みもトップと同じカードで描画する。
+      render partial: "homepage/persona_card", collection: @listings, as: :listing
     elsif location_in_use
       render partial: "list_item_with_distance", collection: @listings, as: :listing, locals: { shape_name_map: shape_name_map, show_distance: location_in_use }
     else

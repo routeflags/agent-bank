@@ -23,7 +23,7 @@
 # 確認項目:
 #   - 各ページが HTTP 200 を返すこと
 #   - 主要セレクタの存在（トップ: raku-search-box / product-link /
-#     raku-stats__item / site-footer、一覧: home-fluid-thumbnail-grid、
+#     raku-stats__item / site-footer、一覧: cards（トップと同じカード）、
 #     詳細: raku-price-box、ドキュメント: raku-page / raku-docs-section、
 #     プロフィール: raku-profile）
 #   - 禁止文言が出ていないこと
@@ -104,7 +104,7 @@ end
 code, browse_body, _loc = fetch(base, "/ja/browse")
 reporter.call(code == 200, "GET /ja/browse が 200 を返した（実際: #{code}）")
 if code == 200
-  reporter.call(browse_body.include?("home-fluid-thumbnail-grid"), "一覧にカード要素（home-fluid-thumbnail-grid）が存在する")
+  reporter.call(browse_body.include?("product-link"), "一覧にカード要素（product-link）が存在する")
   hit = forbidden_words.find { |w| browse_body.include?(w) }
   reporter.call(hit.nil?, hit.nil? ? "一覧に禁止文言（#{FORBIDDEN_LABEL}）が出ていない" : "一覧に禁止文言が出ていない（検出: #{hit}）")
 end
@@ -140,33 +140,42 @@ end
 # --- ヒーロー画像（digested URL が 200） ---
 # トップ HTML 直下ではなく、トップが参照する application-*.css 内に
 # /assets/rakuichi/raku_hero-<digest>.png として埋め込まれている。
-if top_body.nil? || top_body.empty?
-  reporter.call(false, "ヒーロー画像の確認をスキップ（トップ取得失敗）")
-else
-  css_path = top_body[%r{/assets/application-[^"']+\.css}]
-  if css_path.nil?
-    reporter.call(false, "ヒーロー画像の CSS（application-*.css）がトップから抽出できなかった")
-  else
-    css_code, css_body, _loc = fetch(base, css_path)
-    if css_code != 200
-      reporter.call(false, "ヒーロー画像元の CSS #{css_path} が 200 を返した（実際: #{css_code}）")
-    else
-      hero_url = css_body[%r{/assets/rakuichi/raku_hero-[^"'\)\s]+\.png}]
-      if hero_url.nil?
-        reporter.call(false, "ヒーロー画像（raku_hero の digested URL）が CSS から抽出できなかった")
-      else
-        img_code, _img_body, _loc = fetch(base, hero_url)
-        reporter.call(img_code == 200, "ヒーロー画像 #{hero_url} が 200 を返した（実際: #{img_code}）")
-      end
-    end
-  end
-end
+check_hero_image(base, top_body, reporter)
 
 # --- 対象外（認証必須）の期待ステータス確認 ---
 # /ja/settings 等は未ログインで 200 にならない。`/` への 302 を期待する。
 code, _body, location = fetch(base, "/ja/settings")
 reporter.call(code == 302, "GET /ja/settings が 302 を返した（実際: #{code}、認証必須のため対象外・200 を期待しない、Location: #{location}）")
 
+# ヒーロー画像の digested URL を CSS から抽出し、200 を返すか確認する。
+# 入れ子が深くなるためメソッドに切り出す（Metrics/BlockNesting 対策）。
+def check_hero_image(base, top_body, reporter)
+  if top_body.nil? || top_body.empty?
+    reporter.call(false, "ヒーロー画像の確認をスキップ（トップ取得失敗）")
+    return
+  end
+
+  css_path = top_body[%r{/assets/application-[^"']+\.css}]
+  if css_path.nil?
+    reporter.call(false, "ヒーロー画像の CSS（application-*.css）がトップから抽出できなかった")
+    return
+  end
+
+  css_code, css_body, _loc = fetch(base, css_path)
+  if css_code != 200
+    reporter.call(false, "ヒーロー画像元の CSS #{css_path} が 200 を返した（実際: #{css_code}）")
+    return
+  end
+
+  hero_url = css_body[%r{/assets/rakuichi/raku_hero-[^"')\s]+\.png}]
+  if hero_url.nil?
+    reporter.call(false, "ヒーロー画像（raku_hero の digested URL）が CSS から抽出できなかった")
+    return
+  end
+
+  img_code, _img_body, _loc = fetch(base, hero_url)
+  reporter.call(img_code == 200, "ヒーロー画像 #{hero_url} が 200 を返した（実際: #{img_code}）")
+end
 elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
 failed = results.count(false)
 if failed.zero?

@@ -40,10 +40,45 @@ module HomepageHelper
   CATEGORY_VISUAL_DEFAULT_EMOJI = "🤖".freeze
   CATEGORY_VISUAL_FALLBACK_LABEL = "PERSONA".freeze
 
+  # カテゴリ名から引くフォールバック表（Category を持たない一覧 struct 用）。
+  # 表示名だけで色・英字・絵文字を決めたい場面（トップのカード等）で使う。
+  # 定義はここ1か所だけに持ち、テンプレート側に直書きしない。
+  CATEGORY_VISUAL_NAME_KEYWORDS = [
+    { match: "生成AI", word: "GENAI", emoji: "✧" },
+    { match: "データ", word: "DATA", emoji: "▥" },
+    { match: "開発", word: "DEV", emoji: "⌘" },
+    { match: "マーケティング", word: "MARKETING", emoji: "➤" },
+    { match: "デザイン", word: "DESIGN", emoji: "✎" },
+    { match: "自動化", word: "AUTO", emoji: "⚙" },
+    { match: "教育", word: "EDU", emoji: "◇" },
+    { match: "学習", word: "EDU", emoji: "◇" },
+    { match: "チャット", word: "CHAT", emoji: "💬" },
+    { match: "会話", word: "CHAT", emoji: "💬" },
+    { match: "リサーチ", word: "RESEARCH", emoji: "⌕" }
+  ].freeze
+
   # 出品のカテゴリビジュアル（色・英字ラベル・絵文字・表示名）を返す。
-  # サブカテゴリの出品でも上位カテゴリに寄せて、関連スキルの色を揃える。
-  def listing_category_visual(listing)
-    category_visual(listing&.category)
+  # サブカテゴリの出品でも上位カテゴリに寄せて、同じカテゴリの色を揃える。
+  # 一覧の struct（ListingIndexViewUtils::ListingItem）は Category を持たない
+  # ため、その場合はカテゴリ表示名から決める（同じ表を使う）。
+  def listing_category_visual(listing, category_names = nil)
+    category = listing.respond_to?(:category) ? listing.category : nil
+    return category_visual(category) if category
+
+    category_visual_from_name(persona_category_name(listing, category_names))
+  end
+
+  # カテゴリ表示名から色・英字ラベル・絵文字を決める。
+  def category_visual_from_name(name)
+    entry = CATEGORY_VISUAL_NAME_KEYWORDS.find { |e| name.to_s.include?(e[:match]) }
+    index = name.present? ? name.to_s.each_byte.sum % CATEGORY_VISUAL_COLORS.size : 0
+    {
+      color: CATEGORY_VISUAL_COLORS[index],
+      color_index: index,
+      emoji: entry ? entry[:emoji] : CATEGORY_VISUAL_DEFAULT_EMOJI,
+      english_label: entry ? entry[:word] : CATEGORY_VISUAL_FALLBACK_LABEL,
+      name: name
+    }
   end
 
   def category_visual(category)

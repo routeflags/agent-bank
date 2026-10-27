@@ -164,9 +164,10 @@
               = render :partial => "map", locals: { viewport: viewport }
           - else
             - if @view_type.eql?("grid")
-              %div{class: @category_menu_enabled ? "home-fluid-thumbnail-grid-narrow" : "home-fluid-thumbnail-grid-wide"}
-                .home-fluid-thumbnail-grid
-                  = render partial: "grid_item", collection: @listings, as: :listing, locals: { show_distance: location_search_in_use }
+              -# Issue #115: 一覧もトップと同じカード（article.product）で描画する。
+              .cards
+                = render partial: "homepage/persona_card", collection: @listings, as: :listing
+
             - else
               .home-listings
                 - if (location_search_in_use)
@@ -175,7 +176,7 @@
                   = render partial: "list_item", collection: @listings, as: :listing, locals: { shape_name_map: shape_name_map }
             .home-loading-more
               = will_paginate(@listings, renderer: ListingPaginationRenderer)
-              - item_container = if @view_type.eql?("grid") then '.home-fluid-thumbnail-grid' else '.home-listings' end
+              - item_container = if @view_type.eql?("grid") then '.cards' else '.home-listings' end
               = pageless(@listings.total_pages, item_container, current_search_path_without_page, t('.loading_more_content'), current_page)
         - else
           .home-no-listings

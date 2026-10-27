@@ -4,7 +4,7 @@
 -# （定義は HomepageHelper のカテゴリビジュアル表のみ。テンプレートに二重定義しない）。
 -# ★・レビュー件数は #106 保留のため出さない。footer には価格のみ置く。
 - category_name = persona_category_name(listing, @category_display_names)
-- style = listing_category_visual(listing)
+- style = listing_category_visual(listing, @category_display_names)
 %article.product
   = link_to listing_path(listing.url), class: "product-link", aria: { label: t("lamprey.homepage.card_details", title: listing.title) } do
     .visual{ style: "--tone:#{style[:color]}" }
