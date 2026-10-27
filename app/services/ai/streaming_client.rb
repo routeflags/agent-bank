@@ -20,7 +20,18 @@ module Ai
   #     puts chunk  # each SSE data line
   #   end
   class StreamingClient
-    class StreamingError < StandardError; end
+    # Raised when the provider does not return a success response.
+    # Keeps the raw body so adapters can extract the provider error code;
+    # the message alone truncates it away.
+    class StreamingError < StandardError
+      attr_reader :status, :body
+
+      def initialize(message = nil, status: nil, body: nil)
+        super(message)
+        @status = status
+        @body = body
+      end
+    end
     class TimeoutError < StreamingError; end
     class ConnectionError < StreamingError; end
 
@@ -59,7 +70,12 @@ module Ai
         when Net::HTTPRedirection
           raise ConnectionError, "Redirect to #{response["location"]} not supported"
         else
-          raise StreamingError, "HTTP #{response.code}: #{response.message}: #{response.body&.truncate(200)}"
+          error_body = response.body
+          raise StreamingError.new(
+            "HTTP #{response.code}: #{response.message}: #{error_body&.truncate(200)}",
+            status: response.code.to_i,
+            body: error_body
+          )
         end
       end
     rescue Net::OpenTimeout, Net::ReadTimeout => e

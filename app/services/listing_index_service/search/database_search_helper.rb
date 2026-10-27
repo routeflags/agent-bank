@@ -33,10 +33,29 @@ module ListingIndexService::Search::DatabaseSearchHelper
 
     listings = scope.where(where_opts)
                  .includes(included_models)
-                 .order("listings.sort_date DESC")
+                 .order(order_clause(search[:sort_by]))
                  .paginate(per_page: search[:per_page], page: search[:page])
 
     success_result(listings.total_entries, listings, includes)
+  end
+
+  # 一覧の並び順（Issue #80 / #81）。
+  #
+  # `:sort` は検索エンジン（Sphinx）用のキーで、DB フォールバックでは無視される。
+  # そのためホーム／一覧のタブは `:sort_by` で渡し、ここで並びを切り替える。
+  # Sphinx 検索になる条件（キーワード・カテゴリ等）ではこの並びは使われない。
+  #
+  # @param sort_by [String, nil] "popular" / "newest" / "rating"
+  # @return [String] ORDER BY 句
+  def order_clause(sort_by)
+    case sort_by.to_s
+    when "newest"
+      "listings.created_at DESC, listings.id DESC"
+    when "rating"
+      "listings.avg_rating DESC, listings.created_at DESC, listings.id DESC"
+    else
+      "listings.sort_date DESC"
+    end
   end
 
   # TODO: This should probably be rethought when the Indexer and the

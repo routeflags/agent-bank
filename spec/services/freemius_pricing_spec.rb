@@ -96,29 +96,100 @@ RSpec.describe FreemiusPricing do
     end
   end
 
-  describe ".check_plan_price" do
+  describe ".check_plan_price (Issue #53 reverse margin)" do
     it "returns :unknown when no plan price map is configured" do
       allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP").and_return(nil)
       expect(described_class.check_plan_price("5678", 2010)).to eq(:unknown)
     end
 
-    it "returns :ok when within tolerance" do
+    it "returns :ok for a normal margin without warning (converted < expected)" do
       allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP")
         .and_return({ "5678" => 1999 }.to_json)
-      expect(described_class.check_plan_price("5678", 2010)).to eq(:ok)
+      allow(Rails.logger).to receive(:warn)
+      # 22% drift is an intentional margin, not a mismatch (Issue #53).
+      expect(described_class.check_plan_price("5678", 1560)).to eq(:ok)
+      expect(Rails.logger).not_to have_received(:warn)
     end
 
-    it "returns :mismatch and warns when drift exceeds tolerance" do
+    it "returns :mismatch and warns when converted meets/exceeds the plan price" do
       allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP")
-        .and_return({ "5678" => 999 }.to_json)
+        .and_return({ "5678" => 500 }.to_json)
       allow(Rails.logger).to receive(:warn)
-      expect(described_class.check_plan_price("5678", 2010)).to eq(:mismatch)
-      expect(Rails.logger).to have_received(:warn).with(/plan price drift/)
+      expect(described_class.check_plan_price("5678", 520)).to eq(:mismatch)
+      expect(Rails.logger).to have_received(:warn).with(/reverse margin/)
+    end
+
+    it "treats equality as a reverse margin (fees make even zero margin a loss)" do
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP")
+        .and_return({ "5678" => 500 }.to_json)
+      allow(Rails.logger).to receive(:warn)
+      expect(described_class.check_plan_price("5678", 500)).to eq(:mismatch)
+      expect(Rails.logger).to have_received(:warn).with(/reverse margin/)
     end
 
     it "treats broken JSON map as :unknown" do
       allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP").and_return("{oops")
       expect(described_class.check_plan_price("5678", 2010)).to eq(:unknown)
+    end
+
+    it "treats a non-positive expected price as :unknown" do
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP")
+        .and_return({ "5678" => 0 }.to_json)
+      expect(described_class.check_plan_price("5678", 100)).to eq(:unknown)
+    end
+
+    # Issue #53 regression: plan 74358 = $5.00 (500c), rate 0.0065.
+    # payment 2177342 ($5.00 charged, 1,000 yen credited) was a ~231 yen loss.
+    # Fixed combination: 600 yen credit (390c) has no warning; 800 yen (520c) warns.
+    context "Issue #53: plan 74358 $5.00 / credit yen (rate 0.0065)" do
+      before do
+        allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return("0.0065")
+        allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP")
+          .and_return({ "74358" => 500 }.to_json)
+        allow(Rails.logger).to receive(:warn)
+      end
+
+      it "does not warn for 600 yen credit (390c < 500c, customer burden >= credit)" do
+        converted = described_class.usd_cents_for_jpy(600)
+        expect(converted).to eq(390)
+        expect(described_class.check_plan_price("74358", converted)).to eq(:ok)
+        expect(Rails.logger).not_to have_received(:warn)
+      end
+
+      it "warns for 800 yen credit (520c >= 500c, reverse margin)" do
+        converted = described_class.usd_cents_for_jpy(800)
+        expect(converted).to eq(520)
+        expect(described_class.check_plan_price("74358", converted)).to eq(:mismatch)
+        expect(Rails.logger).to have_received(:warn).with(/reverse margin/)
+      end
+    end
+  end
+
+  describe ".check_verified_price (Issue #53 Dashboard price-change detection)" do
+    it "returns :unknown when no plan price map is configured" do
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP").and_return(nil)
+      expect(described_class.check_verified_price("5678", 500)).to eq(:unknown)
+    end
+
+    it "returns :ok when the verified gross matches the expected price" do
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP")
+        .and_return({ "74358" => 500 }.to_json)
+      allow(Rails.logger).to receive(:warn)
+      expect(described_class.check_verified_price("74358", 500)).to eq(:ok)
+      expect(Rails.logger).not_to have_received(:warn)
+    end
+
+    it "returns :mismatch and warns when the Dashboard price drifted" do
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP")
+        .and_return({ "74358" => 500 }.to_json)
+      allow(Rails.logger).to receive(:warn)
+      expect(described_class.check_verified_price("74358", 800)).to eq(:mismatch)
+      expect(Rails.logger).to have_received(:warn).with(/plan price drift/)
+    end
+
+    it "treats broken JSON map as :unknown" do
+      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_PRICE_MAP").and_return("{oops")
+      expect(described_class.check_verified_price("74358", 500)).to eq(:unknown)
     end
   end
 end

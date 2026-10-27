@@ -4,9 +4,9 @@
 - content_for :title_header do
   %h1= t("layouts.no_tribe.settings")
 
-= render :partial => "layouts/left_hand_navigation", :locals => { :links => settings_links_for(target_user, @current_community) }
+%p.back-to-mypage= link_to "← #{t('lamprey.mypage.dashboard')}", person_path(username: @current_user.username)
 
-#person_settings_form.left-navi-section.settings-section.account-settings
+#person_settings_form.left-navi-section.settings-section.account-settings.settings-no-nav
   -# Email
   .account-settings-row
     = form_for target_user, :html => {:id => 'email_form'} do |form|
@@ -74,7 +74,7 @@
           = fields_for "person[email_attributes]", Email.new do |email_form|
             .account-settings-email-row.account-settings-email-form-row
               .account-settings-email-row-address.account-settings-email-form-row-address
-                = email_form.text_field :address, :class => "text_field_account", :maxlenght => "255", :placeholder => t(".new_email"), :disabled => "disabled"
+                = email_form.text_field :address, :class => "text_field_account", :maxlenght => "255", :placeholder => t(".new_email"), :disabled => "disabled", aria: { label: t(".new_email") }
               .account-settings-email-row-delete.account-settings-new-email-row
                 = link_to "#", :class => "account-hide-new-email-link" do
                   .visible-desktop= icon_tag("cross")

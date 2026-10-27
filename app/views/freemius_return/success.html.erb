@@ -17,12 +17,13 @@
     <h1><%= t("lamprey.freemius_return.success_title") %></h1>
     <p><%= t("lamprey.freemius_return.success_body") %></p>
     <p><%= t("lamprey.freemius_return.pending_note") %></p>
+    <p><%= t("lamprey.freemius_return.wallet_delay_note") %></p>
     <% unless @verification[:valid] %>
       <div class="warn"><%= t("lamprey.freemius_return.invalid_signature") %></div>
     <% end %>
     <div class="actions">
-      <% if @listing %>
-        <a href="/<%= I18n.locale %>/listings/<%= @listing.id %>"><%= t("lamprey.freemius_return.back_to_listing") %></a>
+      <% if @current_user %>
+        <a href="<%= person_path(username: @current_user.username) %>"><%= t("lamprey.freemius_return.back_to_mypage") %></a>
       <% end %>
       <a href="/<%= I18n.locale %>/"><%= t("lamprey.freemius_return.back_to_top") %></a>
     </div>

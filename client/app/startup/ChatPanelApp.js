@@ -1,6 +1,8 @@
 import React from 'react';
 import '../components/ChatPanel/chatPanel.css';
-import '../components/ChatPanel/wallet-topup.css';
+import WalletTopupModal from '../components/WalletTopup/WalletTopupModal';
+import { csrfToken, jsonHeaders, fetchTopupStatus as fetchTopupStatusFromServer } from '../components/WalletTopup/walletTopupApi';
+import { saveActiveElement, restoreFocus, focusInitial, trapTabKey } from '../utils/modalDialog';
 
 /**
  * ChatPanelApp — AI persona chat panel with 3-column layout.
@@ -19,18 +21,7 @@ import '../components/ChatPanel/wallet-topup.css';
 
 // ─── Utility functions ───────────────────────────────────
 
-function csrfToken() {
-  var metaTag = document.querySelector('meta[name=csrf-token]');
-  return metaTag ? metaTag.getAttribute('content') : '';
-}
-
-function jsonHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'X-CSRF-Token': csrfToken(),
-  };
-}
-
+// ─── HTML sanitization ────────────────────────────────────
 var sharedConsumer = null;
 function getConsumer() {
   if (!sharedConsumer) {
@@ -119,27 +110,17 @@ var DEFAULT_I18N = {
   wallet_submit: '追加する',
   wallet_redirecting: '決済ページへ移動しています…',
   wallet_add_credits: 'クレジットを追加する',
-  wallet_buy: '購入する',
   wallet_add_preparing: '追加する（準備中）',
   wallet_add_preparing_body: 'ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。',
   wallet_topup_unavailable_reason: '決済が未設定のため、現在チャージできません。',
-  purchase_preparing_body: 'このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。',
-  purchase_not_configured: '購入機能は現在準備中です（決済が未設定）。しばらくしてから再度お試しください。',
-  purchase_checkout_failed: '購入ページの作成に失敗しました。時間をおいて再度お試しください。',
-  purchase_payment_unconfigured: '決済設定が不足しているため、現在購入できません。しばらくしてから再度お試しください。',
-  purchase_usd_charge: 'お支払い: ¥%{jpy}（約 $%{usd} USDで請求されます）',
   topup_fixed_title: '固定額チャージ',
   topup_select_plan: '金額を選択',
   topup_fx_note: '円表示は目安です。レート変動で表示額が変わります。実際の請求はUSD建てで決済画面に表示されます。',
   topup_usd_estimate: '約 $%{usd}（USD請求）',
   topup_credit_label: 'チャージ額: ¥%{jpy}',
   topup_invalid_plan: '指定されたプランは利用できません。金額を選択し直してください。',
-  wallet_insufficient_with_purchase: 'ウォレットの残高が不足しています。チャージするか、そのまま直接購入もできます（残高がなくても購入できます）。',
-  purchase_without_balance: '残高がなくても直接購入できます。チャージは任意の前払いです。',
-  purchase_direct_default: 'まずは直接購入がおすすめです。チャージは任意です。',
   new_chat_title: '新しいチャット',
   insufficient_tokens: 'トークンが不足しています。',
-  purchase_required: 'このペルソナを利用するには購入が必要です。',
   error_generic: 'エラーが発生しました。',
   wallet_insufficient: 'ウォレットの残高が不足しています。',
   connect_failed: 'チャットに接続できませんでした。しばらくしてからもう一度お試しください。',
@@ -182,7 +163,14 @@ var DEFAULT_I18N = {
   a11y_open: 'AIチャットを開く',
   a11y_close: 'チャットを閉じる',
   a11y_input: 'チャットメッセージ入力',
-  a11y_send: 'メッセージを送信'
+  a11y_send: 'メッセージを送信',
+  a11y_connected: '接続済み',
+  a11y_disconnected: '未接続',
+  truncated_notice: '回答がトークン上限に達したため、途中で切れています。続きが必要な場合は「続きを生成」を押してください。',
+  truncated_continue: '続きを生成',
+  truncated_continue_prompt: '続きを生成してください。前回の回答の続きからお願いします。',
+  copy: 'コピー',
+  copied: 'コピー済み'
 };
 var I18N = Object.assign({}, DEFAULT_I18N);
 function t(key) { return I18N[key] != null ? I18N[key] : (DEFAULT_I18N[key] || key); }
@@ -194,294 +182,87 @@ function tFormat(key, vars) {
   });
   return s;
 }
-function formatJpy(amount) {
-  var n = parseInt(amount, 10);
-  if (isNaN(n)) n = 0;
-  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-function formatUsd(usdCents) {
-  var n = parseInt(usdCents, 10);
-  if (isNaN(n)) n = 0;
-  return (n / 100).toFixed(2);
-}
+// ─── Wallet Top-up Modal (Issue #58: 共通化) ───────────────
+// WalletTopupModal / TOPUP_AMOUNTS / formatJpy / formatUsd は
+// client/app/components/WalletTopup/ に移動。ChatPanel とマイページで共用。
 
-// ─── Wallet Top-up Modal ──────────────────────────────────
+// ─── Message Bubble ──────────────────────────────────────
 
-var TOPUP_AMOUNTS = [
-  { cents: 1000, label: '¥1,000' },
-  { cents: 3000, label: '¥3,000' },
-  { cents: 5000, label: '¥5,000' },
-];
-
-class WalletTopupModal extends React.Component {
+// アシスタント回答のコピーボタン（Issue #66）。
+// React 16.1.1 はフック非対応のためクラスコンポーネントで実装する。
+class CopyButton extends React.Component {
   constructor(props) {
     super(props);
-    var denoms = props.denominations || [];
-    this.state = {
-      selectedCents: 3000,
-      customAmount: '',
-      selectedPlanId: denoms.length > 0 ? denoms[0].plan_id : null,
-      isProcessing: false,
-      error: null,
-      success: false,
-    };
-    this.handleSelectAmount = this.handleSelectAmount.bind(this);
-    this.handleSelectPlan = this.handleSelectPlan.bind(this);
-    this.handleCustomChange = this.handleCustomChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
-    this.handleOverlayClick = this.handleOverlayClick.bind(this);
+    this.state = { copied: false };
+    this.mounted = false;
+    this.resetTimer = null;
+    this.handleClick = this.handleClick.bind(this);
   }
 
-  handleSelectAmount(cents) {
-    this.setState({ selectedCents: cents, customAmount: '', selectedPlanId: null, error: null });
+  componentDidMount() {
+    this.mounted = true;
   }
 
-  handleSelectPlan(planId) {
-    this.setState({ selectedPlanId: planId, selectedCents: null, customAmount: '', error: null });
+  componentWillUnmount() {
+    this.mounted = false;
+    if (this.resetTimer) {
+      clearTimeout(this.resetTimer);
+      this.resetTimer = null;
+    }
   }
 
-  handleCustomChange(e) {
-    var raw = e.target.value.replace(/[^0-9]/g, '');
-    this.setState({ customAmount: raw, selectedCents: null, selectedPlanId: null, error: null });
+  legacyCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
   }
 
-  getAmountCents() {
-    if (this.state.selectedCents) return this.state.selectedCents;
-    var parsed = parseInt(this.state.customAmount, 10);
-    return isNaN(parsed) ? 0 : parsed;
-  }
-
-  isFixedMode() {
-    var denoms = this.props.denominations || [];
-    return denoms.length > 0;
-  }
-
-  handleSubmit() {
+  handleClick() {
     var self = this;
-    // Fixed prepaid (Issue #46): plan_id -> hosted checkout URL.
-    // Completion arrives via webhook; poll the balance on return.
-    if (this.isFixedMode() && this.state.selectedPlanId) {
-      self.setState({ isProcessing: true, error: null });
-      fetch('/api/v1/wallet_topup', {
-        method: 'POST',
-        headers: jsonHeaders(),
-        body: JSON.stringify({ plan_id: this.state.selectedPlanId }),
-      })
-        .then(function (response) {
-          return response.json().catch(function () { return {}; }).then(function (body) {
-            if (!response.ok) {
-              var err = new Error(body.error || t('wallet_pay_failed'));
-              err.body = body;
-              throw err;
-            }
-            return body;
-          });
-        })
-        .then(function (data) {
-          if (data.checkout_url) {
-            self.setState({ isProcessing: false, redirecting: true });
-            window.location.href = data.checkout_url;
-            return;
+    var text = this.props.text || '';
+    var done = function() {
+      if (!self.mounted) return;
+      self.setState({ copied: true });
+      if (self.resetTimer) clearTimeout(self.resetTimer);
+      self.resetTimer = setTimeout(function() {
+        if (self.mounted) self.setState({ copied: false });
+      }, 1500);
+    };
+    // クリップボード API は secure context のみ。使えない環境では
+    // textarea + execCommand にフォールバックする。
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function() {
+          try { self.legacyCopy(text); done(); } catch (e) {
+            console.warn('[ChatPanel] copy failed', e);
           }
-          throw new Error(t('wallet_pay_failed'));
-        })
-        .catch(function (err) {
-          var msg = err.message || t('wallet_pay_failed');
-          if (err.body && err.body.error_type === 'invalid_plan') msg = t('topup_invalid_plan');
-          if (err.body && err.body.error_type === 'payment_unconfigured') msg = t('wallet_topup_unavailable_reason');
-          self.setState({ isProcessing: false, error: msg });
         });
-      return;
+      } else {
+        this.legacyCopy(text);
+        done();
+      }
+    } catch (e) {
+      console.warn('[ChatPanel] copy failed', e);
     }
-
-    var amountCents = this.getAmountCents();
-
-    if (amountCents < 100 || amountCents > 10000) {
-      self.setState({ error: t('wallet_invalid_amount') });
-      return;
-    }
-
-    self.setState({ isProcessing: true, error: null });
-
-    // Step 1: Create a top-up intent (dev pseudo-payment; Freemius/Stripe not used per Issue #43)
-    fetch('/api/v1/wallet_topup', {
-      method: 'POST',
-      headers: jsonHeaders(),
-      body: JSON.stringify({ amount_cents: amountCents }),
-    })
-      .then(function (response) {
-        if (!response.ok) {
-          return response.json().catch(function () { return {}; }).then(function (body) {
-            throw new Error(body.error || 'Checkout creation failed');
-          });
-        }
-        return response.json();
-      })
-      .then(function (data) {
-        // Hosted checkout redirect (fixed prepaid plans, Issue #46).
-        // Completion arrives via webhook; poll the balance on return.
-        if (data.provider === 'freemius' && data.checkout_url) {
-          self.setState({ isProcessing: false, redirecting: true });
-          window.location.href = data.checkout_url;
-          return null;
-        }
-        // Dev mode: confirm the pseudo payment directly.
-        return fetch('/api/v1/wallet_topup/confirm', {
-          method: 'POST',
-          headers: jsonHeaders(),
-          body: JSON.stringify({ payment_intent_id: data.payment_intent_id }),
-        });
-      })
-      .then(function (response) {
-        // Hosted redirect path returns null above; skip confirm in that case.
-        if (!response) return null;
-        if (!response.ok) {
-          return response.json().catch(function () { return {}; }).then(function (body) {
-            throw new Error(body.error || 'Payment confirmation failed');
-          });
-        }
-        return response.json();
-      })
-      .then(function (data) {
-        // Null means the hosted redirect already happened; nothing more to do.
-        if (!data) return;
-        self.setState({ isProcessing: false, success: true });
-        if (self.props.onSuccess) self.props.onSuccess(data.balance_cents);
-        setTimeout(function () { self.props.onClose(); }, 1200);
-      })
-      .catch(function (err) {
-        self.setState({ isProcessing: false, error: err.message || t('wallet_pay_failed') });
-      });
-  }
-
-  handleOverlayClick(e) {
-    if (e.target === e.currentTarget) this.props.onClose();
   }
 
   render() {
-    var state = this.state;
-    var self = this;
-
-    return React.createElement('div', {
-      className: 'wallet-topup-modal__overlay',
-      onClick: this.handleOverlayClick,
-    },
-      React.createElement('div', { className: 'wallet-topup-modal', role: 'dialog', 'aria-label': t('wallet_topup_title') },
-        // Header
-        React.createElement('div', { className: 'wallet-topup-modal__header' },
-          React.createElement('h3', { className: 'wallet-topup-modal__title' }, '💰 ' + t('wallet_topup_title')),
-          React.createElement('button', {
-            className: 'wallet-topup-modal__closeBtn',
-            onClick: this.props.onClose,
-            'aria-label': t('wallet_topup_close'),
-            type: 'button',
-          },
-            React.createElement('svg', { width: '18', height: '18', viewBox: '0 0 20 20', fill: 'none' },
-              React.createElement('path', {
-                d: 'M15 5L5 15M5 5l10 10',
-                stroke: 'currentColor', strokeWidth: '2',
-                strokeLinecap: 'round', strokeLinejoin: 'round',
-              })
-            )
-          )
-        ),
-
-        // Current balance
-        React.createElement('div', {
-          style: { fontSize: '13px', color: '#999', marginBottom: '16px' }
-        }, t('wallet_current_balance') + (this.props.balance || 0).toLocaleString()),
-
-        // Fixed prepaid plans (Issue #46): plan_id list with JPY + USD estimate.
-        // Currency note: JPY display is an estimate; the true charge is USD.
-        (function () {
-          var denoms = self.props.denominations || [];
-          if (denoms.length === 0) return null;
-          return React.createElement('div', null,
-            React.createElement('div', {
-              style: { fontSize: '13px', color: '#ccc', marginBottom: '8px' }
-            }, t('topup_select_plan')),
-            React.createElement('div', { className: 'wallet-topup-modal__amounts' },
-              denoms.map(function (d) {
-                var label = '¥' + formatJpy(d.credit_jpy);
-                var sub = d.estimated_usd_cents != null ? tFormat('topup_usd_estimate', { usd: formatUsd(d.estimated_usd_cents) }) : null;
-                return React.createElement('button', {
-                  key: d.plan_id,
-                  className: 'wallet-topup-modal__amountBtn' + (state.selectedPlanId === d.plan_id ? ' is-selected' : ''),
-                  onClick: function () { self.handleSelectPlan(d.plan_id); },
-                  type: 'button',
-                  title: sub || label,
-                }, label + (sub ? '\n' + sub : ''));
-              })
-            ),
-            React.createElement('div', {
-              style: { fontSize: '11px', color: '#888', marginBottom: '12px' }
-            }, t('topup_fx_note')),
-            React.createElement('div', {
-              style: { fontSize: '11px', color: '#888', marginBottom: '12px' }
-            }, t('purchase_without_balance'))
-          );
-        })(),
-
-        // Legacy dev amounts (shown only when no fixed plans are available).
-        // Dev pseudo top-up is kept for local verification (Issue #46).
-        (function () {
-          var denoms = self.props.denominations || [];
-          if (denoms.length > 0 && !self.props.devMode) return null;
-          if (denoms.length > 0 && self.props.devMode) {
-            return React.createElement('div', {
-              style: { fontSize: '11px', color: '#666', margin: '8px 0' }
-            }, '--- dev: ' + t('wallet_custom_label') + ' ---');
-          }
-          return React.createElement('div', null,
-            React.createElement('div', { className: 'wallet-topup-modal__amounts' },
-              TOPUP_AMOUNTS.map(function (opt) {
-                return React.createElement('button', {
-                  key: opt.cents,
-                  className: 'wallet-topup-modal__amountBtn' + (state.selectedCents === opt.cents ? ' is-selected' : ''),
-                  onClick: function () { self.handleSelectAmount(opt.cents); },
-                  type: 'button',
-                }, opt.label);
-              })
-            ),
-            React.createElement('div', { className: 'wallet-topup-modal__customAmount' },
-              React.createElement('span', { className: 'wallet-topup-modal__customLabel' }, t('wallet_custom_label')),
-              React.createElement('input', {
-                className: 'wallet-topup-modal__customInput',
-                type: 'text',
-                inputMode: 'numeric',
-                placeholder: t('wallet_amount_placeholder'),
-                value: state.customAmount,
-                onChange: self.handleCustomChange,
-              })
-            )
-          );
-        })(),
-
-        // Status messages
-        state.error && React.createElement('div', { className: 'wallet-topup-modal__error' }, state.error),
-        state.success && React.createElement('div', { className: 'wallet-topup-modal__success' }, t('wallet_success')),
-        state.redirecting && React.createElement('div', { className: 'wallet-topup-modal__success' }, t('wallet_redirecting')),
-
-        // Submit
-        React.createElement('button', {
-          className: 'wallet-topup-modal__submitBtn',
-          onClick: this.handleSubmit,
-          disabled: state.isProcessing || state.success || (this.isFixedMode() ? !state.selectedPlanId : this.getAmountCents() < 100),
-          type: 'button',
-        },
-          state.isProcessing
-            ? React.createElement('span', null,
-                React.createElement('span', { className: 'wallet-topup-modal__spinner' }),
-                t('wallet_processing')
-              )
-            : t('wallet_submit')
-        )
-      )
-    );
+    var label = this.state.copied ? t('copied') : t('copy');
+    return React.createElement('button', {
+      type: 'button',
+      className: 'chatMessage__copyBtn' + (this.state.copied ? ' is-copied' : ''),
+      onClick: this.handleClick,
+      title: label,
+      'aria-label': label,
+    }, this.state.copied ? '✓ ' + label : label);
   }
 }
-
-// ─── Message Bubble ──────────────────────────────────────
 
 function MessageBubble(props) {
   var role = props.role;
@@ -491,11 +272,15 @@ function MessageBubble(props) {
   var createdAt = props.created_at;
   var showTopupButton = props.showTopupButton;
   var onTopupClick = props.onTopupClick;
-  var showPurchaseButton = props.showPurchaseButton;
-  var onPurchaseClick = props.onPurchaseClick;
   var attachment = props.attachment;
+  // 会話へ移動（Issue #64）のスクロール先特定用。key は props 経由で
+  // 取得できないため、メッセージ ID を data-message-id として描画する。
+  var messageId = props.message_id;
   // 特別な成果表示（DESIGN.md §13）は明示フラグが付いた回答にのみ適用する
   var isResult = props.is_result === true;
+  // トークン上限による打ち切り（Issue #63）。正常完結時は表示しない。
+  var truncated = props.truncated === true;
+  var onContinueClick = props.onContinueClick;
 
   var isUser = role === 'user';
   var isSystem = role === 'system';
@@ -536,7 +321,10 @@ function MessageBubble(props) {
     renderedContent = displayContent || '';
   }
 
-  return React.createElement('div', { className: 'chatMessage chatMessage--' + (role || 'user') + (isAssistant && !isStreaming && displayContent ? ' chatMessage--assistant-done' : '') },
+  return React.createElement('div', {
+    className: 'chatMessage chatMessage--' + (role || 'user') + (isAssistant && !isStreaming && displayContent && isResult ? ' chatMessage--assistant-done' : ''),
+    'data-message-id': messageId,
+  },
     React.createElement('div', { className: 'chatMessage__bubble' },
       // RESULT Best Answer card header (designs/chat-sp.png §7-3)
       // DESIGN.md §13: 特別な成果表示であり通常の回答すべてには出さない
@@ -552,23 +340,31 @@ function MessageBubble(props) {
       }),
       isStreaming && React.createElement('span', { className: 'chatMessage__streaming' })
     ),
-    // Inline导线 (Issue #33 Gold统一, #46 併用整理):
-    // 残高不足時はチャージ導線と購入導線の両方を出す（残高がなくても直接購入できる旨を明示）。
-    // 購入必須時は購入導線のみ。いずれも Gold ボタン (wallet-topup-prompt__btn) で統一。
-    (showTopupButton || showPurchaseButton) && React.createElement('div', { className: 'wallet-topup-prompt' },
-      showTopupButton && onTopupClick && React.createElement('button', {
+    // 打ち切り明示（Issue #63）: length 打ち切り時のみ注意書き＋継続導線を出す。
+    // 正常完結（stop）時は何も出さない。
+    isAssistant && !isStreaming && truncated && React.createElement('div', { className: 'chatMessage__truncated' },
+      React.createElement('div', { className: 'chatMessage__truncatedNotice' }, t('truncated_notice')),
+      onContinueClick && React.createElement('button', {
+        className: 'chatMessage__continueBtn',
+        onClick: onContinueClick,
+        type: 'button',
+      }, t('truncated_continue'))
+    ),
+    // Inline导线: 残高不足時はチャージ導線のみを出す（Issue #51。購入導線は持たない）。
+    showTopupButton && onTopupClick && React.createElement('div', { className: 'wallet-topup-prompt' },
+      React.createElement('button', {
         className: 'wallet-topup-prompt__btn',
         onClick: onTopupClick,
         type: 'button',
-      }, t('wallet_add_credits')),
-      showPurchaseButton && onPurchaseClick && React.createElement('button', {
-        className: 'wallet-topup-prompt__btn',
-        onClick: onPurchaseClick,
-        type: 'button',
-      }, t('wallet_buy'))
+      }, t('wallet_add_credits'))
     ),
     role === 'assistant' && totalTokens > 0 && (
       React.createElement('span', { className: 'chatMessage__tokens' }, tFormat('message_tokens', { count: totalTokens }))
+    ),
+    // コピーボタン（Issue #66）: 完了したアシスタント回答のプレーンテキストを
+    // コピーする（Markdown 変換前の本文）。
+    isAssistant && !isStreaming && displayContent && (
+      React.createElement(CopyButton, { text: content })
     ),
     timeStr && role !== 'system' && (
       React.createElement('span', { className: 'chatMessage__meta' }, timeStr)
@@ -609,7 +405,6 @@ class ChatPanelApp extends React.Component {
       topupEnabled: true,
       topupDevMode: false,
       topupDenominations: [],
-      topupFixedAvailable: false,
       // Attachment (composer 📎)
       pendingAttachment: null,
     };
@@ -644,7 +439,14 @@ class ChatPanelApp extends React.Component {
     this.handleOpenTopup = this.handleOpenTopup.bind(this);
     this.handleCloseTopup = this.handleCloseTopup.bind(this);
     this.handleTopupSuccess = this.handleTopupSuccess.bind(this);
-    this.handlePurchase = this.handlePurchase.bind(this);
+    this.handleContinue = this.handleContinue.bind(this);
+    this.handleJumpToResult = this.handleJumpToResult.bind(this);
+    this.handleDialogKeyDown = this.handleDialogKeyDown.bind(this);
+    // モーダルのフォーカス管理（Issue #78）。開く直前の要素を覚え、
+    // ダイアログ内で Tab を循環・Esc で閉じる・閉じたら元へ戻す。
+    this.dialogRef = null;
+    this.inputRef = null;
+    this.previouslyFocused = null;
   }
 
   // ─── Session management ───────────────────────────────
@@ -707,12 +509,16 @@ class ChatPanelApp extends React.Component {
       .then(function (data) {
         if (!data || !data.chat_session) return;
         var messages = (data.chat_session.messages || []).map(function (m) {
+          var meta = m.metadata || {};
           return {
             id: m.id,
             role: m.role,
             content: m.content,
             isStreaming: false,
             is_result: m.is_result === true,
+            // 打ち切り記録（Issue #63）: API の算出値を優先し、metadata を後方互換で読む。
+            truncated: m.truncated === true || meta.truncated === true,
+            finish_reason: m.finish_reason || meta.finish_reason || null,
             created_at: m.created_at,
             total_tokens: (m.input_tokens || 0) + (m.output_tokens || 0),
             attachment: m.attachment || null,
@@ -873,10 +679,19 @@ class ChatPanelApp extends React.Component {
   }
 
   handleDone(data) {
+    // Issue #82: 課金後の残高が数値で届いたら表示を更新（追加リクエストなし）。
+    // null/欠落時は何もしない（後方互換）。
+    if (data && typeof data.current_balance === 'number') {
+      this.setState({ walletBalance: data.current_balance });
+    }
     if (this.streamingId) {
       // サーバーは messageId（camelCase）で送る。旧形式 message_id も受ける（#32）。
       var finalId = data.message_id || data.messageId || this.streamingId;
-      this.finalizeMessage(this.streamingId, finalId, data.is_result === true);
+      this.finalizeMessage(this.streamingId, finalId, {
+        isResult: data.is_result === true,
+        truncated: data.truncated === true,
+        finishReason: data.finish_reason || null,
+      });
       this.streamingId = null;
     }
   }
@@ -889,31 +704,16 @@ class ChatPanelApp extends React.Component {
       if (typeof data.current_balance === 'number') {
         this.setState({ walletBalance: data.current_balance });
       }
-      // 併用ルール (Issue #46): 既定は直接購入、残高は任意の前払い。
-      // 残高不足時はチャージ導線と購入導線の両方を出す（残高がなくても買える旨を明示）。
+      // 課金は残高一本（Issue #51）。残高不足時はチャージ導線のみを出す。
       this.setState(function (prev) {
         return {
           messages: prev.messages.concat([{
             id: 'sys-err-' + Date.now(),
             role: 'system',
-            content: t('wallet_insufficient_with_purchase'),
+            content: t('wallet_insufficient'),
             isStreaming: false,
             created_at: new Date().toISOString(),
             showTopupButton: true,
-            showPurchaseButton: true,
-          }]),
-        };
-      });
-    } else if (data.error_type === 'purchase_required') {
-      this.setState(function (prev) {
-        return {
-          messages: prev.messages.concat([{
-            id: 'sys-err-' + Date.now(),
-            role: 'system',
-            content: (data.error || t('purchase_required')) + ' ' + t('purchase_without_balance'),
-            isStreaming: false,
-            created_at: new Date().toISOString(),
-            showPurchaseButton: true,
           }]),
         };
       });
@@ -948,7 +748,10 @@ class ChatPanelApp extends React.Component {
     });
   }
 
-  finalizeMessage(tempId, finalId, isResult) {
+  finalizeMessage(tempId, finalId, flags) {
+    var isResult = flags && flags.isResult === true;
+    var truncated = flags && flags.truncated === true;
+    var finishReason = flags && flags.finishReason ? flags.finishReason : null;
     this.setState(function (prev) {
       return {
         messages: prev.messages.map(function (m) {
@@ -956,13 +759,39 @@ class ChatPanelApp extends React.Component {
             return Object.assign({}, m, {
               id: finalId,
               isStreaming: false,
-              is_result: isResult === true,
+              is_result: isResult,
+              truncated: truncated,
+              finish_reason: finishReason,
             });
           }
           return m;
         }),
       };
     });
+  }
+
+  // 打ち切り時の継続導線（Issue #63）: 前回回答の続きを同じセッションで要求する。
+  handleContinue() {
+    if (!this.state.sessionId || this.sending) return;
+    var text = t('truncated_continue_prompt');
+    this.sending = true;
+    this.addMessage('user-' + Date.now(), 'user', text, false);
+    this.sendMessage(text, null, this.state.sessionId);
+    this.sending = false;
+  }
+
+  // 成果プレビュー「会話へ移動」（Issue #64）: 該当の assistant 回答までスクロールする。
+  // 要素が見つからない場合は何もしない（例外を出さない）。
+  handleJumpToResult(result) {
+    if (!result || result.id === undefined || result.id === null) return;
+    var el = null;
+    try {
+      el = document.querySelector('[data-message-id="' + result.id + '"]');
+    } catch (e) {
+      return;
+    }
+    if (!el || !el.scrollIntoView) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   // ─── User interaction ─────────────────────────────────
@@ -1003,36 +832,19 @@ class ChatPanelApp extends React.Component {
           // setState の反映待ちによる取り違えを避けるため、作成結果の ID を直接渡す（#32）。
           self.sendMessage(text, attachment, result.id);
         } else {
-          // エラータイプに応じて適切なメッセージを表示
+          // 課金は残高一本（Issue #51）。残高不足時はチャージ導線のみを出す。
           var errorType = result ? result.error_type : null;
-          if (errorType === 'purchase_required') {
-            // 購入が必要な場合は購入導線のみ表示（接続エラーメッセージは出さない）。
-            // 残高の有無に依存しない旨を明示する (Issue #46)。
-            self.setState(function (prev) {
-              return {
-                error: null,
-                messages: prev.messages.concat([{
-                  id: 'sys-purchase-' + Date.now(),
-                  role: 'system',
-                  content: t('purchase_required') + ' ' + t('purchase_without_balance'),
-                  isStreaming: false,
-                  created_at: new Date().toISOString(),
-                  showPurchaseButton: true,
-                }]),
-              };
-            });
-          } else if (errorType === 'insufficient_balance') {
+          if (errorType === 'insufficient_balance') {
             self.setState(function (prev) {
               return {
                 error: null,
                 messages: prev.messages.concat([{
                   id: 'sys-balance-' + Date.now(),
                   role: 'system',
-                  content: t('wallet_insufficient_with_purchase'),
+                  content: t('wallet_insufficient'),
                   isStreaming: false,
                   created_at: new Date().toISOString(),
                   showTopupButton: true,
-                  showPurchaseButton: true,
                 }]),
               };
             });
@@ -1173,6 +985,7 @@ class ChatPanelApp extends React.Component {
   }
 
   handleOpen() {
+    this.previouslyFocused = saveActiveElement();
     this.setState({ isOpen: true });
     this.fetchWalletBalance();
     this.fetchTopupStatus();
@@ -1186,6 +999,21 @@ class ChatPanelApp extends React.Component {
     this.disconnect();
     this.closeSession();
     this.setState({ isOpen: false });
+    restoreFocus(this.previouslyFocused);
+    this.previouslyFocused = null;
+  }
+
+  // ダイアログ内のキーボード操作（Issue #78）: Esc で閉じる、Tab は循環。
+  handleDialogKeyDown(e) {
+    if (!this.state.isOpen) return;
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      this.handleClose();
+      return;
+    }
+    if (e.key === 'Tab') {
+      trapTabKey(e, this.dialogRef);
+    }
   }
 
   // ─── Settings handlers ────────────────────────────────
@@ -1240,30 +1068,20 @@ class ChatPanelApp extends React.Component {
   // Top-up availability (Issue #34, #46): keeps the settings button label in
   // sync with the server payment configuration. Called when the panel opens.
   // Fixed prepaid denominations (plan_id / USD / JPY) are stored for the modal.
+  // Shared helper (Issue #58) — same status object as MypageWalletApp.
   fetchTopupStatus() {
     var self = this;
 
-    fetch('/api/v1/wallet_topup/status', {
-      method: 'GET',
-      headers: jsonHeaders(),
-    })
-      .then(function (response) {
-        if (!response.ok) return null;
-        return response.json();
-      })
-      .then(function (data) {
-        if (data && typeof data.topup_enabled !== 'undefined') {
-          self.setState({
-            topupEnabled: !!data.topup_enabled,
-            topupDevMode: !!data.dev_mode,
-            topupDenominations: data.denominations || [],
-            topupFixedAvailable: !!(data.fixed_prepaid_available || (data.denominations && data.denominations.length > 0)),
-          });
-        }
-      })
-      .catch(function () {
-        // Keep the optimistic default (enabled); the server validates on submit.
-      });
+    fetchTopupStatusFromServer().then(function (status) {
+      if (status) {
+        self.setState({
+          topupEnabled: status.topupEnabled,
+          topupDevMode: status.devMode,
+          topupDenominations: status.denominations,
+        });
+      }
+      // null: keep the optimistic default (enabled); the server validates on submit.
+    });
   }
 
   handleCloseTopup() {
@@ -1274,94 +1092,15 @@ class ChatPanelApp extends React.Component {
     this.setState({ walletBalance: newBalance });
   }
 
-  handlePurchase() {
-    var self = this;
-
-    // 開発/テスト環境で購入付与が有効な場合のみ、実課金なしの dev API を呼ぶ。
-    if (this.props.dev_purchase_enabled) {
-      fetch('/api/v1/dev/persona_purchases', {
-        method: 'POST',
-        headers: jsonHeaders(),
-        body: JSON.stringify({ listing_id: this.props.listing_id }),
-      })
-        .then(function (response) {
-          return response.json().catch(function () { return {}; }).then(function (body) {
-            if (!response.ok) {
-              throw new Error(body.error || t('dev_purchase_failed'));
-            }
-            return body;
-          });
-        })
-        .then(function () {
-          // 購入権利が付与されたので、そのままチャットを開始する
-          return self.createSession();
-        })
-        .then(function (result) {
-          if (result && result.id) {
-            self.addMessage('sys-purchase-' + Date.now(), 'system', t('dev_purchase_success'), false);
-          } else {
-            self.addMessage('sys-purchase-' + Date.now(), 'system', t('session_create_failed'), false);
-          }
-        })
-        .catch(function () {
-          self.addMessage('sys-purchase-' + Date.now(), 'system', t('dev_purchase_failed'), false);
-        });
-      return;
-    }
-
-    // 本番購入導線: Freemius Checkout の作成 API を呼び、checkout_url へ遷移する。
-    // 金額・購入者はサーバー側で決まる。決済完了後、Webhook 経由で購入権利が付与される。
-    fetch('/api/v1/persona_purchases', {
-      method: 'POST',
-      headers: jsonHeaders(),
-      body: JSON.stringify({ listing_id: this.props.listing_id }),
-    })
-      .then(function (response) {
-        return response.json().catch(function () { return {}; }).then(function (body) {
-          if (response.status === 503 && (body.error_type === 'purchase_not_configured' || body.error_type === 'payment_unconfigured')) {
-            // 決済が未設定（product/Bearer/plan 缺け、又は JPY→USD 換算レート未設定）
-            var key = body.error_type === 'payment_unconfigured' ? 'purchase_payment_unconfigured' : 'purchase_not_configured';
-            self.addMessage('sys-purchase-' + Date.now(), 'system', t(key), false);
-            return null;
-          }
-          if (!response.ok) {
-            throw new Error(body.error || t('purchase_checkout_failed'));
-          }
-          return body;
-        });
-      })
-      .then(function (body) {
-        if (!body) return;
-        if (body.status === 'already_purchased') {
-          // 既に購入済みなら Checkout を挟まずチャットを開始する
-          return self.createSession().then(function (result) {
-            if (!(result && result.id)) {
-              self.addMessage('sys-purchase-' + Date.now(), 'system', t('session_create_failed'), false);
-            }
-          });
-        }
-        if (body.checkout_url) {
-          if (body.amount_usd_cents != null && body.amount_jpy != null) {
-            // USD 請求額（目安）を見せてから遷移する。真の請求額は hosted checkout 画面の表示。
-            self.addMessage('sys-purchase-' + Date.now(), 'system',
-              tFormat('purchase_usd_charge', { jpy: formatJpy(body.amount_jpy), usd: formatUsd(body.amount_usd_cents) }), false);
-            window.setTimeout(function () { window.location.assign(body.checkout_url); }, 1200);
-          } else {
-            self.addMessage('sys-purchase-' + Date.now(), 'system', t('wallet_redirecting'), false);
-            window.location.assign(body.checkout_url);
-          }
-        }
-      })
-      .catch(function () {
-        self.addMessage('sys-purchase-' + Date.now(), 'system', t('purchase_checkout_failed'), false);
-      });
-  }
-
   // ─── Lifecycle ────────────────────────────────────────
 
   componentDidUpdate(prevProps, prevState) {
     if (prevState.messages !== this.state.messages && this.messagesEndRef) {
       this.messagesEndRef.scrollIntoView({ behavior: 'smooth' });
+    }
+    // 開いた直後に入力欄へフォーカスを移す（Issue #78）。
+    if (!prevState.isOpen && this.state.isOpen) {
+      focusInitial(this.dialogRef, this.inputRef);
     }
   }
 
@@ -1414,9 +1153,17 @@ class ChatPanelApp extends React.Component {
     return React.createElement('div', {
       key: item.id,
       className: 'chatPanel__historyItem' + (item.id === state.sessionId ? ' is-active' : ''),
+      role: 'button',
+      tabIndex: 0,
+      'aria-label': item.title,
+      // ダブルクリックのリネームは既存の ✎ ボタンに一本化し、行自体は
+      // クリック / Enter / Space の選択操作にする（Issue #78）。
       onClick: function () { self.handleSelectSession(item.id); },
-      onDoubleClick: function () {
-        self.setState({ renamingId: item.id, renameValue: item.title });
+      onKeyDown: function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          self.handleSelectSession(item.id);
+        }
       },
       title: item.title,
     },
@@ -1439,11 +1186,11 @@ class ChatPanelApp extends React.Component {
     var self = this;
     var personaName = this.props.persona_name || 'AI Assistant';
 
-    // §13 Result/Artifact preview — latest completed assistant answer
+    // §13 Result/Artifact preview — latest completed assistant answer with is_result === true (Issue #65)
     var latestResult = null;
     for (var i = state.messages.length - 1; i >= 0; i--) {
       var m = state.messages[i];
-      if (m.role === 'assistant' && !m.isStreaming && m.content) {
+      if (m.role === 'assistant' && !m.isStreaming && m.content && m.is_result === true) {
         latestResult = m;
         break;
       }
@@ -1476,7 +1223,10 @@ class ChatPanelApp extends React.Component {
       React.createElement('div', {
         className: 'chatPanel',
         onClick: function (e) { e.stopPropagation(); },
+        onKeyDown: this.handleDialogKeyDown,
+        ref: function (el) { self.dialogRef = el; },
         role: 'dialog',
+        'aria-modal': 'true',
         'aria-label': t('a11y_dialog'),
         style: {
           display: 'flex',
@@ -1517,7 +1267,7 @@ class ChatPanelApp extends React.Component {
               older.map(function (item) { return self.renderHistoryItem(item); })
             ),
             state.sessionHistory.length === 0 && React.createElement('div', {
-              style: { color: '#666', fontSize: '13px', textAlign: 'center', padding: '24px 12px' }
+              style: { color: 'var(--text-secondary, #999)', fontSize: '13px', textAlign: 'center', padding: '24px 12px' }
             }, t('history_empty'))
           )
         ),
@@ -1529,7 +1279,9 @@ class ChatPanelApp extends React.Component {
             React.createElement('div', { style: { display: 'flex', alignItems: 'center' } },
               React.createElement('h3', { className: 'chatPanel__personaName' }, personaName),
               React.createElement('span', {
-                className: 'chatPanel__connectionDot' + (state.isConnected ? '' : ' chatPanel__connectionDot--disconnected')
+                className: 'chatPanel__connectionDot' + (state.isConnected ? '' : ' chatPanel__connectionDot--disconnected'),
+                role: 'img',
+                'aria-label': state.isConnected ? t('a11y_connected') : t('a11y_disconnected'),
               })
             ),
             React.createElement('button', {
@@ -1549,13 +1301,17 @@ class ChatPanelApp extends React.Component {
           ),
 
           // Error
-          state.error && React.createElement('div', { className: 'chatPanel__error' }, state.error),
+          state.error && React.createElement('div', { className: 'chatPanel__error', role: 'alert' }, state.error),
 
           // Loading
           state.isLoading && React.createElement('div', { className: 'chatPanel__loading' }, t('loading')),
 
           // Messages
-          React.createElement('div', { className: 'chatPanel__messages' },
+          React.createElement('div', {
+            className: 'chatPanel__messages',
+            'aria-live': 'polite',
+            'aria-relevant': 'additions text',
+          },
             state.messages.length === 0 && !state.isLoading
               ? React.createElement('div', { className: 'chatPanel__emptyState' },
                   React.createElement('div', { className: 'chatPanel__emptyStateIcon' }, '🤖'),
@@ -1563,15 +1319,15 @@ class ChatPanelApp extends React.Component {
                 )
               : state.messages.map(function (msg) {
                   return React.createElement(MessageBubble, {
-                    key: msg.id, role: msg.role, content: msg.content,
+                    key: msg.id, message_id: msg.id, role: msg.role, content: msg.content,
                     isStreaming: msg.isStreaming,
                     is_result: msg.is_result,
+                    truncated: msg.truncated,
+                    onContinueClick: msg.truncated ? self.handleContinue : null,
                     total_tokens: msg.total_tokens,
                     created_at: msg.created_at,
                     showTopupButton: msg.showTopupButton,
                     onTopupClick: msg.showTopupButton ? self.handleOpenTopup : null,
-                    showPurchaseButton: msg.showPurchaseButton,
-                    onPurchaseClick: msg.showPurchaseButton ? self.handlePurchase : null,
                     attachment: msg.attachment,
                   });
                 }),
@@ -1613,6 +1369,7 @@ class ChatPanelApp extends React.Component {
             }, '📎'),
             React.createElement('textarea', {
               className: 'chatPanel__input',
+              ref: function (el) { self.inputRef = el; },
               value: state.inputText,
               onChange: this.handleInputChange,
               onKeyDown: this.handleKeyDown,
@@ -1658,11 +1415,7 @@ class ChatPanelApp extends React.Component {
               tFormat('message_tokens', { count: latestResult.total_tokens })),
             React.createElement('button', {
               className: 'chatPanel__resultJump',
-              onClick: function () {
-                if (self.messagesEndRef && self.messagesEndRef.scrollIntoView) {
-                  self.messagesEndRef.scrollIntoView({ behavior: 'smooth' });
-                }
-              },
+              onClick: function () { self.handleJumpToResult(latestResult); },
               type: 'button',
             }, t('result_panel_jump'))
           ),
@@ -1699,9 +1452,10 @@ class ChatPanelApp extends React.Component {
 
           // Model selection
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_model')),
+            React.createElement('label', { className: 'chatPanel__settingsLabel', htmlFor: 'chatPanel-modelSelect' }, t('settings_model')),
             React.createElement('select', {
               className: 'chatPanel__settingsSelect',
+              id: 'chatPanel-modelSelect',
               value: state.selectedModel,
               onChange: this.handleModelChange,
             },
@@ -1714,15 +1468,17 @@ class ChatPanelApp extends React.Component {
 
           // Token limit
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_token_limit')),
+            React.createElement('label', { className: 'chatPanel__settingsLabel', htmlFor: 'chatPanel-tokenLimit' }, t('settings_token_limit')),
             React.createElement('input', {
               type: 'range',
               className: 'chatPanel__settingsSlider',
+              id: 'chatPanel-tokenLimit',
               min: '1000',
               max: '8000',
               step: '500',
               value: state.tokenLimit,
               onChange: this.handleTokenChange,
+              'aria-valuetext': tFormat('settings_tokens_unit', { count: state.tokenLimit.toLocaleString() }),
             }),
             React.createElement('div', { className: 'chatPanel__settingsValue' },
               tFormat('settings_tokens_unit', { count: state.tokenLimit.toLocaleString() })
@@ -1731,13 +1487,14 @@ class ChatPanelApp extends React.Component {
 
           // Output length
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_output_length')),
-            React.createElement('div', { className: 'chatPanel__toneButtons' },
+            React.createElement('span', { className: 'chatPanel__settingsLabel', id: 'chatPanel-outputLengthLabel' }, t('settings_output_length')),
+            React.createElement('div', { className: 'chatPanel__toneButtons', role: 'group', 'aria-labelledby': 'chatPanel-outputLengthLabel' },
               ['short', 'standard', 'long'].map(function (length) {
                 var labels = { short: t('output_short'), standard: t('output_standard'), long: t('output_long') };
                 return React.createElement('button', {
                   key: length,
                   className: 'chatPanel__toneBtn' + (state.outputLength === length ? ' is-active' : ''),
+                  'aria-pressed': state.outputLength === length,
                   onClick: function () { self.handleOutputLength(length); },
                   type: 'button',
                 }, labels[length]);
@@ -1747,9 +1504,10 @@ class ChatPanelApp extends React.Component {
 
           // Tone
           React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel' }, t('settings_tone')),
+            React.createElement('label', { className: 'chatPanel__settingsLabel', htmlFor: 'chatPanel-toneSelect' }, t('settings_tone')),
             React.createElement('select', {
               className: 'chatPanel__settingsSelect',
+              id: 'chatPanel-toneSelect',
               value: state.tone,
               onChange: function (e) { self.handleToneChange(e.target.value); },
             },
@@ -1762,12 +1520,12 @@ class ChatPanelApp extends React.Component {
         )
       ),
 
-      // ── Wallet Top-up Modal (Issue #46 fixed prepaid) ───────
+      // ── Wallet Top-up Modal (Issue #46 fixed prepaid; Issue #58 共通化) ──
       state.showTopupModal && React.createElement(WalletTopupModal, {
+        i18n: this.props.i18n,
         balance: state.walletBalance,
         denominations: state.topupDenominations,
         devMode: state.topupDevMode,
-        fixedAvailable: state.topupFixedAvailable,
         onSuccess: this.handleTopupSuccess,
         onClose: this.handleCloseTopup,
       })

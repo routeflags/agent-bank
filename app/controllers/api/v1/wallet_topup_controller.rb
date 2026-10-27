@@ -193,6 +193,8 @@ module API
 
         # Hosted checkout is plan-based; the true charge is the Dashboard
         # plan price (USD). The yen credit comes solely from the map.
+        # Issue #53: warn-only reverse-margin check (converted >= expected).
+        # Normal margin (e.g. 600 yen vs $5.00) stays silent.
         # cancel_url (back button) returns to the site root; success redirect
         # is the Dashboard global (`GET /freemius/return`).
         amounts = FreemiusPricing.amounts_for_jpy(credit_jpy)

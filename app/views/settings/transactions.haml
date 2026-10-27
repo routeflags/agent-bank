@@ -4,9 +4,37 @@
     = "-"
     = t("layouts.settings.transactions")
 
-= render :partial => "layouts/left_hand_navigation", :locals => { :links => settings_links_for(@current_user, @current_community) }
+%p.back-to-mypage= link_to "← #{t('lamprey.mypage.dashboard')}", person_path(username: @current_user.username)
 
-.left-navi-section
-  %h2= t("admin.communities.transactions.transactions")
+-# Issue #69: 出品スキルの第三者利用履歴（Transaction 一覧はこの画面から外す）。
+-# 見た目はマイページの表と同じ .raku-table を流用し、新しい CSS は追加しない。
+.left-navi-section.settings-no-nav
+  %h2= t("lamprey.mypage.skill_usage_title")
 
-  = render partial: 'admin/community_transactions/table', locals: {placeholder: t('layouts.settings.transactions_search_placeholder')}
+  - if @skill_usage_sessions.total_entries > 0
+    %table.raku-table
+      %thead
+        %tr
+          %th= t("lamprey.mypage.skill_usage_th_datetime")
+          %th= t("lamprey.mypage.skill_usage_th_listing")
+          %th= t("lamprey.mypage.skill_usage_th_user")
+          %th= t("lamprey.mypage.skill_usage_th_messages")
+          %th= t("lamprey.mypage.skill_usage_th_tokens")
+          %th= t("lamprey.mypage.skill_usage_th_charge")
+      %tbody
+        - @skill_usage_sessions.each do |session|
+          - message_count = session.chat_messages.size
+          - token_count = session.chat_messages.sum { |message| message.input_tokens.to_i + message.output_tokens.to_i }
+          %tr
+            %td= session.created_at.strftime("%Y/%m/%d %H:%M")
+            %td= session.listing&.title || t("lamprey.mypage.seller_earning_unknown_listing")
+            -# Person#name は引数必須のため、既存の表示ヘルパーを使う。
+            %td= PersonViewUtils.person_display_name(session.person, @current_community)
+            %td= number_with_delimiter(message_count)
+            %td= number_with_delimiter(token_count)
+            -# 課金額: usage_records に chat_session_id / listing_id が無く、
+            -# セッション単位の課金を特定できないため "—" を表示する。
+            %td —
+    = will_paginate @skill_usage_sessions
+  - else
+    .raku-table__empty= t("lamprey.mypage.skill_usage_empty")

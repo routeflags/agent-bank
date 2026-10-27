@@ -143,6 +143,66 @@ class Wallet < ApplicationRecord
 
   # -- Public wallet operations continue below --
 
+  # Credit seller earnings for a single usage event (Issue #59).
+  #
+  # Idempotent per UsageRecord: repeated calls with the same usage_record
+  # credit only once. The check and the credit run inside a row lock, and a
+  # unique index on (transaction_type, reference_type, reference_id) backs
+  # the check so concurrent duplicate deliveries cannot double-credit.
+  #
+  # @param amount_cents [Integer] amount to credit (positive)
+  # @param usage_record [UsageRecord] the billed usage this payout belongs to
+  # @param listing [Listing, nil] the persona that was used
+  # @param breakdown [Hash] charge breakdown (base/fee/payout/tokens)
+  # @return [CreditTransaction, nil] the created record, or nil if already credited
+  def credit_seller_earning!(amount_cents, usage_record:, listing: nil, breakdown: {})
+    return nil if amount_cents.to_i <= 0
+    return nil if seller_earning_credited?(usage_record)
+
+    created = nil
+    transaction do
+      lock!
+      break if seller_earning_credited?(usage_record)
+
+      increment!(:balance_cents, amount_cents)
+      begin
+        created = credit_transactions.create!(
+          transaction_type: "seller_earning",
+          amount_cents: amount_cents,
+          reference_type: "UsageRecord",
+          reference_id: usage_record.id,
+          metadata: {
+            listing_id: listing&.id,
+            base_cost_cents: breakdown[:base_cost_cents],
+            platform_commission_pct: breakdown[:platform_commission_pct],
+            platform_commission_cents: breakdown[:platform_commission_cents],
+            seller_payout_cents: breakdown[:seller_payout_cents] || amount_cents,
+            tokens: breakdown[:tokens] || usage_record.total_tokens
+          }.compact.to_json
+        )
+      rescue ActiveRecord::RecordNotUnique
+        # Lost a race with a concurrent duplicate delivery: the unique
+        # index kept the payout to a single record. Roll back our balance
+        # increment and report a duplicate like the pre-check above.
+        raise ActiveRecord::Rollback
+      end
+    end
+    created
+  end
+
+  # Whether seller earnings for the given usage were already credited.
+  # Single aggregation point for the seller-earning idempotency check.
+  #
+  # @param usage_record [UsageRecord]
+  # @return [Boolean]
+  def seller_earning_credited?(usage_record)
+    credit_transactions.where(
+      transaction_type: "seller_earning",
+      reference_type: "UsageRecord",
+      reference_id: usage_record.id
+    ).exists?
+  end
+
   # Deduct funds for AI usage. Raises InsufficientBalanceError if balance is too low.
   # Uses row-level lock to prevent race conditions between concurrent deductions.
   #

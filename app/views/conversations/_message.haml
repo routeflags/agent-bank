@@ -7,7 +7,7 @@
     - else
       - avatar = message_or_action[:sender].image.present? ? message_or_action[:sender].image.url(:thumb) : missing_avatar(:thumb)
     %div{class: "message-avatar-#{avatar_side}"}
-      = image_tag(avatar, :class => "message-avatar-image")
+      = image_tag(avatar, :class => "message-avatar-image", :alt => "")
     %div{class: "message-content-container-#{avatar_side}"}
       %div{class: "message-time-ago-#{avatar_side}"}
         - if message_or_action[:admin]

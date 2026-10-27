@@ -1,9 +1,9 @@
 - content_for :title_header do
   %h1= t("layouts.no_tribe.settings")
 
-= render :partial => "layouts/left_hand_navigation", :locals => { :links => settings_links_for(@current_user, @current_community) }
+%p.back-to-mypage= link_to "← #{t('lamprey.mypage.dashboard')}", person_path(username: @current_user.username)
 
-.left-navi-section.settings-section.payment-settings
+.left-navi-section.settings-section.payment-settings.settings-no-nav
   - if @presenter.stripe_enabled
     %h2= t("payment_settings.title")
   - else

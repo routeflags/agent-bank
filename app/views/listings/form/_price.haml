@@ -1,7 +1,8 @@
 - payment_gateway = @listing_presenter.commission[:payment_gateway]
 .price-container
   - if @listing_presenter.shape[:price_enabled]
-    = form.label :price, t(".price")
+    -# Issue #52: 価格は「円 / 100万トークン」の単価として必須
+    = form.label :price, t(".price") + " *", :class => "input"
     -# 円マークは入力欄の前（左側）に表示する（Issue #30）
     = render partial: "listings/form/price_currency", locals: {form: form}
     = form.text_field :price, :class => "price-field", :maxlength => "10", :placeholder => "0", :value => (@listing.price ? @listing.price.to_s: 0)

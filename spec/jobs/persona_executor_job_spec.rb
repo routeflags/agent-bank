@@ -109,6 +109,92 @@ RSpec.describe PersonaExecutorJob, type: :model do
     end
   end
 
+  # ── AI プロバイダーのエラー分類 ──────────────────────
+
+  describe "AI プロバイダーのエラー" do
+    let!(:wallet) { FactoryBot.create(:wallet, person: person, community: community, balance_cents: 1000) }
+
+    before do
+      allow_any_instance_of(Person).to receive(:wallet).and_return(wallet)
+    end
+
+    context "利用枠の枯渇（429 / credit_balance_exhausted）" do
+      before do
+        allow(adapter).to receive(:stream).and_raise(
+          Ai::OpenAiAdapter::ApiError.new(
+            "OpenAI streaming error: HTTP 429: Too Many Requests",
+            status: 429,
+            code: "credit_balance_exhausted"
+          )
+        )
+      end
+
+      it "運営への連絡を促すメッセージを provider_billing_error として broadcast する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(
+            type: "stream_error",
+            error_type: "provider_billing_error",
+            error: "AIの利用枠が不足しているため応答できません。運営にお問い合わせください。"
+          )
+        )
+
+        PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello").perform
+      end
+
+      it "エラーをシステムメッセージとして履歴に残す" do
+        allow(ActionCable.server).to receive(:broadcast)
+
+        expect {
+          PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello").perform
+        }.to change { chat_session.chat_messages.where(role: "system").count }.by(1)
+      end
+    end
+
+    context "認証エラー（401）" do
+      before do
+        allow(adapter).to receive(:stream).and_raise(
+          Ai::OpenAiAdapter::ApiError.new("OpenAI API error (401)", status: 401)
+        )
+      end
+
+      it "接続設定の問題として provider_auth_error を broadcast する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(
+            type: "stream_error",
+            error_type: "provider_auth_error",
+            error: "AIの接続設定に問題があるため応答できません。運営にお問い合わせください。"
+          )
+        )
+
+        PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello").perform
+      end
+    end
+
+    context "分類できないエラー" do
+      before do
+        allow(adapter).to receive(:stream).and_raise(
+          Ai::OpenAiAdapter::ApiError.new("OpenAI streaming error: HTTP 500")
+        )
+      end
+
+      it "汎用メッセージを error_type なしで broadcast する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(
+            type: "stream_error",
+            error: "リクエストの処理中にエラーが発生しました。もう一度お試しください。"
+          )
+        ).and_wrap_original do |_method, *args|
+          expect(args.last).not_to have_key(:error_type)
+        end
+
+        PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello").perform
+      end
+    end
+  end
+
   # ── is_result auto-detection (Result panel) ──────────────────────
 
   describe "成果物判定 (is_result)" do
@@ -119,10 +205,11 @@ RSpec.describe PersonaExecutorJob, type: :model do
       allow(adapter).to receive(:last_usage).and_return(
         OpenStruct.new(input_tokens: 10, output_tokens: 5)
       )
+      allow(adapter).to receive(:last_finish_reason).and_return(nil)
       billing_service = instance_double(BillingService)
       allow(BillingService).to receive(:new).and_return(billing_service)
       allow(billing_service).to receive(:process!).and_return(
-        { base_cost_cents: 1, platform_commission_cents: 0, seller_commission_cents: 0, total_charge_cents: 1 }
+        { base_cost_cents: 1, platform_commission_cents: 0, seller_payout_cents: 1, total_charge_cents: 1 }
       )
     end
 
@@ -199,6 +286,7 @@ RSpec.describe PersonaExecutorJob, type: :model do
       allow(adapter).to receive(:last_usage).and_return(
         OpenStruct.new(input_tokens: 10, output_tokens: 5)
       )
+      allow(adapter).to receive(:last_finish_reason).and_return(nil)
 
       # Stub BillingService to raise insufficient balance during deduction
       billing_service = instance_double(BillingService)
@@ -226,6 +314,106 @@ RSpec.describe PersonaExecutorJob, type: :model do
 
       job = PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello")
       job.perform
+    end
+  end
+
+  # ── 打ち切り記録 (finish_reason / Issue #63) ──────────────────────
+
+  describe "トークン上限による打ち切りの記録" do
+    let!(:wallet) { FactoryBot.create(:wallet, person: person, community: community, balance_cents: 1000) }
+
+    before do
+      allow_any_instance_of(Person).to receive(:wallet).and_return(wallet)
+      allow(adapter).to receive(:last_usage).and_return(
+        OpenStruct.new(input_tokens: 10, output_tokens: 5)
+      )
+      billing_service = instance_double(BillingService)
+      allow(BillingService).to receive(:new).and_return(billing_service)
+      allow(billing_service).to receive(:process!).and_return(
+        { base_cost_cents: 1, platform_commission_cents: 0, seller_payout_cents: 1, total_charge_cents: 1 }
+      )
+      allow(ActionCable.server).to receive(:broadcast)
+    end
+
+    context "上限打ち切り（length）の場合" do
+      before do
+        allow(adapter).to receive(:stream)
+          .and_yield({ content: "長い回答の前半", finish_reason: "length" })
+        allow(adapter).to receive(:last_finish_reason).and_return("length")
+      end
+
+      it "metadata に truncated と finish_reason を保存する" do
+        job = PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello")
+        job.perform
+
+        message = chat_session.chat_messages.order(:seq).last
+        expect(message.role).to eq("assistant")
+        expect(message.metadata["truncated"]).to be true
+        expect(message.metadata["finish_reason"]).to eq("length")
+      end
+
+      it "stream_done に truncated: true と finish_reason を broadcast する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(type: "stream_done", truncated: true, finish_reason: "length")
+        ).and_call_original
+
+        job = PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello")
+        job.perform
+      end
+    end
+
+    context "正常完結（stop）の場合" do
+      before do
+        allow(adapter).to receive(:stream)
+          .and_yield({ content: "はい、了解しました。" })
+        allow(adapter).to receive(:last_finish_reason).and_return("stop")
+      end
+
+      it "metadata に truncated を保存しない（従来どおり）" do
+        job = PersonaExecutorJob.new(chat_session.id, "msg-1", "お願いします")
+        job.perform
+
+        message = chat_session.chat_messages.order(:seq).last
+        expect(message.metadata).to be_nil
+      end
+
+      it "stream_done に truncated: false を broadcast する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(type: "stream_done", truncated: false, finish_reason: "stop")
+        ).and_call_original
+
+        job = PersonaExecutorJob.new(chat_session.id, "msg-1", "お願いします")
+        job.perform
+      end
+    end
+
+    context "Anthropic の max_tokens の場合" do
+      before do
+        allow(adapter).to receive(:stream)
+          .and_yield({ content: "長い回答の前半", stop_reason: "max_tokens" })
+        allow(adapter).to receive(:last_finish_reason).and_return("max_tokens")
+      end
+
+      it "metadata に truncated と finish_reason を保存する" do
+        job = PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello")
+        job.perform
+
+        message = chat_session.chat_messages.order(:seq).last
+        expect(message.metadata["truncated"]).to be true
+        expect(message.metadata["finish_reason"]).to eq("max_tokens")
+      end
+
+      it "stream_done に truncated: true を broadcast する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "persona_chat_#{chat_session.id}",
+          hash_including(type: "stream_done", truncated: true, finish_reason: "max_tokens")
+        ).and_call_original
+
+        job = PersonaExecutorJob.new(chat_session.id, "msg-1", "Hello")
+        job.perform
+      end
     end
   end
 end

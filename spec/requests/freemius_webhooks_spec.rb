@@ -107,8 +107,6 @@ RSpec.describe "FreemiusWebhooks", type: :request do
 
     before do
       allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return({ "5678" => 1000, "5679" => 3000 }.to_json)
-      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
-      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return(nil)
       allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return("0.0067")
     end
 
@@ -184,130 +182,6 @@ RSpec.describe "FreemiusWebhooks", type: :request do
       )
       expect { signed_post(fixed_payload(email: buyer_email)) }
         .to change { wallet.reload.balance_cents }.from(100).to(1100)
-    end
-  end
-
-  describe "POST /webhooks/freemius payment.created (persona_purchase, real event)" do
-    let(:author) { FactoryBot.create(:person, community_id: community.id) }
-    let(:listing) { FactoryBot.create(:listing, community_id: community.id, author: author) }
-    let(:initial_grant_cents) do
-      BillingConfig.included_tokens(:subscription) * BillingConfig.per_token_price_cents(:subscription)
-    end
-    let(:payload) do
-      {
-        event: "payment.created",
-        objects: {
-          payment: {
-            id: "fs_pay_p1",
-            gross: 30.0,
-            currency: "usd",
-            metadata: { type: "persona_purchase", user_id: person.id, listing_id: listing.id }
-          }
-        }
-      }
-    end
-
-    before do
-      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_p1").and_return(
-        { "id" => "fs_pay_p1", "gross" => 30.0, "currency" => "usd" }
-      )
-    end
-
-    it "購入権利（UserPlanSubscription）を作成する" do
-      expect { signed_post(payload) }
-        .to change(UserPlanSubscription, :count).by(1)
-
-      expect(response).to have_http_status(200)
-      sub = UserPlanSubscription.last
-      expect(sub.person_id).to eq(person.id)
-      expect(sub.listing_id).to eq(listing.id)
-      expect(sub.status).to eq("active")
-    end
-
-    it "payment_reference に freemius:<payment_id> を記録し、初期トークンを付与する" do
-      expect { signed_post(payload) }
-        .to change { person.reload.wallet.balance_cents }.from(0).to(initial_grant_cents)
-
-      tx = person.wallet.credit_transactions.where(transaction_type: "topup").last
-      expect(tx.metadata).to include("freemius:fs_pay_p1")
-    end
-
-    it "ウォレットチャージ（wallet topup）として扱わない（決済額はチャージしない）" do
-      signed_post(payload)
-
-      # 付与されるのは初期トークンのみ。決済額 3000 はチャージされない
-      expect(person.reload.wallet.balance_cents).to eq(initial_grant_cents)
-      expect(person.wallet.balance_cents).not_to eq(3000)
-    end
-
-    it "同じ payment の再送で二重に付与しない（冪等）" do
-      signed_post(payload)
-
-      expect { signed_post(payload) }
-        .not_to change(UserPlanSubscription, :count)
-      expect(response).to have_http_status(200)
-      expect(person.reload.wallet.balance_cents).to eq(initial_grant_cents)
-    end
-
-    it "旧名 payment.completed でも受理する（後方互換）" do
-      legacy = {
-        event: "payment.completed",
-        objects: {
-          payment: {
-            id: "fs_pay_p1",
-            gross: 30.0,
-            metadata: { type: "persona_purchase", user_id: person.id, listing_id: listing.id }
-          }
-        }
-      }
-
-      expect { signed_post(legacy) }
-        .to change(UserPlanSubscription, :count).by(1)
-      expect(response).to have_http_status(200)
-    end
-
-    it "リモートで completed でなければ購入権利を作成しない" do
-      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_p1").and_return(
-        { "id" => "fs_pay_p1", "status" => "pending", "gross" => 30.0 }
-      )
-
-      expect { signed_post(payload) }
-        .not_to change(UserPlanSubscription, :count)
-      expect(response).to have_http_status(200)
-    end
-
-    it "listing が見つからない場合は 200 でスキップする（500 にしない）" do
-      payload[:objects][:payment][:metadata][:listing_id] = -1
-
-      expect { signed_post(payload) }
-        .not_to change(UserPlanSubscription, :count)
-      expect(response).to have_http_status(200)
-    end
-
-    it "person が見つからない場合は 200 でスキップする（500 にしない）" do
-      payload[:objects][:payment][:metadata][:user_id] = "missing_person_id"
-
-      expect { signed_post(payload) }
-        .not_to change(UserPlanSubscription, :count)
-      expect(response).to have_http_status(200)
-    end
-
-    it "metadata に listing_id が無い場合は 200 でスキップする" do
-      payload[:objects][:payment][:metadata].delete(:listing_id)
-
-      expect { signed_post(payload) }
-        .not_to change(UserPlanSubscription, :count)
-      expect(response).to have_http_status(200)
-    end
-
-    it "署名が不正なら 401 で、何も付与しない" do
-      expect {
-        post "/webhooks/freemius",
-             params: payload.to_json,
-             headers: { "CONTENT_TYPE" => "application/json", "HTTP_X_SIGNATURE" => "bad" }
-      }.not_to change(UserPlanSubscription, :count)
-
-      expect(response).to have_http_status(401)
     end
   end
 
@@ -395,68 +269,8 @@ RSpec.describe "FreemiusWebhooks", type: :request do
   end
 
   describe "POST /webhooks/freemius API failure is auxiliary (Issue #43 completion)" do
-    let(:author) { FactoryBot.create(:person, community_id: community.id) }
-    let(:listing) { FactoryBot.create(:listing, community_id: community.id, author: author) }
-
-    it "persona: API failure (401)でも署名正なら購入権利を付与する" do
-      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_aux")
-        .and_raise(FreemiusClient::ApiError.new("Freemius API error (401): unauthorized"))
-      payload = {
-        event: "payment.created",
-        objects: {
-          payment: {
-            id: "fs_pay_aux",
-            gross: 30.0,
-            currency: "usd",
-            metadata: { type: "persona_purchase", user_id: person.id, listing_id: listing.id }
-          }
-        }
-      }
-      expect { signed_post(payload) }.to change(UserPlanSubscription, :count).by(1)
-      expect(response).to have_http_status(200)
-    end
-
-    it "persona: 実在しない payment id＋署名正＋API 404でも付与する（warn 付き継続）" do
-      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_missing")
-        .and_raise(FreemiusClient::ApiError.new("Freemius API error (404): not found"))
-      payload = {
-        event: "payment.created",
-        objects: {
-          payment: {
-            id: "fs_pay_missing",
-            gross: 30.0,
-            currency: "usd",
-            metadata: { type: "persona_purchase", user_id: person.id, listing_id: listing.id }
-          }
-        }
-      }
-      expect { signed_post(payload) }.to change(UserPlanSubscription, :count).by(1)
-      expect(response).to have_http_status(200)
-    end
-
-    it "persona: API が affirmative に pending を返したときは付与しない" do
-      allow(FreemiusClient).to receive(:get_payment).with("fs_pay_aux")
-        .and_return({ "id" => "fs_pay_aux", "status" => "pending", "gross" => 30.0 })
-      payload = {
-        event: "payment.created",
-        objects: {
-          payment: {
-            id: "fs_pay_aux",
-            gross: 30.0,
-            metadata: { type: "persona_purchase", user_id: person.id, listing_id: listing.id }
-          }
-        }
-      }
-      expect { signed_post(payload) }.not_to change(UserPlanSubscription, :count)
-      expect(response).to have_http_status(200)
-    end
-
     it "fixed prepaid: API failureでも署名正なら map 額を加算する" do
       allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return({ "5678" => 1000 }.to_json)
-      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
-      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return(nil)
-      allow(ENV).to receive(:[]).with("PLAN_ONETIME_ID").and_return(nil)
-      allow(ENV).to receive(:[]).with("PLAN_MONTHLY_ID").and_return(nil)
       allow(FreemiusClient).to receive(:get_payment).with("fs_topup_aux")
         .and_raise(FreemiusClient::ApiError.new("Freemius API error (503): unavailable"))
       payload = {
@@ -505,9 +319,7 @@ RSpec.describe "FreemiusWebhooks", type: :request do
 
   describe "POST /webhooks/freemius 実配信の payload 形（トップレベル type）" do
     before do
-      allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return({ "74358" => 1000 }.to_json)
-      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_MAP").and_return(nil)
-      allow(ENV).to receive(:[]).with("FREEMIUS_PLAN_ID").and_return(nil)
+      allow(ENV).to receive(:[]).with("FREEMIUS_TOPUP_PLAN_MAP").and_return({ "74358" => 600 }.to_json)
       allow(ENV).to receive(:[]).with("FREEMIUS_JPY_USD_RATE").and_return("0.0065")
     end
 
@@ -542,7 +354,7 @@ RSpec.describe "FreemiusWebhooks", type: :request do
       )
 
       expect { signed_post(real_payload) }
-        .to change { wallet.reload.balance_cents }.from(0).to(1000)
+        .to change { wallet.reload.balance_cents }.from(0).to(600)
       expect(response).to have_http_status(200)
     end
 

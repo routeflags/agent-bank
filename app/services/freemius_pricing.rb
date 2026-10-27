@@ -147,24 +147,56 @@ module FreemiusPricing
       deviation <= pct.to_f
     end
 
-    # Compares a converted amount against the known Dashboard plan price.
-    # Logs a warning on drift but never blocks: the hosted checkout page
-    # shows the true charge, so availability is preferred over strictness.
+    # Reverse-margin check (Issue #53): warns when the credit value meets or
+    # exceeds the plan price (customer burden < credit = operator loss).
+    # Normal margin (converted < expected) returns :ok WITHOUT warning, even
+    # when the numerical drift is large. Example (rate 0.0065): 600 yen ->
+    # 390c vs plan 74358 ($5.00 = 500c) is an intentional ~22% margin, so :ok.
+    # 800 yen -> 520c vs 500c is a reverse margin, so :mismatch with a warn.
+    # Never blocks: the hosted checkout page shows the true charge.
     #
     # @param plan_id [String, Integer, nil]
-    # @param converted_cents [Integer]
+    # @param converted_cents [Integer] credit (yen) converted to USD cents
     # @return [Symbol] :ok, :unknown (no map entry), or :mismatch
     def check_plan_price(plan_id, converted_cents)
       expected = plan_price_map[plan_id.to_s]
-      return :unknown if expected.nil?
+      return :unknown if expected.nil? || expected.to_i <= 0
 
-      if within_tolerance?(converted_cents, expected)
+      converted = converted_cents.to_i
+      expected_cents = expected.to_i
+      if converted >= expected_cents
+        Rails.logger.warn(
+          "[FreemiusPricing] reverse margin: plan=#{plan_id} " \
+          "converted=#{converted}c >= expected=#{expected_cents}c " \
+          "(credit JPY converts to >= plan price USD)"
+        )
+        :mismatch
+      else
+        :ok
+      end
+    end
+
+    # Dashboard price-change detection (Issue #53): compares the verified
+    # Freemius gross against the operator-maintained expected price
+    # (`FREEMIUS_PLAN_PRICE_MAP`). Warns on drift beyond tolerance but never
+    # blocks. Use alongside `check_plan_price`: the former guards the margin
+    # (credit vs charge), the latter guards map staleness (actual vs expected).
+    #
+    # @param plan_id [String, Integer, nil]
+    # @param verified_cents [Integer] gross USD cents verified via Freemius API
+    # @param pct [Float] allowed relative deviation in percent
+    # @return [Symbol] :ok, :unknown (no map entry), or :mismatch
+    def check_verified_price(plan_id, verified_cents, pct = tolerance_pct)
+      expected = plan_price_map[plan_id.to_s]
+      return :unknown if expected.nil? || expected.to_i <= 0
+
+      if within_tolerance?(verified_cents, expected, pct)
         :ok
       else
         Rails.logger.warn(
           "[FreemiusPricing] plan price drift: plan=#{plan_id} " \
-          "converted=#{converted_cents}c expected=#{expected}c " \
-          "tolerance=#{tolerance_pct}%"
+          "verified=#{verified_cents.to_i}c expected=#{expected.to_i}c " \
+          "tolerance=#{pct}%"
         )
         :mismatch
       end

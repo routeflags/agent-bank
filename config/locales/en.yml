@@ -887,7 +887,7 @@ en:
         now.
       share_type: You must select one.
       valid_until: This date must be between current time and 6 months from now.
-      price: Price must be a whole number.
+      price: Price (JPY / 1M tokens) is required. Enter 1 or more in half-width numbers.
       minimum_price: Minimum price is %{minimum_price} %{currency}.
     testimonials:
       you_must_explain_not_neutral_feedback: If you want to give non-neutral feedback,
@@ -1589,8 +1589,12 @@ en:
           really want to continue?
       location:
         location: Location
+      open:
+        label: Listing status
+        open: Open
+        closed: Closed
       price:
-        price: Price
+        price: Price (JPY / 1M tokens, half-width numbers)
         per: per
         per_million_tokens: JPY / 1M tokens
         per_day: per day
@@ -2819,6 +2823,7 @@ en:
       stats_published: "Listings"
       stats_total_views: "Total views"
       stats_total_sold: "Total sold"
+      stats_total_tokens: "Tokens sold"
       menu: "Menu"
       dashboard: "Dashboard"
       manage_listings: "Manage listings"
@@ -2826,8 +2831,26 @@ en:
       settings: "Settings"
       summary_published: "Published personas"
       summary_total_sold: "Total sold"
+      summary_total_tokens: "Tokens sold"
       summary_total_views: "Total views"
       summary_avg_rating: "Average rating"
+      wallet_balance_label: "Wallet balance"
+      wallet_charge: "Top up"
+      seller_earning_label: "Earnings"
+      seller_earning_title: "💰 Earnings"
+      seller_earning_th_listing: "Skill"
+      seller_earning_th_date: "Date"
+      seller_earning_th_amount: "Amount"
+      seller_earning_empty: "No earnings yet"
+      seller_earning_unknown_listing: "(Removed listing)"
+      skill_usage_title: "Skill usage history"
+      skill_usage_th_datetime: "Date"
+      skill_usage_th_listing: "Listing"
+      skill_usage_th_user: "User"
+      skill_usage_th_messages: "Messages"
+      skill_usage_th_tokens: "Tokens"
+      skill_usage_th_charge: "Charge"
+      skill_usage_empty: "No one has used your skills yet."
       new_listing: "New listing"
       about_title: "About"
       table_title: "Active skills"
@@ -2840,6 +2863,8 @@ en:
       th_actions: "Actions"
       status_published: "Active"
       status_closed: "Closed"
+      price_unset: "Price not set"
+      price_unset_hint: "Set a price (JPY / 1M tokens)"
       action_edit: "Edit"
       action_view: "View"
       empty_listings: "You have no listings yet"
@@ -2854,8 +2879,7 @@ en:
       contact_seller: "💬 Contact the seller"
       rating_none: "No rating yet"
       review_none: "No reviews yet"
-      free: "Free"
-      price_note: "May vary depending on token usage"
+      price_note: "Unit price per JPY / 1M tokens. Charged based on token usage"
       usd_billing_note: "Estimated USD charge: approx. $%{usd} (converted from ¥%{jpy})"
       login_required: "Login required"
       skill_detail: "Skill details"
@@ -2870,6 +2894,8 @@ en:
       related_skills: "Related skills"
       pricing_model: "Pricing"
       token_price: "Token price"
+      price_unset: "Price not set"
+      set_price: "Set a price"
       estimated_cost: "Estimated cost"
       free_trial: "Free trial"
       privacy: "Privacy terms"
@@ -2902,29 +2928,17 @@ en:
       wallet_submit: "Add"
       wallet_redirecting: "Redirecting to checkout…"
       wallet_add_credits: "Add credits"
-      wallet_buy: "Buy"
       wallet_add_preparing: "Add (coming soon)"
       wallet_add_preparing_body: "Wallet top-up is coming soon. Please wait for the official release."
       wallet_topup_unavailable_reason: "Top-up is currently unavailable (payments are not configured)."
-      purchase_preparing_body: "The purchase page for this persona is coming soon. Please wait for the official release."
-      purchase_not_configured: "Purchases are not available yet (payments are not configured). Please try again later."
-      purchase_checkout_failed: "Failed to create the checkout page. Please try again later."
-      purchase_payment_unconfigured: "Purchases are unavailable right now (payment configuration is incomplete). Please try again later."
-      purchase_usd_charge: "Charge: ¥%{jpy} (approx. $%{usd} USD)"
       topup_fixed_title: "Fixed-amount top-up"
       topup_select_plan: "Choose an amount"
       topup_fx_note: "JPY display is an estimate and may change with the exchange rate. The actual charge is in USD on the checkout page."
       topup_usd_estimate: "approx. $%{usd} (charged in USD)"
       topup_credit_label: "Top-up: ¥%{jpy}"
       topup_invalid_plan: "The selected plan is unavailable. Please choose again."
-      wallet_insufficient_with_purchase: "Your wallet balance is insufficient. Top up, or buy directly (no balance required)."
-      purchase_without_balance: "You can buy directly with no balance. Top-up is an optional prepayment."
-      purchase_direct_default: "Direct purchase is recommended. Top-up is optional."
-      dev_purchase_success: "✅ Purchase complete. You can start chatting now."
-      dev_purchase_failed: "The purchase could not be completed. Please try again later."
       new_chat_title: "New chat"
       insufficient_tokens: "Not enough tokens."
-      purchase_required: "You need to purchase this persona to use it."
       error_generic: "An error occurred."
       wallet_insufficient: "Your wallet balance is insufficient."
       connect_failed: "Could not connect to the chat. Please try again shortly."
@@ -2968,10 +2982,18 @@ en:
       a11y_close: "Close chat"
       a11y_input: "Chat message input"
       a11y_send: "Send message"
+      a11y_connected: "Connected"
+      a11y_disconnected: "Disconnected"
+      truncated_notice: "The response hit the token limit and was cut off. Press “Continue” if you need the rest."
+      truncated_continue: "Continue"
+      truncated_continue_prompt: "Please continue from where the previous response stopped."
+      copy: "Copy"
+      copied: "Copied"
     freemius_return:
       success_title: "Purchase complete"
       success_body: "Your payment was received. Please wait a moment while your purchase is activated."
       pending_note: "Activation may take a few seconds. If it is not reflected, please try again shortly."
       invalid_signature: "The confirmation could not be verified. Your payment may still have completed. Please contact support if it is not reflected."
-      back_to_listing: "Back to the purchased persona"
       back_to_top: "Back to top"
+      back_to_mypage: "Back to mypage"
+      wallet_delay_note: "It may take a few seconds for the balance to update."

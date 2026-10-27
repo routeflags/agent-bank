@@ -29,9 +29,17 @@ class PeopleController < Devise::RegistrationsController
 
     # raku-mypage のKPI（DESIGN.md §16 — 実データのみ表示。ハードコード値禁止）
     person_listings = Listing.where(community_id: @current_community.id, author_id: @service.person.id, deleted: false)
+    # 販売トークン数（Issue #75/#76）: 自分の出品に紐づくチャットで消費された
+    # assistant 回答のトークン合計。assistant メッセージ1件に入力+出力の両方が
+    # 記録されるため input_tokens + output_tokens を合算する（output のみの定義より大きい方を採用）。
+    # usage_records には listing_id が無いため chat_messages を chat_sessions.listing_id 経由で辿る。
+    total_tokens = ChatMessage.joins(chat_session: :listing)
+                              .where(role: "assistant")
+                              .where(listings: { author_id: @service.person.id, community_id: @current_community.id })
+                              .sum("COALESCE(chat_messages.input_tokens, 0) + COALESCE(chat_messages.output_tokens, 0)").to_i
     @raku_stats = {
       published: @service.listings.total_entries,
-      total_sold: person_listings.sum(:total_sold).to_i,
+      total_tokens: total_tokens,
       total_views: person_listings.sum(:times_viewed).to_i,
       avg_rating: person_listings.where("avg_rating > 0").average(:avg_rating)&.round(1)
     }
@@ -44,6 +52,25 @@ class PeopleController < Devise::RegistrationsController
     @skill_listings = skill_scope.includes(:listing_images)
                                  .order(Arel.sql("listings.sort_date DESC"))
                                  .paginate(page: 1, per_page: 20)
+
+    # 出品者への収益分配（Issue #59）: 本人のみ。残高表示（Issue #58）と同じ
+    # ウォレットの seller_earning 累計と直近10件。読み取り専用で参照し、
+    # ウォレット行が無くても作成しない。
+    @seller_earning_total_cents = 0
+    @seller_earning_items = []
+    if @current_user.present? && @current_user == @service.person
+      seller_wallet = @service.person.wallet_for_community(@current_community.id)
+      if seller_wallet
+        seller_scope = seller_wallet.credit_transactions.where(transaction_type: "seller_earning")
+        @seller_earning_total_cents = seller_scope.sum(:amount_cents)
+        recent = seller_scope.order(created_at: :desc).limit(10).to_a
+        listings_by_id = Listing.where(id: recent.map { |tx| seller_earning_listing_id(tx) }.compact)
+                                .index_by(&:id)
+        @seller_earning_items = recent.map do |tx|
+          { transaction: tx, listing: listings_by_id[seller_earning_listing_id(tx)] }
+        end
+      end
+    end
   end
 
   def new
@@ -278,6 +305,14 @@ class PeopleController < Devise::RegistrationsController
   end
 
   private
+
+  # seller_earning の metadata から出品 ID を取り出す（Issue #59）。
+  # metadata は JSON 文字列。壊れていても表示全体を落とさない。
+  def seller_earning_listing_id(credit_transaction)
+    JSON.parse(credit_transaction.metadata || "{}")["listing_id"]
+  rescue JSON::ParserError
+    nil
+  end
 
   # Create a new person by params and current community
   def new_person(initial_params, current_community)

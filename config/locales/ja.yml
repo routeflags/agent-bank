@@ -733,7 +733,7 @@ ja:
       departure_time: 出発時間は、現在から１年後の間にしてください。
       share_type: どれか選択してください。
       valid_until: 日付は、今から半年後の間にしてください。
-      price: 価格は半角数字で記入してください。
+      price: 価格（円 / 100万トークン）は必須です。1以上の半角数字で記入してください。
       minimum_price: "%{minimum_price}%{currency}以上の値段を設定してください。"
     testimonials:
       you_must_explain_not_neutral_feedback: "「普通（1-5の数字のレベルでは3）」以外の回答、すなわち良かった場合、あるいは期待以下だった場合は、その理由のご説明をお願いします。"
@@ -1298,8 +1298,12 @@ ja:
         images_not_uploaded_confirm: 全ての画像のアップロードが完了しておりません。本当に次へ進みますか？
       location:
         location: 場所 （地区、郵便番号、市町区村名...）
+      open:
+        label: 公開ステータス
+        open: 公開する
+        closed: 非公開にする
       price:
-        price: 価格（半角数字でご入力ください）
+        price: 価格（円 / 100万トークン、半角数字でご入力ください）
         per: につき
         per_million_tokens: 円 / 100万トークン
         per_day: 1日あたり
@@ -2325,29 +2329,17 @@ ja:
       wallet_submit: "追加する"
       wallet_redirecting: "決済ページへ移動しています…"
       wallet_add_credits: "クレジットを追加する"
-      wallet_buy: "購入する"
       wallet_add_preparing: "追加する（準備中）"
       wallet_add_preparing_body: "ウォレットへの追加機能は現在準備中です。正式リリースまでお待ちください。"
       wallet_topup_unavailable_reason: "決済が未設定のため、現在チャージできません。"
-      purchase_preparing_body: "このペルソナの購入ページは現在準備中です。正式リリースまでお待ちください。"
-      purchase_not_configured: "購入機能は現在準備中です（決済が未設定）。しばらくしてから再度お試しください。"
-      purchase_checkout_failed: "購入ページの作成に失敗しました。時間をおいて再度お試しください。"
-      purchase_payment_unconfigured: "決済設定が不足しているため、現在購入できません。しばらくしてから再度お試しください。"
-      purchase_usd_charge: "お支払い: ¥%{jpy}（約 $%{usd} USDで請求されます）"
       topup_fixed_title: "固定額チャージ"
       topup_select_plan: "金額を選択"
       topup_fx_note: "円表示は目安です。レート変動で表示額が変わります。実際の請求はUSD建てで決済画面に表示されます。"
       topup_usd_estimate: "約 $%{usd}（USD請求）"
       topup_credit_label: "チャージ額: ¥%{jpy}"
       topup_invalid_plan: "指定されたプランは利用できません。金額を選択し直してください。"
-      wallet_insufficient_with_purchase: "ウォレットの残高が不足しています。チャージするか、そのまま直接購入もできます（残高がなくても購入できます）。"
-      purchase_without_balance: "残高がなくても直接購入できます。チャージは任意の前払いです。"
-      purchase_direct_default: "まずは直接購入がおすすめです。チャージは任意です。"
-      dev_purchase_success: "✅ 購入が完了しました。チャットを開始できます。"
-      dev_purchase_failed: "購入処理に失敗しました。時間をおいて再度お試しください。"
       new_chat_title: "新しいチャット"
       insufficient_tokens: "トークンが不足しています。"
-      purchase_required: "このペルソナを利用するには購入が必要です。"
       error_generic: "エラーが発生しました。"
       wallet_insufficient: "ウォレットの残高が不足しています。"
       connect_failed: "チャットに接続できませんでした。しばらくしてからもう一度お試しください。"
@@ -2391,13 +2383,21 @@ ja:
       a11y_close: "チャットを閉じる"
       a11y_input: "チャットメッセージ入力"
       a11y_send: "メッセージを送信"
+      a11y_connected: "接続済み"
+      a11y_disconnected: "未接続"
+      truncated_notice: "回答がトークン上限に達したため、途中で切れています。続きが必要な場合は「続きを生成」を押してください。"
+      truncated_continue: "続きを生成"
+      truncated_continue_prompt: "続きを生成してください。前回の回答の続きからお願いします。"
+      copy: "コピー"
+      copied: "コピー済み"
     freemius_return:
       success_title: "購入が完了しました"
       success_body: "お支払いを受け付けました。購入内容の反映まで少々お待ちください。"
       pending_note: "反映に数秒かかる場合があります。反映されない場合は、しばらくしてから再度お試しください。"
       invalid_signature: "確認情報の検証ができませんでした。決済は完了している可能性があります。反映されない場合はサポートまでお問い合わせください。"
-      back_to_listing: "購入したペルソナのページへ戻る"
       back_to_top: "トップへ戻る"
+      back_to_mypage: "マイページへ戻る"
+      wallet_delay_note: "残高の反映まで数秒かかることがあります。"
     homepage:
       hero_tagline: "新着スキルが毎日追加中"
       hero_title: "AIの力を使いこなせ。"
@@ -2476,6 +2476,7 @@ ja:
       stats_published: "出品数"
       stats_total_views: "総閲覧数"
       stats_total_sold: "総販売数"
+      stats_total_tokens: "販売トークン数"
       menu: "メニュー"
       dashboard: "ダッシュボード"
       manage_listings: "出品管理"
@@ -2483,8 +2484,26 @@ ja:
       settings: "設定"
       summary_published: "出品中のペルソナ"
       summary_total_sold: "総販売数"
+      summary_total_tokens: "販売トークン数"
       summary_total_views: "総閲覧数"
       summary_avg_rating: "平均評価"
+      wallet_balance_label: "ウォレット残高"
+      wallet_charge: "チャージする"
+      seller_earning_label: "受取"
+      seller_earning_title: "💰 受取"
+      seller_earning_th_listing: "スキル名"
+      seller_earning_th_date: "日時"
+      seller_earning_th_amount: "金額"
+      seller_earning_empty: "まだ受取がありません"
+      seller_earning_unknown_listing: "（削除された出品）"
+      skill_usage_title: "スキル利用履歴"
+      skill_usage_th_datetime: "利用日時"
+      skill_usage_th_listing: "出品"
+      skill_usage_th_user: "利用者"
+      skill_usage_th_messages: "メッセージ数"
+      skill_usage_th_tokens: "トークン数"
+      skill_usage_th_charge: "課金額"
+      skill_usage_empty: "まだ利用されていません"
       new_listing: "新規出品"
       about_title: "自己紹介"
       table_title: "出品中スキル"
@@ -2495,8 +2514,10 @@ ja:
       th_price: "価格"
       th_status: "ステータス"
       th_actions: "操作"
-      status_published: "公開中"
-      status_closed: "終了"
+      status_published: 公開中
+      status_closed: 終了
+      price_unset: 価格未設定
+      price_unset_hint: 価格（円 / 100万トークン）を設定してください
       action_edit: "編集"
       action_view: "表示"
       empty_listings: "まだ出品がありません"
@@ -2511,8 +2532,7 @@ ja:
       contact_seller: "💬 出品者に問い合わせ"
       rating_none: "評価なし"
       review_none: "レビューなし"
-      free: "無料"
-      price_note: "※トークン消費に応じて変動する場合があります"
+      price_note: ※円 / 100万トークンの単価です。トークン消費量に応じて課金されます
       usd_billing_note: "USD請求額の目安: 約 $%{usd}（¥%{jpy}換算）"
       login_required: "ログインが必要です"
       skill_detail: "スキル詳細"
@@ -2526,7 +2546,9 @@ ja:
       reviews: "レビュー"
       related_skills: "関連スキル"
       pricing_model: "料金体系"
-      token_price: "トークン単価"
+      token_price: トークン単価
+      price_unset: 価格未設定
+      set_price: 価格を設定する
       estimated_cost: "概算利用料金"
       free_trial: "無料体験"
       privacy: "プライバシー条件"

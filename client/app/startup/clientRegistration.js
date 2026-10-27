@@ -10,6 +10,7 @@ import SearchPageApp from './SearchPageApp';
 import ManageAvailabilityApp from './ManageAvailabilityApp';
 import ListingWorkingHoursApp from './ListingWorkingHoursApp';
 import ChatPanelApp from './ChatPanelApp';
+import MypageWalletApp from './MypageWalletApp';
 
 ReactOnRails.register({
   OnboardingGuideApp,
@@ -19,6 +20,7 @@ ReactOnRails.register({
   ManageAvailabilityApp,
   ListingWorkingHoursApp,
   ChatPanelApp,
+  MypageWalletApp,
 });
 
 ReactOnRails.registerStore({

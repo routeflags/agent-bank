@@ -12,6 +12,8 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
   let(:other_person) { FactoryBot.create(:person, community_id: community.id) }
   let(:listing)   { FactoryBot.create(:listing, community_id: community.id, author: person) }
   let(:other_listing) { FactoryBot.create(:listing, community_id: community.id, author: other_person) }
+  # チャット開始の条件は残高（Issue #51）。既定では残高ありのウォレットを持たせる。
+  let!(:wallet) { FactoryBot.create(:wallet, person: person, community: community, balance_cents: 1_000) }
 
   # ── Helpers ──────────────────────────────────────────────────────────
   def sign_in_as(user)
@@ -106,8 +108,9 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
       end
     end
 
-    context "未購入ユーザーがセッションを作成を試みる" do
+    context "残高不足のユーザーがセッション作成を試みる" do
       before do
+        wallet.update!(balance_cents: 0)
         sign_in_as(person)
         post "/api/v1/chat_sessions", params: { listing_id: listing.id }
       end
@@ -116,14 +119,19 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
         expect(response).to have_http_status(403)
       end
 
-      it "returns purchase_required error type" do
+      it "returns insufficient_balance error type" do
         json = JSON.parse(response.body)
-        expect(json["error_type"]).to eq("purchase_required")
+        expect(json["error_type"]).to eq("insufficient_balance")
+      end
+
+      it "returns the current balance" do
+        json = JSON.parse(response.body)
+        expect(json["current_balance"]).to be_a(Integer)
       end
 
       it "returns Japanese error message" do
         json = JSON.parse(response.body)
-        expect(json["error"]).to include("購入してください")
+        expect(json["error"]).to include("残高")
       end
 
       it "does not create a session" do
@@ -131,18 +139,20 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
       end
     end
 
-    context "無料ペルソナ（価格 0）は購入なしでセッションを作成できる" do
-      let(:free_listing) do
+    # Issue #52: 全出品は有料。残高さえあればサブスク無しでセッションを
+    # 作成できる（価格による例外なし・残高ゲートのみ）。
+    context "有料ペルソナはサブスクなし・残高ありでセッションを作成できる" do
+      let(:paid_listing) do
         FactoryBot.create(:listing,
                           community_id: community.id,
                           author: other_person,
-                          price: Money.new(0, "USD"),
+                          price: Money.new(2000, "USD"),
                           default_run_mode: "run_online")
       end
 
       before do
         sign_in_as(person)
-        post "/api/v1/chat_sessions", params: { listing_id: free_listing.id }
+        post "/api/v1/chat_sessions", params: { listing_id: paid_listing.id }
       end
 
       it "returns 201" do
@@ -152,7 +162,7 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
       it "purchase_required を返さない" do
         json = JSON.parse(response.body)
         expect(json["error_type"]).to be_nil
-        expect(json["chat_session"]["listing_id"]).to eq(free_listing.id)
+        expect(json["chat_session"]["listing_id"]).to eq(paid_listing.id)
       end
 
       it "サブスクリプション無しでもセッションを作成する" do
@@ -422,8 +432,9 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
   # =====================================================================
   # POST /api/v1/chat_sessions — Purchase verification edge cases
   # =====================================================================
-  describe "POST /api/v1/chat_sessions — 購入検証エッジケース" do
-    context "サブスクリプションが期限切れの場合" do
+  describe "POST /api/v1/chat_sessions — 残高ゲート（Issue #51）" do
+    # サブスクリプションの状態はチャット開始の可否に影響しない（残高のみで判定する）。
+    context "サブスクリプションが期限切れでも残高があれば開始できる" do
       before do
         FactoryBot.create(:user_plan_subscription, person: person, listing: listing,
                                                    status: "expired", current_period_end: 1.day.ago)
@@ -431,16 +442,12 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
         post "/api/v1/chat_sessions", params: { listing_id: listing.id }
       end
 
-      it "returns 403" do
-        expect(response).to have_http_status(403)
-      end
-
-      it "does not create a session" do
-        expect(ChatSession.count).to eq(0)
+      it "returns 201（サブスク状態は無関係）" do
+        expect(response).to have_http_status(201)
       end
     end
 
-    context "サブスクリプションがキャンセル済みの場合" do
+    context "サブスクリプションがキャンセル済みでも残高があれば開始できる" do
       before do
         FactoryBot.create(:user_plan_subscription, person: person, listing: listing,
                                                    status: "cancelled")
@@ -448,8 +455,8 @@ RSpec.describe "Api::V1::ChatSessions", type: :request do
         post "/api/v1/chat_sessions", params: { listing_id: listing.id }
       end
 
-      it "returns 403" do
-        expect(response).to have_http_status(403)
+      it "returns 201（サブスク状態は無関係）" do
+        expect(response).to have_http_status(201)
       end
     end
 

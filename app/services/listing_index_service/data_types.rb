@@ -22,6 +22,9 @@ module ListingIndexService::DataTypes
     [:scale, :to_float, :optional],
     [:offset, :to_float, :optional],
     [:sort, :symbol, :optional],
+    # 一覧の並び順（Issue #80 / #81）。`:sort` は検索エンジン用のキーで、
+    # DB フォールバックでは無視されるため、並び順は別のキーで渡す。
+    [:sort_by, :string, :optional],
     [:distance_unit, :symbol, :optional],
     [:categories, :array, :optional],
     [:listing_shape_ids, :array, :optional],

@@ -472,6 +472,8 @@ describe ListingsController, type: :controller do
                          price: Money.new(4567, "USD")
                         )
     }
+    # Issue #52: 価格は必須。旧来の価格未設定データを再現するには
+    # バリデーションを迂回して price_cents を直接書き換える。
     let(:listing_without_price) {
       FactoryBot.create(:listing,
                          community_id: community.id,
@@ -482,9 +484,8 @@ describe ListingsController, type: :controller do
                          action_button_tr_key: sell_shape[:action_button_tr_key],
                          unit_type: nil,
                          title: "Batman-s Top 10 Amazing Halo Tips",
-                         description: "O lewd purpose! O unworthy merit! Thou art th' Lord's fair zeal.",
-                         price_cents: 0
-                        )
+                         description: "O lewd purpose! O unworthy merit! Thou art th' Lord's fair zeal."
+                        ).tap { |l| l.update_column(:price_cents, 0) }
     }
 
     before :each do

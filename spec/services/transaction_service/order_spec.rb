@@ -9,7 +9,9 @@ describe TransactionService::Order do
   end
 
   it "calculates the item total" do
-    listing = FactoryBot.create(:listing, price: Money.new(0, "USD"), community_id: community.id)
+    # Issue #52: 価格 0 の出品は新規作成できない。旧来データ相当としてバリデーションを迂回する。
+    listing = FactoryBot.build(:listing, price: Money.new(0, "USD"), community_id: community.id)
+    listing.save!(validate: false)
     tx_params = {quantity: 10}
 
     oder = TransactionService::Order.new(

@@ -112,25 +112,21 @@ body.dark-theme .home-list-author-name {
   text-decoration: underline;
 }
 
-// フラッシュ通知の本文（ダークテーマでは通知背景自体をダーク化したため
-// 白系文字で統一。ライト背景時代の #333333 指定は不要になった）
-body.dark-theme .flash-notice .flash-text,
-body.dark-theme .ajax-notice .ajax-text,
-body.dark-theme .flash-warning .flash-text,
-body.dark-theme .ajax-warning .ajax-text,
-body.dark-theme .flash-success .flash-text,
-body.dark-theme .ajax-success .ajax-text {
-  color: #e0e0e0 !important;
-}
-
-// ダークテーマの通知背景（Sharetribe 既定のライトグレー #e8e8e8 /
-// ライトグリーン #b2d9ab はダークトーンと不整合のため上書き。
-// ChatPanel（#242424 基調＋グリーンアクセント #4caf50）に調和させる）
+// フラッシュ通知のダーク化（Issue #73正本・#61・#77統合）。
+// Sharetribe既定のライト背景（partials/_flash.scss: notice/warning #e8e8e8、
+// success #b2d9ab）は残し、body.dark-theme配下でのみダークサーフェスに上書きする。
+// ライト側（themes/_light_variables.scss）は変更しない。
+// notice/warning: #242424＋#3d3d3d境界 / success: rgba(76,175,80,.12)＋
+// グリーン境界（WalletTopup --wallet-success-bg/borderと同系）。
+// 本文は #e0e0e0、リンクはteal #7cc3b6＋下線。errorは現行維持
+// （赤背景＋白文字）のため背景上書きなし。
+// 対象外の記録: 管理画面内（views/admin/_domains.scss等）はダーク化対象外のため
+// 低優先、PayPalブランド色（partials/_paypal.scss #4a90e2）は維持。
 body.dark-theme .flash-notice,
 body.dark-theme .ajax-notice,
+body.dark-theme .ajax-update-notice,
 body.dark-theme .flash-warning,
-body.dark-theme .ajax-warning,
-body.dark-theme .ajax-update-notice {
+body.dark-theme .ajax-warning {
   background-color: #242424 !important;
   border: 1px solid #3d3d3d !important;
   color: #e0e0e0 !important;
@@ -144,41 +140,60 @@ body.dark-theme .ajax-update-success {
   color: #e0e0e0 !important;
 }
 
-// Rails フォームビルダの button（devise 等: white on #4a90e2 = 3.29:1 だった部分。
-// レッド CTA で統一）
-button.button {
-  background-color: var(--accent-gold);
-  border-color: var(--accent-gold);
-  color: #1a1a1a;
+// errorは現行維持のため背景・境界の上書きは行わない（赤背景＋白文字のまま）。
+
+body.dark-theme .flash-notice .flash-text,
+body.dark-theme .ajax-notice .ajax-text,
+body.dark-theme .ajax-update-notice .ajax-update-text,
+body.dark-theme .flash-warning .flash-text,
+body.dark-theme .ajax-warning .ajax-text,
+body.dark-theme .flash-success .flash-text,
+body.dark-theme .ajax-success .ajax-text,
+body.dark-theme .ajax-update-success .ajax-update-text {
+  color: #e0e0e0 !important;
 }
 
-// フラッシュ通知内のリンク（通知背景はダーク化済み（#242424 / green 12%）。
-// teal #7cc3b6 で 7:1 以上を確保し、下線で色だけに依存しない識別にする）
+// 通知内リンク（notice/warning/success）。ダークサーフェス上ではteal＋下線で
+// 識別する（#7cc3b6 on #242424 ≒ 7:1）。旧パッチのdark teal #1f6f60は
+// ライト背景前提のため廃止。
 body.dark-theme .flash-notice a,
 body.dark-theme .ajax-notice a,
+body.dark-theme .ajax-update-notice a,
 body.dark-theme .flash-warning a,
 body.dark-theme .ajax-warning a,
 body.dark-theme .flash-success a,
-body.dark-theme .ajax-success a {
+body.dark-theme .ajax-success a,
+body.dark-theme .ajax-update-success a {
   color: #7cc3b6;
   text-decoration: underline;
 }
 
 body.dark-theme .flash-notice a:hover,
 body.dark-theme .ajax-notice a:hover,
+body.dark-theme .ajax-update-notice a:hover,
 body.dark-theme .flash-warning a:hover,
 body.dark-theme .ajax-warning a:hover,
 body.dark-theme .flash-success a:hover,
-body.dark-theme .ajax-success a:hover {
-  color: #a8d8ce;
+body.dark-theme .ajax-success a:hover,
+body.dark-theme .ajax-update-success a:hover {
+  color: #9ad5c9;
 }
 
-// 通知内リンク（error。赤背景 #c81f1f のため白 + 下線（body.dark-theme a の teal
-// #59b3a2 は赤背景上で 2.3:1 に落ちる）。success は上記のダーク化ルールに含む。
+// 通知内リンク（error）。赤背景のため白＋下線を維持（body.dark-theme a の
+// teal #59b3a2は赤背景上で2.3:1に落ちるため使わない）。
 body.dark-theme .flash-error a,
-body.dark-theme .ajax-error a {
+body.dark-theme .ajax-error a,
+body.dark-theme .ajax-update-error a {
   color: #ffffff;
   text-decoration: underline;
+}
+
+// Rails フォームビルダの button（devise 等: white on #4a90e2 = 3.29:1 だった部分。
+// レッド CTA で統一）
+button.button {
+  background-color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #1a1a1a;
 }
 
 // 送信/ログインボタンの hover/active（mixins/_forms.scss の汎用 button:hover の
@@ -258,4 +273,41 @@ body.dark-theme #delete_account_button:not(.disabled-button):active {
 .raku-summary__trend--down,
 body.dark-theme .raku-summary__trend--down {
   color: #ff6b6b;
+}
+
+// 取引メッセージ画面の送信ボタンとメッセージバブルのダークトーン統一
+// （Issue #79）。form#new_message の button は f.button 由来のクラス無し
+// 素要素のため汎用 button（青 #4a90e2）のまま残る。body.dark-theme 配下に
+// 限定し、ライトテーマ側は変更しない。
+body.dark-theme form#new_message button {
+  background-color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #1a1a1a;
+}
+
+body.dark-theme form#new_message button:hover,
+body.dark-theme form#new_message button:active {
+  background-color: var(--accent-gold-hover);
+  border-color: var(--accent-gold-hover);
+  color: #1a1a1a;
+}
+
+// メッセージバブル（views/_message.scss の $highlight #e8e8e8 塗り）を
+// ダークサーフェス化（#242424＋#3d3d3d 境界、文字 #e0e0e0）。
+// mood 系（positive/negative）は独自配色のため除外する。
+body.dark-theme .message-bubble:not(.message-mood-positive):not(.message-mood-negative),
+body.dark-theme .message-bubble-arrow-to-left:not(.message-mood-positive):not(.message-mood-negative),
+body.dark-theme .message-bubble-arrow-to-right:not(.message-mood-positive):not(.message-mood-negative) {
+  background-color: #242424;
+  border: 1px solid #3d3d3d;
+  color: #e0e0e0;
+}
+
+// バブルの吹き出し三角（:after の border 色）を新背景に合わせる
+body.dark-theme .message-bubble-arrow-to-left:not(.message-mood-positive):not(.message-mood-negative):after {
+  border-right-color: #242424;
+}
+
+body.dark-theme .message-bubble-arrow-to-right:not(.message-mood-positive):not(.message-mood-negative):after {
+  border-left-color: #242424;
 }

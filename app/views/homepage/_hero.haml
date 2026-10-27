@@ -18,11 +18,13 @@
 
   -# Search bar — 一覧画面（/browse）へ遷移させる独立した GET フォーム
   %form.raku-hero__search{action: browse_path, method: "get"}
+    -# 検索種別表示は装飾（絞り込み機能の JS は未接続）のため非対話要素のままにする。
+    -# 対話化する場合は select / button 化 + JS 接続が必要（Issue #78）。
     .raku-hero__search-type
       = t('lamprey.homepage.search_type_all')
       %svg{viewBox: "0 0 20 20", fill: "currentColor"}
         %path{d: "M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"}
-    %input.raku-hero__search-input{type: "text", name: "q", placeholder: t('lamprey.homepage.search_placeholder')}
+    %input.raku-hero__search-input{type: "text", name: "q", placeholder: t('lamprey.homepage.search_placeholder'), aria: { label: t('lamprey.homepage.search_placeholder') }}
     %button.raku-hero__search-btn{type: "submit", aria: { label: t('lamprey.homepage.search_button') }}
       %svg{viewBox: "0 0 20 20", fill: "currentColor"}
         %path{d: "M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"}

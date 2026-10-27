@@ -6,6 +6,23 @@ module Ai
   module ConnectionHelper
     private
 
+    # Extracts the provider-native error code from a JSON error body.
+    #
+    # OpenAI:    {"error":{"code":"credit_balance_exhausted",...}}
+    # Anthropic: {"error":{"type":"invalid_request_error",...}}
+    #
+    # @param body [String, nil] raw response body
+    # @return [String, nil] the error code, or nil when the body is not
+    #   a JSON error object
+    def provider_error_code(body)
+      error = JSON.parse(body.to_s)["error"]
+      return nil unless error.is_a?(Hash)
+
+      error["code"].presence || error["type"].presence
+    rescue JSON::ParserError, TypeError
+      nil
+    end
+
     # Builds a Faraday connection with the given URL and timeout settings.
     #
     # @param url [String] the base URL for the API

@@ -147,12 +147,12 @@ class Person < ApplicationRecord
     end
   end
 
-  # Returns the wallet for a specific community.
+  # Returns the wallet for a specific community (read-only; never creates).
   #
   # @param community_id [Integer]
   # @return [Wallet, nil]
   def wallet_for_community(community_id)
-    wallets.find_by(community_id: community_id)
+    Wallet.find_by(person_id: id, community_id: community_id)
   end
 
   deprecate communities: "Use accepted_community instead.",

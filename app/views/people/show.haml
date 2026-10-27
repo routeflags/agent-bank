@@ -1,4 +1,5 @@
 - person = @service.person
+- provide_react_app :mypage_wallet
 -# 「出品管理」タブ（?show_closed=true）かどうか。サイドバーの活性表示、
 -# 見出し、空状態の文言を切り替える（Issue #14）。
 - closed_view = params[:show_closed].present? && current_user?(person)
@@ -22,11 +23,11 @@
   .raku-sidebar
     .raku-profile
       - if person.image.present?
-        %img.raku-profile__avatar{src: person.image.url(:medium), alt: person.username}
+        %img.raku-profile__avatar{src: person.image.url(:medium), alt: ""}
       - else
         .raku-profile__avatar.raku-avatar-placeholder
           = person.username[0].upcase
-      %h2.raku-profile__name= PersonViewUtils.person_display_name(person, @service.community)
+      %h1.raku-profile__name= PersonViewUtils.person_display_name(person, @service.community)
       %p.raku-profile__username @#{person.username}
       .raku-profile__verified= t('lamprey.mypage.verified_seller')
       .raku-profile__tags
@@ -40,11 +41,11 @@
           .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_views])
           .raku-profile__stat-label= t('lamprey.mypage.stats_total_views')
         .raku-profile__stat
-          .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_sold])
-          .raku-profile__stat-label= t('lamprey.mypage.stats_total_sold')
+          .raku-profile__stat-value= number_with_delimiter(@raku_stats[:total_tokens])
+          .raku-profile__stat-label= t('lamprey.mypage.stats_total_tokens')
 
-    .raku-sidebar__nav
-      .raku-sidebar__section-label= t('lamprey.mypage.menu')
+    %nav.raku-sidebar__nav{aria: {label: t('lamprey.mypage.menu')}}
+      %h2.raku-sidebar__section-label= t('lamprey.mypage.menu')
       %a.raku-sidebar__link{class: (closed_view ? nil : "is-active"), href: person_path(username: person.username)}
         %span.raku-sidebar__icon 📊
         = t('lamprey.mypage.dashboard')
@@ -52,7 +53,7 @@
         %span.raku-sidebar__icon 📦
         = t('lamprey.mypage.manage_listings')
       .raku-sidebar__divider
-      .raku-sidebar__section-label= t('lamprey.mypage.account')
+      %h2.raku-sidebar__section-label= t('lamprey.mypage.account')
       - if current_user?(person)
         %a.raku-sidebar__link{href: person_settings_path(person)}
           %span.raku-sidebar__icon ⚙️
@@ -70,8 +71,8 @@
       .raku-summary__item
         .raku-summary__label
           %span.raku-summary__icon 💰
-          = t('lamprey.mypage.summary_total_sold')
-        .raku-summary__value= number_with_delimiter(@raku_stats[:total_sold])
+          = t('lamprey.mypage.summary_total_tokens')
+        .raku-summary__value= number_with_delimiter(@raku_stats[:total_tokens])
       .raku-summary__item
         .raku-summary__label
           %span.raku-summary__icon 👆
@@ -84,6 +85,44 @@
             = t('lamprey.mypage.summary_avg_rating')
           .raku-summary__value
             %span.raku-link-gold= "★ #{@raku_stats[:avg_rating]}"
+
+      -# ウォレット残高（Issue #58）: 本人のみ。読み取り専用で参照し、
+      -# ウォレット行が無くても作成しない（nil → 0円表示）。
+      - if current_user?(person)
+        - wallet_balance_cents = person.wallet_for_community(@current_community.id)&.balance_cents || 0
+        .raku-summary__item.raku-summary__item--wallet
+          .raku-summary__label
+            %span.raku-summary__icon 💰
+            = t('lamprey.mypage.wallet_balance_label')
+          .raku-summary__value= "¥#{number_with_delimiter(wallet_balance_cents)}"
+          .raku-summary__action
+            = raw(react_component("MypageWalletApp", props: { i18n: mypage_wallet_i18n, balance_cents: wallet_balance_cents }, prerender: false).to_s.gsub(/^[ \t]+\n/, ""))
+        -# 出品収益の受取累計（Issue #59）: 本人のみ。残高と同じウォレットの seller_earning。
+        .raku-summary__item
+          .raku-summary__label
+            %span.raku-summary__icon 💰
+            = t('lamprey.mypage.seller_earning_label')
+          .raku-summary__value= "¥#{number_with_delimiter(@seller_earning_total_cents.to_i)}"
+
+    -# ── Seller earnings（受取履歴・本人のみ）──────────────
+    - if current_user?(person)
+      %section.raku-earnings
+        %h2.raku-table-title= t('lamprey.mypage.seller_earning_title')
+        - if @seller_earning_items.present?
+          %table.raku-table
+            %thead
+              %tr
+                %th{scope: "col"}= t('lamprey.mypage.seller_earning_th_listing')
+                %th{scope: "col"}= t('lamprey.mypage.seller_earning_th_date')
+                %th{scope: "col"}= t('lamprey.mypage.seller_earning_th_amount')
+            %tbody
+              - @seller_earning_items.each do |item|
+                %tr
+                  %td= item[:listing]&.title || t('lamprey.mypage.seller_earning_unknown_listing')
+                  %td= item[:transaction].created_at.strftime('%Y/%m/%d %H:%M')
+                  %td= "¥#{number_with_delimiter(item[:transaction].amount_cents.to_i)}"
+        - else
+          .raku-table__empty= t('lamprey.mypage.seller_earning_empty')
 
     -# ── About（自己紹介がある場合のみ）──────────────
     - if person.description.present?
@@ -99,17 +138,23 @@
 
 
     -# ── Skill Table ──────────────────────────────────────
+    -# 公開/非公開の切り替えタブ（Issue #70）: 本人のマイページでのみ表示。
+    -# ラベルは既存の見出し文言、見た目は .raku-featured__tab を流用する。
+    - if current_user?(person)
+      .raku-featured__tabs
+        %a.raku-featured__tab{class: (closed_view ? nil : "is-active"), href: person_path(username: person.username)}= t('lamprey.mypage.table_title')
+        %a.raku-featured__tab{class: (closed_view ? "is-active" : nil), href: person_path(username: person.username, show_closed: true)}= t('lamprey.mypage.table_title_closed')
     %h2.raku-table-title= closed_view ? t('lamprey.mypage.table_title_closed') : t('lamprey.mypage.table_title')
     - if @skill_listings.total_entries > 0
       %table.raku-table
         %thead
           %tr
-            %th= t('lamprey.mypage.th_skill')
-            %th= t('lamprey.mypage.th_views')
-            %th= t('lamprey.mypage.th_rating')
-            %th= t('lamprey.mypage.th_price')
-            %th= t('lamprey.mypage.th_status')
-            %th= t('lamprey.mypage.th_actions')
+            %th{scope: "col"}= t('lamprey.mypage.th_skill')
+            %th{scope: "col"}= t('lamprey.mypage.th_views')
+            %th{scope: "col"}= t('lamprey.mypage.th_rating')
+            %th{scope: "col"}= t('lamprey.mypage.th_price')
+            %th{scope: "col"}= t('lamprey.mypage.th_status')
+            %th{scope: "col"}= t('lamprey.mypage.th_actions')
         %tbody
           - @skill_listings.each do |listing|
             %tr
@@ -129,7 +174,15 @@
                     = "★ #{listing.avg_rating.round(1)}"
                   - else
                     = "—"
-              %td= number_to_currency(listing.price_cents.to_i / 100.0, unit: "¥", precision: 0, delimiter: ",")
+              %td
+                -# Issue #52: 価格未設定の出品は非公開になる。編集画面へ誘導する。
+                - if listing.price_cents.to_i.positive?
+                  = number_to_currency(listing.price_cents.to_i / 100.0, unit: "¥", precision: 0, delimiter: ",")
+                - else
+                  .raku-table__status
+                    %span.raku-table__status-dot
+                    = t('lamprey.mypage.price_unset')
+                  %div= link_to t('lamprey.mypage.price_unset_hint'), edit_listing_path(listing), class: "raku-link-gold"
               %td
                 - if listing.open?
                   .raku-table__status.raku-table__status--active
@@ -141,8 +194,8 @@
                     = t('lamprey.mypage.status_closed')
               %td
                 .raku-table__actions
-                  %a.raku-table__action-btn{href: edit_listing_path(listing), title: t('lamprey.mypage.action_edit')} ✏️
-                  %a.raku-table__action-btn{href: listing_path(listing), title: t('lamprey.mypage.action_view')} 👁️
+                  %a.raku-table__action-btn{href: edit_listing_path(listing), title: t('lamprey.mypage.action_edit'), aria: {label: t('lamprey.mypage.action_edit')}} ✏️
+                  %a.raku-table__action-btn{href: listing_path(listing), title: t('lamprey.mypage.action_view'), aria: {label: t('lamprey.mypage.action_view')}} 👁️
     - else
       .raku-table__empty
         .raku-table__empty-icon 📦

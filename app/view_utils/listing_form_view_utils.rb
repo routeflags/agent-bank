@@ -29,7 +29,9 @@ module ListingFormViewUtils
   def validate(params:, shape:, unit:, valid_until_enabled: false)
     errors = []
 
-    errors << :price_required if shape[:price_enabled] && params[:price].nil?
+    # Issue #52: 価格は「円 / 100万トークン」の単価として必須。空送信は
+    # モデルバリデーションの前にここで弾く（"0" 等のゼロ値はモデル側で弾く）。
+    errors << :price_required if shape[:price_enabled] && params[:price].blank?
     errors << :currency_required if shape[:price_enabled] && params[:currency].blank?
     errors << :delivery_method_required if shape[:shipping_enabled] && params[:delivery_methods].empty?
     errors << :unknown_delivery_method if shape[:shipping_enabled] && params[:delivery_methods].any? { |method| !["shipping", "pickup"].include?(method) }

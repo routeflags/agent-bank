@@ -15,11 +15,23 @@
         for (var j = 0; j < tabs.length; j++) {
           var t = tabs[j];
           var sel = t.getAttribute('data-raku-tab') === name;
-          if (sel) { t.classList.add('is-active'); t.setAttribute('aria-selected', 'true'); }
-          else { t.classList.remove('is-active'); t.setAttribute('aria-selected', 'false'); }
+          if (sel) { t.classList.add('is-active'); t.setAttribute('aria-selected', 'true'); t.setAttribute('tabindex', '0'); }
+          else { t.classList.remove('is-active'); t.setAttribute('aria-selected', 'false'); t.setAttribute('tabindex', '-1'); }
         }
       }
     };
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') { return; }
+      var tab = e.target && e.target.closest ? e.target.closest('.raku-tabs__item') : null;
+      if (!tab || !tab.closest('.raku-tabs')) { return; }
+      e.preventDefault();
+      var tabs = Array.prototype.slice.call(tab.closest('.raku-tabs').querySelectorAll('.raku-tabs__item'));
+      var idx = tabs.indexOf(tab);
+      var next = e.key === 'ArrowRight' ? (idx + 1) % tabs.length : (idx - 1 + tabs.length) % tabs.length;
+      tabs[next].focus();
+      var name = tabs[next].getAttribute('data-raku-tab');
+      if (name) { window.RakuTabs.show(name); }
+    });
 
 - content_for :javascript do
   initialize_listing_view('#{I18n.locale}');
@@ -52,17 +64,17 @@
   %span.raku-breadcrumb__separator ›
   %a.raku-breadcrumb__link{href: search_path}= t('lamprey.listings.skill_list')
   %span.raku-breadcrumb__separator ›
-  %span.raku-breadcrumb__current= @listing.title
+  %h1.raku-breadcrumb__current= @listing.title
 
 -# ── Tabs ───────────────────────────────────────────────
 .raku-tabs{role: "tablist"}
-  %button.raku-tabs__item.is-active{type: "button", role: "tab", "aria-selected": "true", "data-raku-tab": "overview", onclick: "RakuTabs.show('overview')"}= t('lamprey.listings.overview')
-  %button.raku-tabs__item{type: "button", role: "tab", "aria-selected": "false", "data-raku-tab": "features", onclick: "RakuTabs.show('features')"}= t('lamprey.listings.features')
-  %button.raku-tabs__item{type: "button", role: "tab", "aria-selected": "false", "data-raku-tab": "how_to_use", onclick: "RakuTabs.show('how_to_use')"}= t('lamprey.listings.how_to_use')
-  %button.raku-tabs__item{type: "button", role: "tab", "aria-selected": "false", "data-raku-tab": "reviews", onclick: "RakuTabs.show('reviews')"}
+  %button.raku-tabs__item.is-active{type: "button", role: "tab", id: "tab-overview", "aria-selected": "true", "aria-controls": "panel-overview", tabindex: "0", "data-raku-tab": "overview", onclick: "RakuTabs.show('overview')"}= t('lamprey.listings.overview')
+  %button.raku-tabs__item{type: "button", role: "tab", id: "tab-features", "aria-selected": "false", "aria-controls": "panel-features", tabindex: "-1", "data-raku-tab": "features", onclick: "RakuTabs.show('features')"}= t('lamprey.listings.features')
+  %button.raku-tabs__item{type: "button", role: "tab", id: "tab-how_to_use", "aria-selected": "false", "aria-controls": "panel-how_to_use", tabindex: "-1", "data-raku-tab": "how_to_use", onclick: "RakuTabs.show('how_to_use')"}= t('lamprey.listings.how_to_use')
+  %button.raku-tabs__item{type: "button", role: "tab", id: "tab-reviews", "aria-selected": "false", "aria-controls": "panel-reviews", tabindex: "-1", "data-raku-tab": "reviews", onclick: "RakuTabs.show('reviews')"}
     = t('lamprey.listings.reviews')
     %span.raku-tabs__count (#{@listing.comments_count})
-  %button.raku-tabs__item{type: "button", role: "tab", "aria-selected": "false", "data-raku-tab": "related", onclick: "RakuTabs.show('related')"}= t('lamprey.listings.related_skills')
+  %button.raku-tabs__item{type: "button", role: "tab", id: "tab-related", "aria-selected": "false", "aria-controls": "panel-related", tabindex: "-1", "data-raku-tab": "related", onclick: "RakuTabs.show('related')"}= t('lamprey.listings.related_skills')
 
 -# ── Hero layout ────────────────────────────────────────
 %script{type: "text/template", class: "template", id: "image-frame-template"}
@@ -73,7 +85,7 @@
 
 %script{type: "text/template", class: "template", id: "image-thumbnail-template"}
   .listing-image-thumbnail-container
-    %img.listing-image-thumbnail{src: "${url}"}
+    %img.listing-image-thumbnail{src: "${url}", alt: ""}
     .fade
 
 .raku-listing-hero
@@ -111,7 +123,7 @@
 
     -# ── Tab panels ─────────────────────────────────────────
     -# 機能・特徴パネル
-    .raku-tab-panel{"data-raku-panel" => "features"}
+    .raku-tab-panel{id: "panel-features", role: "tabpanel", "aria-labelledby": "tab-features", "data-raku-panel" => "features"}
       - if @listing.custom_field_values.any?
         .raku-features
           - @listing.custom_field_values.each do |cfv|
@@ -129,7 +141,7 @@
         %p.raku-tab-panel__empty= t('lamprey.listings.no_features')
 
     -# 概要パネル（デフォルト表示）
-    .raku-tab-panel.is-active{"data-raku-panel" => "overview"}
+    .raku-tab-panel.is-active{id: "panel-overview", role: "tabpanel", "aria-labelledby": "tab-overview", "data-raku-panel" => "overview"}
       .row
         .col-12.listing-description-content
           - if @listing.description && !@listing.description.blank?
@@ -158,7 +170,7 @@
                   = l @listing.created_at, :format => :short_date
 
     -# 使い方パネル
-    .raku-tab-panel{"data-raku-panel" => "how_to_use"}
+    .raku-tab-panel{id: "panel-how_to_use", role: "tabpanel", "aria-labelledby": "tab-how_to_use", "data-raku-panel" => "how_to_use"}
       .raku-howto
         %h3.raku-howto__title= t('lamprey.listings.how_to_use')
         %ol.raku-howto__steps
@@ -168,7 +180,7 @@
           %li= t('lamprey.listings.how_to_step4')
 
     -# レビューパネル
-    .raku-tab-panel{"data-raku-panel" => "reviews"}
+    .raku-tab-panel{id: "panel-reviews", role: "tabpanel", "aria-labelledby": "tab-reviews", "data-raku-panel" => "reviews"}
       - unless (@listing.closed? && !current_user?(@listing.author)) || !@current_community.listing_comments_in_use
         .view-item
           #comments.discussion.overflow-allowed
@@ -187,7 +199,7 @@
         %p.raku-tab-panel__empty= t('lamprey.listings.no_reviews')
 
     -# 関連スキルパネル
-    .raku-tab-panel{"data-raku-panel" => "related"}
+    .raku-tab-panel{id: "panel-related", role: "tabpanel", "aria-labelledby": "tab-related", "data-raku-panel" => "related"}
       - related = @listing_presenter.related_listings
       - if related.any?
         .raku-related
@@ -200,15 +212,17 @@
 
   -# ── Right sidebar: Price + CTA + Seller ───────────────
   .raku-listing-hero__sidebar
-    -# Price box
+    -# Price box（Issue #52: 全出品は有料。価格は必須）
     .raku-price-box
-      - if @listing.price
+      - if @listing.price && @listing.price_cents.to_i.positive?
         .raku-price-box__amount
           = MoneyViewUtils.to_humanized(@listing.price)
         - with_quantity_text(@current_community, @listing) do |text|
           .raku-price-box__unit= text
       - else
-        .raku-price-box__amount= t('lamprey.listings.free')
+        .raku-price-box__amount= t('lamprey.listings.price_unset')
+        - if logged_in? && @listing.author == @current_user
+          = link_to t('lamprey.listings.set_price'), edit_listing_path(@listing), class: "raku-cta-btn raku-cta-btn--ghost"
       .raku-price-box__note= t('lamprey.listings.price_note')
       -# Freemius は USD 建て請求のため、円価格の近くに USD 目安を示す（レート設定時のみ）
       - if @listing.price && @listing.price_cents.to_i.positive? && FreemiusPricing.configured?
@@ -267,10 +281,10 @@
         .raku-detail-panel__item
           .raku-detail-panel__label= t('lamprey.listings.token_price')
           .raku-detail-panel__value
-            - if @listing.price
+            - if @listing.price && @listing.price_cents.to_i.positive?
               = MoneyViewUtils.to_humanized(@listing.price)
             - else
-              = t('lamprey.listings.free')
+              = t('lamprey.listings.price_unset')
         .raku-detail-panel__item
           .raku-detail-panel__label= t('lamprey.listings.free_trial')
           .raku-detail-panel__value
@@ -300,4 +314,7 @@
 - if @listing.default_run_mode.present? && @listing.default_run_mode == 'run_online'
   -# Strip whitespace-only lines from the react-rails output: HAML indents
   -# multiline helper output, which otherwise emits trailing-whitespace lines.
-  = raw(react_component("ChatPanelApp", props: { listing_id: @listing.id, persona_name: @listing.author&.given_name_or_username || 'AI Assistant', i18n: chat_panel_i18n, dev_purchase_enabled: dev_purchase_enabled? }, prerender: false).to_s.gsub(/^[ \t]+\n/, ""))
+  -# ヘッダーは販売者名ではなく出品タイトルを出す（Issue #67）。
+  -# 販売者名は短く識別性が低いため、どのペルソナと会話しているかを
+  -# タイトルで示す。タイトルが空のときだけフォールバックする。
+  = raw(react_component("ChatPanelApp", props: { listing_id: @listing.id, persona_name: @listing.title.presence || 'AI Assistant', i18n: chat_panel_i18n }, prerender: false).to_s.gsub(/^[ \t]+\n/, ""))

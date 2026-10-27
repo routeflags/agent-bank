@@ -24,7 +24,10 @@ ST.thumbnailStripe = function(images, opts) {
 
   var elements = _.map(images, function(image, idx) {
     var thumbnailElement = $(thumbnailTmpl({url: image.images.thumb }));
+    thumbnailElement.attr("tabindex", "0");
+    thumbnailElement.attr("role", "button");
     thumbnailClickS.push(thumbnailElement.asEventStream("click").map(function() { return idx; }));
+    thumbnailClickS.push(thumbnailElement.asEventStream("keydown").filter(function(e) { return e.key === "Enter" || e.key === " " || e.which === 13 || e.which === 32; }).map(function(e) { e.preventDefault(); return idx; }));
     return thumbnailElement;
   });
 

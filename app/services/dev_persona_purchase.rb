@@ -14,9 +14,9 @@
 # と同じ考え方で、本番に購入偽装の経路を残さないことを目的とする。
 #
 # 利用箇所:
-#   * API::V1::Dev::PersonaPurchasesController（HTTP・開発時の UI 検証用）
+#   * API::V1::Dev::PersonaPurchasesController（HTTP・開発時の検証用）
 #   * lamprey:dev:grant_persona（Rake・サーバーを起動しない検証用）
-#   * ChatPanelHelper#dev_purchase_enabled?（React の購入ボタン分岐）
+# （Issue #51: チャット UI からの購入導線は撤去済み。本番の購入概念は持たない）
 module DevPersonaPurchase
   class DisabledError < StandardError; end
 

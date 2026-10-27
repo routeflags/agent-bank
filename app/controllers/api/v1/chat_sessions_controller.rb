@@ -5,9 +5,11 @@
 # Provides CRUD operations for chat sessions, scoped to the
 # authenticated user. Sessions link a Person to a Listing (persona).
 #
-# Purchase verification:
-#   The `create` action requires an active UserPlanSubscription for the
-#   requested listing. This ensures only paying users can start chat sessions.
+# Balance gate (Issues #51, #52):
+#   The `create` action requires a wallet balance of at least
+#   `PersonaExecutorJob::MIN_BALANCE_CENTS`. Every listing is charged
+#   against the wallet balance — no exceptions.
+#   There is no per-listing purchase entitlement.
 #   The billing_model is determined server-side — client-provided values are ignored.
 class API::V1::ChatSessionsController < ApplicationController
   # API controller — CSRF token not needed (authenticated via Devise session/cookie)
@@ -69,7 +71,7 @@ class API::V1::ChatSessionsController < ApplicationController
   # POST /api/v1/chat_sessions
   #
   # Creates a new chat session for the authenticated user and a listing.
-  # Requires an active purchase (UserPlanSubscription) for the listing.
+  # Requires a sufficient wallet balance (see `purchased?`).
   # If a session already exists for this user+listing pair, returns the existing one.
   def create
     listing = Listing.find_by(id: params[:listing_id])
@@ -78,11 +80,13 @@ class API::V1::ChatSessionsController < ApplicationController
       return render json: { error: "ペルソナが見つかりません" }, status: :not_found
     end
 
-    # Purchase verification — only subscribed users can chat
+    # 残高ゲート（Issue #51）。不足時はチャージ導線を出すため、実行時と同じ
+    # `insufficient_balance` を返す。
     unless purchased?(current_user, listing)
       return render json: {
-        error: "このペルソナを購入してください",
-        error_type: "purchase_required"
+        error: "残高が不足しています。チャージしてください",
+        error_type: "insufficient_balance",
+        current_balance: current_user.wallet&.balance_cents.to_i
       }, status: :forbidden
     end
 
@@ -149,20 +153,18 @@ class API::V1::ChatSessionsController < ApplicationController
 
   # Checks whether the person may start a chat for the listing.
   #
-  # 無料ペルソナ（価格 0 / 無料実行モード）は購入不要で利用できる。
-  # 有料ペルソナは active な購入（UserPlanSubscription）が必要。
+  # 課金は残高（ウォレット）一本（Issues #51, #52）。チャットの開始条件は
+  # `PersonaExecutorJob` と同じ「残高が最低額以上あること」で、出品ごとの
+  # 購入権利（UserPlanSubscription）は見ない。全出品が有料のため例外はない。
   #
   # @param person [Person]
   # @param listing [Listing]
   # @return [Boolean]
   def purchased?(person, listing)
-    return true if listing.free_to_use?
+    wallet = person.wallet
+    return false if wallet.nil?
 
-    UserPlanSubscription.exists?(
-      person: person,
-      listing: listing,
-      status: "active"
-    )
+    wallet.balance_cents.to_i >= PersonaExecutorJob::MIN_BALANCE_CENTS
   end
 
   # Determines the billing model server-side based on subscription status.
@@ -218,6 +220,8 @@ class API::V1::ChatSessionsController < ApplicationController
           output_tokens: m.output_tokens,
           metadata: m.metadata,
           is_result: m.metadata.is_a?(Hash) && m.metadata["is_result"] == true,
+          truncated: m.metadata.is_a?(Hash) && m.metadata["truncated"] == true,
+          finish_reason: m.metadata.is_a?(Hash) ? m.metadata["finish_reason"] : nil,
           attachment: attachment && {
             id: attachment.id,
             url: attachment.image.url(:medium)

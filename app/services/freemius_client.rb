@@ -38,9 +38,9 @@ module FreemiusClient
     # Builds a hosted checkout URL for a plan (no network call).
     #
     # Freemius Checkout is plan-based; an arbitrary amount_cents cannot be
-    # specified. The caller must resolve a plan_id first (see
-    # plan_id_for_listing). Amounts/currency are defined in the Dashboard
-    # Plans/Pricing (usd|eur|gbp only).
+    # specified. The caller passes a fixed denomination plan_id (see
+    # FreemiusTopupPlans for wallet top-up). Amounts/currency are defined
+    # in the Dashboard Plans/Pricing (usd|eur|gbp only).
     #
     # @param plan_id [String, Integer] Freemius plan ID (required)
     # @param user_email [String, nil] prefill + webhook correlation hint
@@ -64,46 +64,6 @@ module FreemiusClient
       "#{base}?#{URI.encode_www_form(params)}"
     end
 
-    # Resolves the Freemius plan for a listing.
-    #
-    # Priority: listing.freemius_plan_id (if the column/method exists) →
-    # FREEMIUS_PLAN_MAP (JSON: { "<listing_id>": "<plan_id>" }) →
-    # PLAN_ONETIME_ID（一括購入の既定 plan）→ FREEMIUS_PLAN_ID（旧名）。
-    #
-    # @param listing [Listing]
-    # @return [String, nil] plan ID or nil when unresolvable
-    def plan_id_for_listing(listing)
-      if listing.respond_to?(:freemius_plan_id) && listing.try(:freemius_plan_id).to_s.strip.present?
-        return listing.freemius_plan_id.to_s.strip
-      end
-
-      map = plan_map
-      key = listing.id.to_s
-      return map[key].to_s.strip if map[key].to_s.strip.present?
-
-      onetime = ENV["PLAN_ONETIME_ID"].to_s.strip
-      return onetime if onetime.present?
-
-      single = ENV["FREEMIUS_PLAN_ID"].to_s.strip
-      single.presence
-    end
-
-    # Reverse lookup: plan_id → listing_id (for webhook dispatch).
-    # Single-plan mode cannot identify the listing from the plan alone,
-    # so it returns nil and the caller falls back to webhook metadata.
-    #
-    # @param plan_id [String, Integer, nil]
-    # @return [Integer, nil]
-    def listing_id_for_plan(plan_id)
-      return nil if plan_id.to_s.strip.empty?
-
-      map = plan_map
-      found = map.find { |_lid, pid| pid.to_s.strip == plan_id.to_s.strip }
-      return found[0].to_i if found
-
-      nil
-    end
-
     # Retrieves a payment by its Freemius payment ID (product scope).
     #
     # Real path: GET /products/{product_id}/payments/{payment_id}.json
@@ -112,6 +72,18 @@ module FreemiusClient
     # @return [Hash] payment object (gross: Float, currency:, id:, ...)
     def get_payment(payment_id)
       get(product_path("payments/#{encode(payment_id.to_s)}"))
+    end
+
+    # Retrieves a user (buyer) by their Freemius user ID (product scope).
+    #
+    # Real path: GET /products/{product_id}/users/{user_id}.json
+    # Useful to resolve the buyer's email from a payment when the webhook
+    # payload is not available (e.g. manual debugging).
+    #
+    # @param user_id [String, Integer]
+    # @return [Hash] user object (email, first, last, ...)
+    def get_user(user_id)
+      get(product_path("users/#{encode(user_id.to_s)}"))
     end
 
     # Retrieves a subscription by its Freemius subscription ID (product scope).
@@ -199,16 +171,6 @@ module FreemiusClient
     def product_path(rest)
       suffix = rest.end_with?(".json") ? rest : "#{rest}.json"
       "/products/#{encode(product_id)}/#{suffix}"
-    end
-
-    def plan_map
-      raw = ENV["FREEMIUS_PLAN_MAP"].to_s.strip
-      return {} if raw.empty?
-
-      parsed = JSON.parse(raw)
-      parsed.is_a?(Hash) ? parsed : {}
-    rescue JSON::ParserError
-      {}
     end
 
     def encode(part)
