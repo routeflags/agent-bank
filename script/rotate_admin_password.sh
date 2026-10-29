@@ -64,7 +64,9 @@ docker compose -f "$COMPOSE_FILE" cp "$TMP_RB" web:/tmp/rotate_admin_password.rb
 docker compose -f "$COMPOSE_FILE" exec -T -e ADMIN_USERNAME="$ADMIN_USERNAME" \
   web bundle exec rails runner /tmp/rotate_admin_password.rb
 
-docker compose -f "$COMPOSE_FILE" exec -T web rm -f /tmp/rotate_admin_password.txt /tmp/rotate_admin_password.rb
+# コンテナ内の一時ファイルは root 所有なので、root で消す。
+docker compose -f "$COMPOSE_FILE" exec -T -u root web \
+  rm -f /tmp/rotate_admin_password.txt /tmp/rotate_admin_password.rb
 
 ADMIN_PASSWORD_FILE="$TMP_PW" python3 - "$ENV_FILE" <<'PY'
 import os, sys
