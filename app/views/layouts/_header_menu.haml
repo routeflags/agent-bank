@@ -16,18 +16,21 @@
 
   -# Primary navigation (hidden on desktop where the inline nav shows it).
   -# デスクトップの .topbar-nav と同一の4項目＋既存ルートのランキング/バトル。
+  -# 現在のセクションはデスクトップと同じ `raku_nav_active?` で判定して
+  -# `is-active` を付ける（Issue #124: ランキング/バトルはここにしかリンクが
+  -# 無いため、ここで active を出さないと現在地が分からない）。
   .hidden-desktop
-    = link_to landing_page_path do
+    = link_to landing_page_path, class: "toggle-menu-link#{' is-active' if raku_nav_active?(:marketplace)}" do
       = t("lamprey.header.nav_marketplace")
-    = link_to browse_path do
+    = link_to browse_path, class: "toggle-menu-link#{' is-active' if raku_nav_active?(:browse)}" do
       = t("lamprey.header.nav_agents")
-    = link_to new_listing_path do
+    = link_to new_listing_path, class: "toggle-menu-link#{' is-active' if raku_nav_active?(:new_listing)}" do
       = t("lamprey.header.nav_sell")
-    = link_to docs_path do
+    = link_to docs_path, class: "toggle-menu-link#{' is-active' if raku_nav_active?(:docs)}" do
       = t("lamprey.header.nav_docs")
-    = link_to rankings_path do
+    = link_to rankings_path, class: "toggle-menu-link#{' is-active' if raku_nav_active?(:rankings)}" do
       = t("lamprey.header.nav_rankings")
-    = link_to battles_path do
+    = link_to battles_path, class: "toggle-menu-link#{' is-active' if raku_nav_active?(:battles)}" do
       = t("lamprey.header.nav_battles")
 
   - if @current_community.configuration.display_about_menu?

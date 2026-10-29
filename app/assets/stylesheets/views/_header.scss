@@ -151,6 +151,13 @@ $elementSpacing: lines(0.5);
 
 .header-toggle-menu-menu {
   @include header-toggle-menu;
+
+  // Issue #124: モバイルメニューでも現在のセクションが分かるようにする。
+  // デスクトップの .raku-nav__link.is-active と同じアクセント色に合わせる。
+  a.is-active {
+    color: var(--accent-gold, #{$link});
+    font-weight: 700;
+  }
 }
 
 .header-inbox-link {

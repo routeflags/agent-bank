@@ -49,11 +49,17 @@ describe "Sub-navigation pages", type: :request do
     expect(response.body).to include("raku-docs-section")
   end
 
+  # 現在地の示し方はリンクの置き場所で異なる（Issue #124）。
+  # - デスクトップの topbar には マーケット/エージェント/出品/ドキュメント の 4 項目
+  # - ランキング/バトルはモバイルメニュー（.toggle-menu-link）にのみ存在する
   it "marks the current sub-nav item as active on each page" do
     get "http://#{@domain}/ja/rankings"
-    expect(response.body).to match(/raku-nav__link is-active[^>]*href="[^"]*rankings"/)
+    expect(response.body).to match(/toggle-menu-link is-active[^>]*href="[^"]*rankings"/)
+
+    get "http://#{@domain}/ja/battles"
+    expect(response.body).to match(/toggle-menu-link is-active[^>]*href="[^"]*battles"/)
 
     get "http://#{@domain}/ja/docs"
-    expect(response.body).to match(/raku-nav__link is-active[^>]*href="[^"]*docs"/)
+    expect(response.body).to match(/raku-nav__link topbar-nav__link is-active[^>]*href="[^"]*docs"/)
   end
 end
