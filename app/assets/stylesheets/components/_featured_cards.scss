@@ -12,44 +12,59 @@ body.dark-theme {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
   }
 
+  .raku-featured__head {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  // デザイン正本の .section h2 と同じ体裁（19px・赤い左罫）。
   .raku-featured__title {
     font-size: 19px;
     font-weight: 700;
     color: var(--text-primary);
     margin: 0;
+    border-left: 4px solid var(--accent-red);
+    padding-left: 9px;
   }
 
+  .raku-featured__see-all {
+    color: var(--accent-gold);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  // デザイン正本の .tabs / .tab（小さなピル・選択中は金色）。
   .raku-featured__tabs {
     display: flex;
-    gap: 4px;
-    background-color: var(--bg-secondary);
-    border-radius: var(--radius-md);
-    padding: 3px;
+    gap: 7px;
   }
 
   .raku-featured__tab {
     display: inline-block;
-    padding: 8px 16px;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 500;
+    padding: 7px 19px;
+    border: 1px solid #333;
+    background: #100f12;
+    color: #ddd;
+    font-size: 11px;
+    font-weight: 700;
     text-decoration: none;
-    cursor: pointer;
-    border-radius: var(--radius-sm);
+    border-radius: 2px;
     transition: all var(--transition-fast);
 
-    &:hover {
-      color: var(--text-primary);
-    }
+    &:hover { color: var(--text-primary); }
 
     &.is-active {
-      background-color: var(--bg-card);
-      color: var(--text-primary);
+      background: var(--accent-gold);
+      color: #15100a;
+      font-weight: 900;
+      border-color: var(--accent-gold);
     }
   }
 

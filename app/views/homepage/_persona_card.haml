@@ -1,25 +1,29 @@
--# 楽市楽問 — ペルソナカード（Issue #111）
--# デザイン正本（rakuichi-rakumon.html）の article.product 相当。
+-# 楽市楽問 — ペルソナカード（Issue #111 / #128）
+-# デザイン正本（rakuichi-rakumon-assets/index.html の article.agent）に合わせる。
+-#   art（帯）→ tag（カテゴリ）→ 名前 → by 作者 → 説明 → meta（価格）
 -# visual の色・英字・絵文字は HomepageHelper#listing_category_visual から供給を受ける
 -# （定義は HomepageHelper のカテゴリビジュアル表のみ。テンプレートに二重定義しない）。
--# ★・レビュー件数は #106 保留のため出さない。footer には価格のみ置く。
+-# ★・レビュー件数は #106 保留のため出さない。
 - category_name = persona_category_name(listing, @category_display_names)
 - style = listing_category_visual(listing, @category_display_names)
-%article.product
+- price_yen = listing.price ? listing.price.to_f : 0
+%article.agent
   = link_to listing_path(listing.url), class: "product-link", aria: { label: t("lamprey.homepage.card_details", title: listing.title) } do
     .visual{ style: "--tone:#{style[:color]}" }
       %span.visual-word= style[:english_label]
       %span.avatar{ aria: { hidden: "true" } }= style[:emoji]
-    .product-content
-      %h3= listing.title
-      .maker
+    .agent-info
+      -# デザイン正本は全カードにカテゴリの tag を持つ。未分類でも高さが
+      -# 揃うようフォールバックを出す。
+      %span.tag= category_name.presence || t("lamprey.homepage.card_no_category")
+      %h3.agent-name= listing.title
+      %span.creator
         - if listing.author
           by #{listing.author.display_name || listing.author.username}
         - else
           by #{t("lamprey.homepage.card_author_unknown")}
-      - if category_name.present?
-        %span.card-type= category_name
-      %p= truncate(listing.description.to_s.lines.first.to_s.strip, length: 60)
-      %footer
-        - if listing.respond_to?(:price) && listing.price && listing.price.to_f.positive?
-          %span.price= MoneyViewUtils.to_humanized(listing.price)
+      %p.summary= truncate(listing.description.to_s.lines.first.to_s.strip, length: 70)
+      .meta
+        %span.price
+          - if price_yen.positive?
+            = "¥#{number_with_delimiter(price_yen.round)}"

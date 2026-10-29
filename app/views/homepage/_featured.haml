@@ -14,10 +14,14 @@
 - featured_tab_href = ->(key) { "#{request.path}?#{request.query_parameters.except("page").merge("sort" => key).to_query}" }
 .raku-featured
   .raku-featured__header
-    %h2.raku-featured__title= t('lamprey.homepage.featured_title')
-    .raku-featured__tabs{role: "group", aria: {label: t('lamprey.homepage.tabs_label')}}
-      - [["popular", t('lamprey.homepage.tab_popular')], ["newest", t('lamprey.homepage.tab_newest')]].each do |key, label|
-        %a.raku-featured__tab{class: (featured_sort == key ? "is-active" : nil), href: featured_tab_href.call(key), data: {sort: key}}= label
+    .raku-featured__head
+      %h2.raku-featured__title= t('lamprey.homepage.featured_title')
+      .raku-featured__tabs{role: "group", aria: {label: t('lamprey.homepage.tabs_label')}}
+        - [["popular", t('lamprey.homepage.tab_popular')], ["newest", t('lamprey.homepage.tab_newest')]].each do |key, label|
+          %a.raku-featured__tab{class: (featured_sort == key ? "is-active" : nil), href: featured_tab_href.call(key), data: {sort: key}}= label
+    -# デザイン正本と同じく右端に「すべて見る →」を置く。
+    = link_to browse_path, class: "raku-featured__see-all" do
+      = t('lamprey.homepage.categories_see_all')
   - if @listing_page
     .raku-featured__slider
       %button.raku-featured__arrow.raku-featured__arrow--prev{type: "button", "aria-label": t('lamprey.homepage.slide_prev'), onclick: "RakuFeatured.slide(-1)"} ‹
