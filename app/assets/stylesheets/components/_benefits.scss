@@ -11,9 +11,9 @@ body.dark-theme {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0;
-    max-width: 1200px;
-    margin: 32px auto 42px;
-    padding: 0 20px;
+    // 幅は .wrapper（1536px / 左右 4%）が持つ。ここで max-width を持つと
+    // セクションごとに左右端がずれる（Issue #126）。
+    margin: 24px 0 32px;
     border-top: 1px solid $raku-line-bronze;
     border-bottom: 1px solid $raku-line-bronze;
   }

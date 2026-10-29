@@ -2764,6 +2764,7 @@ en:
       stats_skills_note: "Skill categories"
       stats_active_users_note: "Last 30 days"
       stats_transactions_note: "AI-answered sessions"
+      categories_all: "All"
       categories_title: "Popular categories"
       featured_title: "Featured personas"
       tabs_label: "Sort order"

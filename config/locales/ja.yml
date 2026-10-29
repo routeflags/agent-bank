@@ -2416,6 +2416,7 @@ ja:
       stats_skills_note: "スキル分類の種類"
       stats_active_users_note: "直近30日"
       stats_transactions_note: "AI が応答した取引"
+      categories_all: "すべて"
       categories_title: "人気のカテゴリ"
       featured_title: "注目のペルソナ"
       tabs_label: "並び替え"

@@ -9,9 +9,8 @@ body.dark-theme {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0;
-    max-width: 1200px;
-    margin: 0 auto 42px;
-    padding: 0 20px;
+    // 幅は .wrapper（1536px / 左右 4%）が持つ（Issue #126）。
+    margin: 0 0 42px;
     border-top: 1px solid var(--accent-gold);
     border-bottom: 1px solid var(--accent-gold);
   }

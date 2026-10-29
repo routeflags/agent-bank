@@ -4,9 +4,8 @@
 
 body.dark-theme {
   .raku-featured {
-    max-width: 1200px;
-    margin: 0 auto 48px;
-    padding: 0 20px;
+    // 幅は .wrapper（1536px / 左右 4%）が持つ（Issue #126）。
+    margin: 0 0 16px;
   }
 
   .raku-featured__header {
@@ -17,7 +16,7 @@ body.dark-theme {
   }
 
   .raku-featured__title {
-    font-size: 24px;
+    font-size: 19px;
     font-weight: 700;
     color: var(--text-primary);
     margin: 0;

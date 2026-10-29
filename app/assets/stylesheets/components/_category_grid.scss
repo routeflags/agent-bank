@@ -4,55 +4,67 @@
 
 body.dark-theme {
   .raku-categories {
-    max-width: 1200px;
-    margin: 0 auto 48px;
-    padding: 0 20px;
+    // 幅は .wrapper（1536px / 左右 4%）が持つ（Issue #126）。
+    margin: 12px 0 20px;
   }
 
   .raku-categories__title {
-    font-size: 24px;
+    // デザイン正本の .section h2 相当（赤い左罫・19px）。
+    font-size: 19px;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 0 0 24px;
+    margin: 0 0 12px;
+    border-left: 4px solid var(--accent-red);
+    padding-left: 9px;
   }
 
+  // デザイン正本の .categories は 11 列・gap 6px の小さなタイル。
   .raku-categories__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .raku-categories__item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 20px 12px;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    justify-content: center;
+    gap: 7px;
+    min-height: 65px;
+    min-width: 0;
+    // デザイン正本と同じ斜体タイル。
+    transform: skew(-5deg);
+    padding: 10px 6px;
+    font-size: 11px;
+    font-weight: 800;
+    background: linear-gradient(150deg, #151519, #060609);
+    border: 1px solid #43352b;
     text-decoration: none;
     text-align: center;
-    transition: all var(--transition-normal);
+    transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
 
+    // 斜体を保ったままホバーさせる（translateY だけで上書きすると台形が戻る）。
     &:hover {
-      background-color: var(--bg-card-hover);
-      border-color: var(--accent-gold);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-sm);
+      border-color: var(--accent-red);
+      box-shadow: inset 0 -3px var(--accent-red);
+      transform: skew(-5deg);
     }
   }
 
   .raku-categories__icon {
-    font-size: 32px;
+    font-size: 23px;
     line-height: 1;
+    color: var(--accent-gold);
   }
 
   .raku-categories__name {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-    line-height: 1.3;
+    font-size: 10px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+    // 斜体タイルの中身は打ち消して水平に戻す。
+    transform: skew(5deg);
   }
 
   .raku-categories__count {
