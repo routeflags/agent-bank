@@ -1,0 +1,25 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽問 — ページの外枠幅（Issue #126）
+// デザイン正本（rakuichi-rakumon-assets/index.html）は
+//   .shell{width:min(1536px,100%);margin:auto}
+// で全幅を 1536px までに抑え、各セクションが左右 4% のパディングを持つ。
+// 一方 Sharetribe 由来の .wrapper は max-width: 63em（≒1008px）で、
+// カンプより約 500px 狭かった。
+// トップバー（.topbar-inner）は既に 1536px なので、本文側だけ揃える。
+// ═══════════════════════════════════════════════════════════
+
+body.dark-theme {
+  .wrapper {
+    width: 100%;
+    max-width: 1536px;
+    margin: 0 auto;
+    padding-left: 4%;
+    padding-right: 4%;
+  }
+
+  // ヒーローは .wrapper の外（全幅）に置かれているため、同じ外枠に収める。
+  .raku-hero {
+    max-width: 1536px;
+    margin: 0 auto;
+  }
+}

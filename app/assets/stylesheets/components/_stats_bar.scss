@@ -11,8 +11,8 @@ body.dark-theme {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
-    // デザイン正本と同じく、ヒーローの直下に全幅（左右 4%）で置く。
-    margin: 8px 4% 0;
+    // 左右の余白は .wrapper（4%）が持つため、ここでは上だけ空ける。
+    margin: 8px 0 0;
   }
 
   .raku-stats__item {
