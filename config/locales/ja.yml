@@ -2520,7 +2520,9 @@ ja:
       new_listing: "新規出品"
       about_title: "自己紹介"
       table_title: "出品中ペルソナ"
-      table_title_closed: "終了した出品"
+      table_title_closed: "非公開ペルソナ"
+      tab_open: "公開中"
+      tab_closed: "非公開"
       th_skill: "ペルソナ名"
       th_views: "閲覧数"
       th_rating: "評価"
@@ -2528,14 +2530,14 @@ ja:
       th_status: "ステータス"
       th_actions: "操作"
       status_published: 公開中
-      status_closed: 終了
+      status_closed: 非公開
       price_unset: 価格未設定
       price_unset_hint: 価格（円 / 100万トークン）を設定してください
       action_edit: "編集"
       action_view: "表示"
       empty_listings: "まだ出品がありません"
       empty_listings_cta: "新規出品 → をクリックしてペルソナを登録しましょう"
-      empty_closed_listings: "終了した出品はありません"
+      empty_closed_listings: "非公開のペルソナはありません"
       reviews_title: "レビュー"
       reviews_count: "(%{count}件)"
       reviews_empty: "まだレビューがありません"

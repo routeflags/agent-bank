@@ -164,6 +164,11 @@ class Listing < ApplicationRecord
   scope :status_open_active, -> { status_open.status_active.approved }
   scope :currently_open, -> { exist.status_open.approved.where(["valid_until IS NULL OR valid_until > ?", DateTime.now]) }
 
+  # Issue #70: 公開中ではない出品（非公開にしたもの・公開期限が切れたもの）。
+  # マイページの「非公開」タブはこれを表示する。`currently_open` の補集合に
+  # することで、公開条件の定義を 1 箇所に保つ。
+  scope :currently_closed, -> { exist.where.not(id: currently_open.select(:id)) }
+
   scope :for_export, -> { includes(:listing_images).exist.order('created_at DESC') }
 
   APPROVALS = {

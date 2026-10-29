@@ -139,11 +139,13 @@
 
     -# ── Skill Table ──────────────────────────────────────
     -# 公開/非公開の切り替えタブ（Issue #70）: 本人のマイページでのみ表示。
-    -# ラベルは既存の見出し文言、見た目は .raku-featured__tab を流用する。
+    -# タブのラベルは状態（公開中 / 非公開）にし、見出しは表の内容を表す文言
+    -# （出品中ペルソナ / 非公開ペルソナ）にする。両者を混ぜると「非公開」タブに
+    -# 公開中が混ざっているように見えてしまう。
     - if current_user?(person)
       .raku-featured__tabs
-        %a.raku-featured__tab{class: (closed_view ? nil : "is-active"), href: person_path(username: person.username)}= t('lamprey.mypage.table_title')
-        %a.raku-featured__tab{class: (closed_view ? "is-active" : nil), href: person_path(username: person.username, show_closed: true)}= t('lamprey.mypage.table_title_closed')
+        %a.raku-featured__tab{class: (closed_view ? nil : "is-active"), href: person_path(username: person.username)}= t('lamprey.mypage.tab_open')
+        %a.raku-featured__tab{class: (closed_view ? "is-active" : nil), href: person_path(username: person.username, show_closed: true)}= t('lamprey.mypage.tab_closed')
     %h2.raku-table-title= closed_view ? t('lamprey.mypage.table_title_closed') : t('lamprey.mypage.table_title')
     - if @skill_listings.total_entries > 0
       %table.raku-table

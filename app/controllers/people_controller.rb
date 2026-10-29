@@ -47,8 +47,11 @@ class PeopleController < Devise::RegistrationsController
     # 出品中スキル表はAR実体を直接使う。
     # @service.listings の要素は ListingIndexViewUtils::ListingItem 構造体で
     # times_viewed / avg_rating / open を持たないため（NoMethodError の原因）
-    include_closed = @current_user.present? && @current_user == @service.person && params[:show_closed].present?
-    skill_scope = include_closed ? person_listings : person_listings.currently_open
+    # Issue #70: タブ（公開中 / 非公開）で切り替える。以前は「非公開」タブでも
+    # 公開中を含む全件を出していたため、タブが壊れて見えていた。
+    # 非公開が見えるのは本人だけで、他人のページは常に公開中のみ。
+    closed_view = @current_user.present? && @current_user == @service.person && params[:show_closed].present?
+    skill_scope = closed_view ? person_listings.currently_closed : person_listings.currently_open
     @skill_listings = skill_scope.includes(:listing_images)
                                  .order(Arel.sql("listings.sort_date DESC"))
                                  .paginate(page: 1, per_page: 20)
