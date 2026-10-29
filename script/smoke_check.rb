@@ -23,7 +23,7 @@
 # 確認項目:
 #   - 各ページが HTTP 200 を返すこと
 #   - 主要セレクタの存在（トップ: raku-search-box / product-link /
-#     raku-stats__item / site-footer、一覧: cards（トップと同じカード）、
+#     raku-stats__item / raku-footer、一覧: cards（トップと同じカード）、
 #     詳細: raku-price-box、ドキュメント: raku-page / raku-docs-section、
 #     プロフィール: raku-profile）
 #   - 禁止文言が出ていないこと
@@ -93,7 +93,7 @@ if code == 200
   reporter.call(top_body.include?("raku-search-box"), "トップに raku-search-box が存在する")
   reporter.call(top_body.include?("product-link"), "トップに product-link が存在する")
   reporter.call(top_body.include?("raku-stats__item"), "トップに raku-stats__item が存在する")
-  reporter.call(top_body.include?("site-footer"), "トップに site-footer が存在する")
+  reporter.call(top_body.include?("raku-footer"), "トップに共通フッター（raku-footer）が存在する")
   hit = forbidden_words.find { |w| top_body.include?(w) }
   reporter.call(hit.nil?, hit.nil? ? "トップに禁止文言（#{FORBIDDEN_LABEL}）が出ていない" : "トップに禁止文言が出ていない（検出: #{hit}）")
 else
