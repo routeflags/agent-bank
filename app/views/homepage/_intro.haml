@@ -9,23 +9,21 @@
 -# ═══════════════════════════════════════════════════════════
 .raku-stats{aria: {label: t('lamprey.homepage.stats_heading')}}
   .raku-stats__item
-    %span.raku-stats__mark{aria: {hidden: "true"}} 🤖
-    .raku-stats__text
-      %span.raku-stats__label= t('lamprey.homepage.stats_personas')
-      %strong.raku-stats__value= number_with_delimiter(@marketplace_metrics[:personas])
-      %small.raku-stats__note= t('lamprey.homepage.stats_personas_note')
+    %small.raku-stats__label= t('lamprey.homepage.stats_agents')
+    %strong.raku-stats__value= number_with_delimiter(@marketplace_metrics[:agents])
+    %span.raku-stats__note= t('lamprey.homepage.stats_agents_note')
   .raku-stats__item
-    %span.raku-stats__mark{aria: {hidden: "true"}} 👁️
-    .raku-stats__text
-      %span.raku-stats__label= t('lamprey.homepage.stats_total_views')
-      %strong.raku-stats__value= number_with_delimiter(@marketplace_metrics[:total_views])
-      %small.raku-stats__note= t('lamprey.homepage.stats_total_views_note')
+    %small.raku-stats__label= t('lamprey.homepage.stats_skills')
+    %strong.raku-stats__value= number_with_delimiter(@marketplace_metrics[:skills])
+    %span.raku-stats__note= t('lamprey.homepage.stats_skills_note')
   .raku-stats__item
-    %span.raku-stats__mark{aria: {hidden: "true"}} 💰
-    .raku-stats__text
-      %span.raku-stats__label= t('lamprey.homepage.stats_total_sold')
-      %strong.raku-stats__value= number_with_delimiter(@marketplace_metrics[:total_sold])
-      %small.raku-stats__note= t('lamprey.homepage.stats_total_sold_note')
+    %small.raku-stats__label= t('lamprey.homepage.stats_active_users')
+    %strong.raku-stats__value= number_with_delimiter(@marketplace_metrics[:active_users])
+    %span.raku-stats__note= t('lamprey.homepage.stats_active_users_note')
+  .raku-stats__item
+    %small.raku-stats__label= t('lamprey.homepage.stats_transactions')
+    %strong.raku-stats__value= number_with_delimiter(@marketplace_metrics[:transactions])
+    %span.raku-stats__note= t('lamprey.homepage.stats_transactions_note')
 
 -# ═══════════════════════════════════════════════════════════
 -# Category Grid — 既存のルートカテゴリから動的生成する。

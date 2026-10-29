@@ -178,12 +178,32 @@ class HomepageController < ApplicationController
   # 下請けの書き込み元: total_views は ListingsController#show→ListingStatsService（#97）、
   # total_sold は ChatMessage 確定時フック（課金成功と同一トランザクション）。
   # 評価（avg_rating）は #106 で保留のため集計・表示しない（Issue #108）。
+  # トップの実績サマリー（Issue #112 / #125）。
+  #
+  # デザイン正本の 4 指標（登録エージェント数 / 登録スキル数 / アクティブユーザー /
+  # 取引数（累計））を **実データのみ** で埋める。デモ数値は出さない。
+  #
+  # 定義:
+  # - agents        : 公開中のペルソナ（出品）数
+  # - skills        : 公開中のペルソナが提供しているスキル分類（カテゴリ）の種類数
+  # - active_users  : 直近 30 日にチャットを送信した人数
+  # - transactions  : AI が応答した（＝課金対象になった）チャットセッション数
   def marketplace_metrics
     open_listings = Listing.currently_open.where(community_id: @current_community.id)
+    community_listing_ids = Listing.where(community_id: @current_community.id).select(:id)
+
     {
-      personas: open_listings.count,
-      total_views: open_listings.sum(:times_viewed).to_i,
-      total_sold: open_listings.sum(:total_sold).to_i
+      agents: open_listings.count,
+      skills: open_listings.where.not(category_id: nil).distinct.count(:category_id),
+      active_users: ChatMessage.joins(:chat_session)
+                               .where(role: "user")
+                               .where("chat_messages.created_at >= ?", 30.days.ago)
+                               .where(chat_sessions: { listing_id: community_listing_ids })
+                               .distinct.count(:sender_id),
+      transactions: ChatSession.joins(:chat_messages)
+                               .where(listing_id: community_listing_ids)
+                               .where(chat_messages: { role: "assistant" })
+                               .distinct.count
     }
   end
 

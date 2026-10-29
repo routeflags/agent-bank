@@ -1,85 +1,68 @@
 // ═══════════════════════════════════════════════════════════
-// 楽市楽問 — Stats Bar（Issue #108 / #112）
-// 体裁はデザイン正本の .stat（記号＋ラベル＋値＋補足）に合わせる。
-// 値は実データの3指標のみ。デモ数値は出さない。評価は #106 保留のため含めない。
+// 楽市楽問 — Stats Bar（Issue #112 / #125）
+// デザイン正本（rakuichi-rakumon-assets/index.html の .stats / .stat）に
+// 合わせる: 4 指標・斜体カード（skew -7deg）・左の金色ボーダー・
+// ラベル（small）/ 値（strong, 金色）/ 補足（span）。
+// 値は実データの集計のみ。デモ数値は出さない。
 // ═══════════════════════════════════════════════════════════
 
 body.dark-theme {
   .raku-stats {
     display: grid;
-    // 実データの3指標（登録ペルソナ / 総閲覧数 / 総販売数）。
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
-    max-width: 1000px;
-    margin: 25px auto;
-    padding: 0 20px;
-    position: relative;
-    z-index: 10;
+    // デザイン正本と同じく、ヒーローの直下に全幅（左右 4%）で置く。
+    margin: 8px 4% 0;
   }
 
   .raku-stats__item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background-color: #111115;
-    border: 1px solid #433035;
-    border-left: 3px solid var(--accent-gold);
-    padding: 16px 19px;
+    min-height: 75px;
+    padding: 14px 18px;
+    background: linear-gradient(140deg, #16151a, #0a090d);
+    border: 1px solid #3a2924;
+    border-left: 2px solid var(--accent-gold);
+    transform: skew(-7deg);
   }
 
-  .raku-stats__mark {
-    font-size: 29px;
-    color: var(--accent-gold);
-    line-height: 1;
-  }
-
-  .raku-stats__text {
-    min-width: 0;
+  // 斜体カードの中身は打ち消して水平に戻す。
+  .raku-stats__item > * {
+    transform: skew(7deg);
   }
 
   .raku-stats__label {
     display: block;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 400;
     color: #ccc;
   }
 
   .raku-stats__value {
     display: block;
-    font-size: 23px;
+    font-size: clamp(16px, 2vw, 26px);
     font-weight: 800;
-    color: var(--text-primary);
-    line-height: 1.2;
+    color: #e1b96d;
+    line-height: 1.25;
   }
 
   .raku-stats__note {
     display: block;
     font-size: 10px;
-    color: #aaa;
+    color: #bbb;
   }
 }
 
 @media (max-width: 767px) {
   body.dark-theme .raku-stats {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
-  // 375px でも折り返さず3列を保つ（受入基準: 横スクロールなし）
   body.dark-theme .raku-stats__item {
-    gap: 8px;
-    padding: 10px;
-  }
-
-  body.dark-theme .raku-stats__mark {
-    font-size: 23px;
+    padding: 10px 12px;
+    min-height: 64px;
   }
 
   body.dark-theme .raku-stats__value {
-    font-size: 20px;
-  }
-
-  body.dark-theme .raku-stats__label {
-    font-size: 11px;
+    font-size: 18px;
   }
 }
