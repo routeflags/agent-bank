@@ -2413,6 +2413,7 @@ ja:
       stats_active_users: "アクティブユーザー"
       stats_transactions: "取引数（累計）"
       categories_all: "すべて"
+      categories_see_all: "すべて見る →"
       categories_title: "人気のカテゴリ"
       featured_title: "注目のペルソナ"
       tabs_label: "並び替え"

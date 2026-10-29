@@ -29,16 +29,20 @@
 -# ═══════════════════════════════════════════════════════════
 - if @main_categories.present?
   .raku-categories
-    %h2.raku-categories__title= t('lamprey.homepage.categories_title')
+    -# 見出しはデザイン正本と同じく「見出し＋すべて見る」の 2 カラム。
+    .raku-categories__head
+      %h2.raku-categories__title= t('lamprey.homepage.categories_title')
+      = link_to browse_path, class: "raku-categories__see-all" do
+        = t('lamprey.homepage.categories_see_all')
     .raku-categories__grid
       -# デザイン正本と同じく先頭に「すべて」タイルを置く（11 列の 1 つ目）。
       = link_to browse_path, class: "raku-categories__item" do
-        %span.raku-categories__icon{aria: {hidden: "true"}} ✦
+        %span.raku-categories__icon{aria: {hidden: "true"}}= category_tile_icon(t('lamprey.homepage.categories_all'))
         %span.raku-categories__name= t('lamprey.homepage.categories_all')
       - @main_categories.each do |category|
         - name = (@category_display_names && @category_display_names[category.id]) || category.display_name(I18n.locale)
         = link_to browse_path(category: category), class: "raku-categories__item" do
-          %span.raku-categories__icon{aria: {hidden: "true"}} 🗂️
+          %span.raku-categories__icon{aria: {hidden: "true"}}= category_tile_icon(name)
           %span.raku-categories__name= name
 
 -# ═══════════════════════════════════════════════════════════

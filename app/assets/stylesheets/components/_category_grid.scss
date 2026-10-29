@@ -8,12 +8,28 @@ body.dark-theme {
     margin: 12px 0 20px;
   }
 
+  .raku-categories__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 12px;
+  }
+
+  .raku-categories__see-all {
+    color: var(--accent-gold);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
+
   .raku-categories__title {
     // デザイン正本の .section h2 相当（赤い左罫・19px）。
     font-size: 19px;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 0 0 12px;
+    margin: 0;
     border-left: 4px solid var(--accent-red);
     padding-left: 9px;
   }
@@ -56,6 +72,9 @@ body.dark-theme {
     font-size: 23px;
     line-height: 1;
     color: var(--accent-gold);
+    // 斜体タイルの中身は打ち消して水平に戻す（記号も同様）。
+    transform: skew(5deg);
+    font-weight: 400;
   }
 
   .raku-categories__name {

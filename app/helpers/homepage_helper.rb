@@ -37,6 +37,33 @@ module HomepageHelper
     "garden" => "🌱", "travel" => "✈️", "other" => "🗂️"
   }.freeze
 
+  # トップのカテゴリタイルに出す記号（Issue #127）。
+  # デザイン正本（rakuichi-rakumon-assets/index.html の cats 配列）と同一。
+  # 画像ではなく記号にして、カテゴリ名から引く（翻訳に依存しないよう ja 名で持つ）。
+  CATEGORY_TILE_ICONS = {
+    "すべて" => "✦",
+    "生成AI" => "✧",
+    "データ分析" => "▥",
+    "開発・プログラミング" => "⌘",
+    "マーケティング" => "➤",
+    "業務自動化" => "⚙",
+    "デザイン" => "✎",
+    "リサーチ" => "⚲",
+    "教育・学習" => "◇",
+    "画像生成" => "▧",
+    "翻訳" => "文"
+  }.freeze
+
+  CATEGORY_TILE_ICON_DEFAULT = "✦".freeze
+
+  # トップのカテゴリタイル用の記号を返す。
+  #
+  # @param name [String, nil] カテゴリ表示名
+  # @return [String] 記号（未登録は ✦）
+  def category_tile_icon(name)
+    CATEGORY_TILE_ICONS[name.to_s.strip] || CATEGORY_TILE_ICON_DEFAULT
+  end
+
   CATEGORY_VISUAL_DEFAULT_EMOJI = "🤖".freeze
   CATEGORY_VISUAL_FALLBACK_LABEL = "PERSONA".freeze
 
