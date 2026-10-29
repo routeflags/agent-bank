@@ -11,19 +11,15 @@
   .raku-stats__item
     %small.raku-stats__label= t('lamprey.homepage.stats_agents')
     %strong.raku-stats__value= number_with_delimiter(@marketplace_metrics[:agents])
-    %span.raku-stats__note= t('lamprey.homepage.stats_agents_note')
   .raku-stats__item
     %small.raku-stats__label= t('lamprey.homepage.stats_skills')
     %strong.raku-stats__value= number_with_delimiter(@marketplace_metrics[:skills])
-    %span.raku-stats__note= t('lamprey.homepage.stats_skills_note')
   .raku-stats__item
     %small.raku-stats__label= t('lamprey.homepage.stats_active_users')
     %strong.raku-stats__value= number_with_delimiter(@marketplace_metrics[:active_users])
-    %span.raku-stats__note= t('lamprey.homepage.stats_active_users_note')
   .raku-stats__item
     %small.raku-stats__label= t('lamprey.homepage.stats_transactions')
     %strong.raku-stats__value= number_with_delimiter(@marketplace_metrics[:transactions])
-    %span.raku-stats__note= t('lamprey.homepage.stats_transactions_note')
 
 -# ═══════════════════════════════════════════════════════════
 -# Category Grid — 既存のルートカテゴリから動的生成する。

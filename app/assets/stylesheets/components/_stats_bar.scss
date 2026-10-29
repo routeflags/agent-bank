@@ -24,9 +24,14 @@ body.dark-theme {
     transform: skew(-7deg);
   }
 
-  // 斜体カードの中身は打ち消して水平に戻す。
-  .raku-stats__item > * {
+  // 斜体カードの中身は打ち消して水平に戻す（数値だけは傾いたままにする）。
+  .raku-stats__item > *:not(.raku-stats__value) {
     transform: skew(7deg);
+  }
+
+  // 数値はカードの傾きをそのまま継承して斜体に見せる（デザイン正本の見え方）。
+  .raku-stats__value {
+    transform: none;
   }
 
   .raku-stats__label {
@@ -44,11 +49,6 @@ body.dark-theme {
     line-height: 1.25;
   }
 
-  .raku-stats__note {
-    display: block;
-    font-size: 10px;
-    color: #bbb;
-  }
 }
 
 @media (max-width: 767px) {
