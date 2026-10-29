@@ -54,6 +54,10 @@ abort("update failed: #{person.errors.full_messages.join(', ')}") unless person.
 puts "updated=#{person.username}"
 RUBY
 
+# `docker compose cp` はコピー元のパーミッションを引き継ぐため、コンテナ内の
+# 実行ユーザー（app）が読めるように 0644 にしてからコピーする。直後に削除する。
+chmod 0644 "$TMP_PW" "$TMP_RB"
+
 docker compose -f "$COMPOSE_FILE" cp "$TMP_PW" web:/tmp/rotate_admin_password.txt >/dev/null
 docker compose -f "$COMPOSE_FILE" cp "$TMP_RB" web:/tmp/rotate_admin_password.rb >/dev/null
 
