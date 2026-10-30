@@ -22,7 +22,7 @@
 #
 # 確認項目:
 #   - 各ページが HTTP 200 を返すこと
-#   - 主要セレクタの存在（トップ: raku-search-box / product-link /
+#   - 主要セレクタの存在（トップ: raku-search-box / agent-name /
 #     raku-stats__item / raku-footer、一覧: cards（トップと同じカード）、
 #     詳細: raku-price-box、ドキュメント: raku-page / raku-docs-section、
 #     プロフィール: raku-profile）
@@ -91,7 +91,7 @@ code, top_body, _loc = fetch(base, "/ja/")
 reporter.call(code == 200, "GET /ja/ が 200 を返した（実際: #{code}）")
 if code == 200
   reporter.call(top_body.include?("raku-search-box"), "トップに raku-search-box が存在する")
-  reporter.call(top_body.include?("product-link"), "トップに product-link が存在する")
+  reporter.call(top_body.include?("agent-name"), "トップにカード（agent-name）が存在する")
   reporter.call(top_body.include?("raku-stats__item"), "トップに raku-stats__item が存在する")
   reporter.call(top_body.include?("raku-footer"), "トップに共通フッター（raku-footer）が存在する")
   hit = forbidden_words.find { |w| top_body.include?(w) }
@@ -104,7 +104,7 @@ end
 code, browse_body, _loc = fetch(base, "/ja/browse")
 reporter.call(code == 200, "GET /ja/browse が 200 を返した（実際: #{code}）")
 if code == 200
-  reporter.call(browse_body.include?("product-link"), "一覧にカード要素（product-link）が存在する")
+  reporter.call(browse_body.include?("agent-name"), "一覧にカード要素（agent-name）が存在する")
   hit = forbidden_words.find { |w| browse_body.include?(w) }
   reporter.call(hit.nil?, hit.nil? ? "一覧に禁止文言（#{FORBIDDEN_LABEL}）が出ていない" : "一覧に禁止文言が出ていない（検出: #{hit}）")
 end
