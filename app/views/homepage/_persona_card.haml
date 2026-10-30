@@ -1,29 +1,46 @@
--# 楽市楽問 — ペルソナカード（Issue #111 / #128）
+-# 楽市楽問 — ペルソナカード（Issue #111 / #128 / #129）
 -# デザイン正本（rakuichi-rakumon-assets/index.html の article.agent）に合わせる。
--#   art（帯）→ tag（カテゴリ）→ 名前 → by 作者 → 説明 → meta（価格）
+-#   帯 → tag → 名前＋♡ → by 作者 → 説明 → meta（いいね数＋価格）
 -# visual の色・英字・絵文字は HomepageHelper#listing_category_visual から供給を受ける
 -# （定義は HomepageHelper のカテゴリビジュアル表のみ。テンプレートに二重定義しない）。
--# ★・レビュー件数は #106 保留のため出さない。
+-# ★・レビュー件数は出さない。星の代わりに実際のいいね数（listing_followers）を出す。
 - category_name = persona_category_name(listing, @category_display_names)
 - style = listing_category_visual(listing, @category_display_names)
 - price_yen = listing.price ? listing.price.to_f : 0
+- like_count = @listing_like_counts ? @listing_like_counts[listing.id] : 0
+- liked = @liked_listing_ids ? @liked_listing_ids.include?(listing.id) : false
 %article.agent
-  = link_to listing_path(listing.url), class: "product-link", aria: { label: t("lamprey.homepage.card_details", title: listing.title) } do
+  = link_to listing_path(listing.url), class: "agent-art", aria: { label: t("lamprey.homepage.card_details", title: listing.title) } do
     .visual{ style: "--tone:#{style[:color]}" }
       %span.visual-word= style[:english_label]
       %span.avatar{ aria: { hidden: "true" } }= style[:emoji]
-    .agent-info
-      -# デザイン正本は全カードにカテゴリの tag を持つ。未分類でも高さが
-      -# 揃うようフォールバックを出す。
-      %span.tag= category_name.presence || t("lamprey.homepage.card_no_category")
-      %h3.agent-name= listing.title
-      %span.creator
-        - if listing.author
-          by #{listing.author.display_name || listing.author.username}
-        - else
-          by #{t("lamprey.homepage.card_author_unknown")}
-      %p.summary= truncate(listing.description.to_s.lines.first.to_s.strip, length: 70)
-      .meta
-        %span.price
-          - if price_yen.positive?
-            = "¥#{number_with_delimiter(price_yen.round)}"
+  .agent-info
+    -# デザイン正本は全カードにカテゴリの tag を持つ。未分類でも高さが
+    -# 揃うようフォールバックを出す。
+    %span.tag= category_name.presence || t("lamprey.homepage.card_no_category")
+    .agent-name-row
+      = link_to listing_path(listing.url), class: "agent-name" do
+        = listing.title
+      -# いいねは帯リンクとは別の form にし、a 要素の中に入れない（Issue #129）。
+      - if @current_user
+        = button_to(liked ? "♥" : "♡",
+                    liked ? unfollow_listing_path(listing.url) : follow_listing_path(listing.url),
+                    method: liked ? :delete : :post,
+                    params: { return_to: request.fullpath },
+                    form_class: "agent-fave-form",
+                    class: "fave#{' on' if liked}",
+                    aria: { label: t("lamprey.homepage.card_like", title: listing.title), pressed: liked.to_s })
+      - else
+        = link_to "♡", login_path, class: "fave", aria: { label: t("lamprey.homepage.card_login_to_like") }
+    %span.creator
+      - if listing.author
+        by #{listing.author.display_name || listing.author.username}
+      - else
+        by #{t("lamprey.homepage.card_author_unknown")}
+    %p.summary= truncate(listing.description.to_s.lines.first.to_s.strip, length: 70)
+    .meta
+      %span.likes
+        = "♡ #{like_count}"
+      %span.price
+        - if price_yen.positive?
+          = "¥#{number_with_delimiter(price_yen.round)}"

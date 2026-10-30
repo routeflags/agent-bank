@@ -384,7 +384,10 @@ class ListingsController < ApplicationController
     status.eql?("follow") ? @current_user.follow(@listing) : @current_user.unfollow(@listing)
     respond_to do |format|
       format.html {
-        redirect_to @listing
+        # カードの ♡ 操作後は同じページに戻る（Issue #129）。
+        # 外部 URL への飛び出しを防ぐため、ローカルパスだけ受け付ける。
+        return_to = params[:return_to].to_s
+        redirect_to(return_to.start_with?("/") ? return_to : @listing)
       }
       format.js {
         render :follow, :layout => false

@@ -2423,6 +2423,8 @@ ja:
       slide_next: "次へ"
       empty_title: "まだペルソナが登録されていません"
       empty_subtitle: "第1号のAIペルソナを出品しませんか？"
+      card_like: "「%{title}」にいいね"
+      card_login_to_like: "いいねするにはログイン"
       card_no_category: "ペルソナ"
       card_author_unknown: "出品者"
       card_details: "%{title}の詳細を見る"

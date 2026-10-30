@@ -113,6 +113,7 @@ class HomepageController < ApplicationController
     elsif request.xhr? # checks if AJAX request
       search_result.on_success { |listings|
         @listings = exclude_test_listings(listings)
+        preload_listing_like_data
         render_homepage_xhr_listings(location_in_use, shape_name_map)
       }.on_error {
         # ThinkingSphinx が未起動の場合は DB フォールバックで 200 を返す
@@ -142,6 +143,7 @@ class HomepageController < ApplicationController
         @listings = listings
         # Exclude test listings from public view
         @listings = exclude_test_listings(@listings)
+        preload_listing_like_data
         render locals: locals.merge(
                  seo_pagination_links: seo_pagination_links(params, @listings.current_page, @listings.total_pages))
       }.on_error { |e|
@@ -188,6 +190,21 @@ class HomepageController < ApplicationController
   # - skills        : 公開中のペルソナが提供しているスキル分類（カテゴリ）の種類数
   # - active_users  : 直近 30 日にチャットを送信した人数
   # - transactions  : AI が応答した（＝課金対象になった）チャットセッション数
+  # カードのいいね数といいね済み集合を事前に数える（Issue #129）。
+  #
+  # `listing_followers` の実データを使う。カード partial は Struct しか
+  # 持たないため、ここで { listing_id => 件数 } と id 集合を作って渡す。
+  def preload_listing_like_data
+    ids = Array(@listings).map(&:id)
+    @listing_like_counts = Hash.new(0)
+    @listing_like_counts.merge!(Listing.where(id: ids).joins(:followers).group("listings.id").count) if ids.present?
+    @liked_listing_ids = if @current_user && ids.present?
+                           Set.new(@current_user.followed_listings.where(id: ids).pluck(:id))
+                         else
+                           Set.new
+                         end
+  end
+
   def marketplace_metrics
     open_listings = Listing.currently_open.where(community_id: @current_community.id)
     community_listing_ids = Listing.where(community_id: @current_community.id).select(:id)

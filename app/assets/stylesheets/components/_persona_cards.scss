@@ -28,6 +28,10 @@ body.dark-theme {
     }
   }
 
+  .agent-art {
+    display: block;
+  }
+
   .product-link {
     display: flex;
     flex-direction: column;
@@ -89,13 +93,52 @@ body.dark-theme {
     align-self: flex-start;
   }
 
+  // 名前＋♡の行（デザイン正本と同じ横並び）。
+  .agent-name-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
   .agent-name {
+    flex: 1;
+    min-width: 0;
     font-size: 13px;
     font-weight: 800;
     line-height: 1.4;
     min-height: 36px;
     margin: 0;
     color: var(--text-primary);
+    text-decoration: none;
+  }
+
+  .agent-fave-form {
+    flex: none;
+    align-self: flex-start;
+    margin: 1px 0 0;
+  }
+
+  // デザイン正本の .fave（♡）。いいね済みは赤くする。
+  .fave {
+    margin-left: auto;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: #ddd;
+    font-size: 19px;
+    line-height: 1.2;
+    cursor: pointer;
+    text-decoration: none;
+
+    &.on { color: #e41c37; }
+  }
+
+  // meta の左に星の代わりのいいね数（Issue #129）。
+  .agent .likes {
+    color: var(--accent-gold);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
   }
 
   .agent .creator {

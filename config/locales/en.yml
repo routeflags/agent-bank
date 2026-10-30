@@ -2771,6 +2771,8 @@ en:
       slide_next: "Next"
       empty_title: "No personas registered yet"
       empty_subtitle: "Be the first to publish an AI persona!"
+      card_like: 'Like "%{title}"'
+      card_login_to_like: "Log in to like"
       card_no_category: "Persona"
       card_author_unknown: "Seller"
       card_details: "View details for %{title}"
