@@ -11,9 +11,15 @@
 - liked = @liked_listing_ids ? @liked_listing_ids.include?(listing.id) : false
 %article.agent
   = link_to listing_path(listing.url), class: "agent-art", aria: { label: t("lamprey.homepage.card_details", title: listing.title) } do
-    .visual{ style: "--tone:#{style[:color]}" }
-      %span.visual-word= style[:english_label]
-      %span.avatar{ aria: { hidden: "true" } }= style[:emoji]
+    -# 出品画像があるときはカンプどおり実画像を出す。無いときだけ色帯。
+    - card_image = listing.listing_images&.first
+    - card_image_url = card_image && (card_image[:small_3x2] || card_image[:medium] || card_image[:thumb])
+    - if card_image_url.present?
+      %img.card-art{src: card_image_url, alt: "", loading: "lazy"}
+    - else
+      .visual{ style: "--tone:#{style[:color]}" }
+        %span.visual-word= style[:english_label]
+        %span.avatar{ aria: { hidden: "true" } }= style[:emoji]
   .agent-info
     -# デザイン正本は全カードにカテゴリの tag を持つ。未分類でも高さが
     -# 揃うようフォールバックを出す。

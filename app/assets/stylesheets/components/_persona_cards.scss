@@ -40,6 +40,14 @@ body.dark-theme {
     text-decoration: none;
   }
 
+  // デザイン正本の .art と同じ比率（236 / 79）の絵。
+  .agent .card-art {
+    width: 100%;
+    aspect-ratio: 236 / 79;
+    object-fit: cover;
+    display: block;
+  }
+
   // デザイン正本の .art と同じ比率（236 / 79）の帯。
   .agent .visual {
     aspect-ratio: 236 / 79;
