@@ -17,9 +17,16 @@ body.dark-theme {
     padding-right: 4%;
   }
 
-  // ヒーローは .wrapper の外（全幅）に置かれているため、同じ外枠に収める。
+  // ヒーローは全幅のままにする（デザインの印象どおり画面端まで広げる）。
+  // .wrapper 側だけ 1536px / 4% に収める。
   .raku-hero {
-    max-width: 1536px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: none;
+  }
+
+  // トップは .page-content の上パディング（24px相当）を外し、
+  // ヒーローをヘッダーナビに密着させる。他ページは現状維持。
+  main.page-content.raku-home {
+    padding-top: 0;
   }
 }

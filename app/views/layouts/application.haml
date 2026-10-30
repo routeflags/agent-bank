@@ -55,7 +55,8 @@
           .raku-page-head__inner
             = yield :title_header
 
-      %main.page-content{class: is_homepage && !@big_cover_photo ? 'no-cover-photo' : ''}
+      -# トップはヒーローがヘッダーに密着するよう raku-home を付ける（Issue #128）。
+      %main.page-content{class: [is_homepage && !@big_cover_photo ? 'no-cover-photo' : '', ('raku-home' if is_homepage)].compact.join(' ')}
         -# ヒーロー（トップ専用・_hero.haml）は .wrapper と #homepage-filters の
         -# 外に置く。これにより背景がビューポート全幅に広がり（Issue #3）、
         -# 検索バーを /browse へ送信する独立フォームとして実装できる（Issue #4）。
