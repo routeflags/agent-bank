@@ -1,27 +1,20 @@
--# 楽市楽問 — Benefits（Issue #108 / #112）
+-# 楽市楽問 — Benefits（Issue #108 / #112 / #132）
 -# ═══════════════════════════════════════════════════════════
--# 体裁はデザイン正本の .benefits（3列・上下の罫線・アイコン円・リンク）。
--# 方針差分:
--#   - 「開発者コミュニティ」は既存ルートが無いため出さない。
--#     代わりに使い方ガイド（docs）への導線にする（#112 で確定）。
--#   - 「安心・安全」はレビュー・評価に触れず、出品情報の確認と
--#     マーケットへの導線にする（評価機能は #106 で保留）。
--#   - 文言は「ペルソナ」に統一する（#96 の方針）。
--#   - お気に入り（♡）は保存機能が無いため出さない。
+-# デザイン正本（rakuichi-rakumon-assets/index.html の .bottom / .feature）に合わせる。
+-#   3 項目（出品して収益化 / 安心・安全のマーケット / 開発者コミュニティ）、
+-#   見出しは記号（◆⬡✦）付き、説明文、導線リンク。
+-# 「開発者コミュニティ」の導線は docs に向けている（専用ページは未実装）。
 -# なお .raku-features の器・__item は出品詳細のカスタム表示でも使うため残す。
 %section.benefits{aria: {label: t('lamprey.homepage.features_heading')}}
   .benefit
-    %span.benefit-icon{aria: {hidden: "true"}} ¥
-    %h2.benefit-title= t('lamprey.homepage.feature_sell_title')
+    %h2.benefit-title= "◆ #{t('lamprey.homepage.feature_sell_title')}"
     %p.benefit-body= t('lamprey.homepage.feature_sell_body')
-    = link_to t('lamprey.homepage.feature_sell_link'), new_listing_path, class: "benefit-link"
+    = link_to t('lamprey.homepage.feature_sell_link'), docs_path, class: "benefit-link"
   .benefit
-    %span.benefit-icon{aria: {hidden: "true"}} ⬡
-    %h2.benefit-title= t('lamprey.homepage.feature_safety_title')
+    %h2.benefit-title= "⬡ #{t('lamprey.homepage.feature_safety_title')}"
     %p.benefit-body= t('lamprey.homepage.feature_safety_body')
     = link_to t('lamprey.homepage.feature_safety_link'), browse_path, class: "benefit-link"
   .benefit
-    %span.benefit-icon{aria: {hidden: "true"}} 📚
-    %h2.benefit-title= t('lamprey.homepage.feature_guide_title')
-    %p.benefit-body= t('lamprey.homepage.feature_guide_body')
-    = link_to t('lamprey.homepage.feature_guide_link'), docs_path, class: "benefit-link"
+    %h2.benefit-title= "✦ #{t('lamprey.homepage.feature_community_title')}"
+    %p.benefit-body= t('lamprey.homepage.feature_community_body')
+    = link_to t('lamprey.homepage.feature_community_link'), docs_path, class: "benefit-link"

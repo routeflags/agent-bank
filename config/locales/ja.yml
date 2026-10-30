@@ -2430,17 +2430,14 @@ ja:
       card_details: "%{title}の詳細を見る"
       features_heading: "楽市楽問の使い方"
       feature_sell_title: "出品して収益化"
-      feature_sell_body: "あなたのAIペルソナを公開して、新しい収益の可能性を広げ
-よう。"
-      feature_sell_link: "出品する →"
+      feature_sell_body: "あなたのAIエージェントやスキルを世界中に提供して、価値を届けよう。"
+      feature_sell_link: "出品ガイドを見る →"
       feature_safety_title: "安心・安全のマーケット"
-      feature_safety_body: "出品情報を確認して、自分に合ったペルソナを見つけよ
-う。"
-      feature_safety_link: "ペルソナを探す →"
-      feature_guide_title: "使い方ガイド"
-      feature_guide_body: "マーケットの使い方をドキュメントで案内します。初め
-ての方も安心です。"
-      feature_guide_link: "ドキュメントを見る →"
+      feature_safety_body: "レビューや評価を比較して、あなたの課題に合うスキルを発見。"
+      feature_safety_link: "エージェントを探す →"
+      feature_community_title: "開発者コミュニティ"
+      feature_community_body: "クリエイター・開発者・企業がつながる場所。"
+      feature_community_link: "コミュニティに参加 →"
       site_footer_copy: "© 2026 楽市楽問"
       site_footer_note: "掲載内容にはサンプルが含まれます"
     header:

@@ -2777,18 +2777,15 @@ en:
       card_author_unknown: "Seller"
       card_details: "View details for %{title}"
       features_heading: "How to use Rakuichi Rakumon"
-      feature_sell_title: "Sell and earn"
-      feature_sell_body: "Publish your AI persona and open up new earning oppo
-rtunities."
-      feature_sell_link: "Start selling →"
+      feature_sell_title: "Monetize your work"
+      feature_sell_body: "Offer your AI agents and skills to the world."
+      feature_sell_link: "Seller guide →"
       feature_safety_title: "A safe marketplace"
-      feature_safety_body: "Check listing details and find the persona that fit
-s you."
-      feature_safety_link: "Find personas →"
-      feature_guide_title: "Usage guide"
-      feature_guide_body: "Our docs walk you through the marketplace, so first
--timers are welcome."
-      feature_guide_link: "Read the docs →"
+      feature_safety_body: "Compare reviews and ratings to find your skill."
+      feature_safety_link: "Find agents →"
+      feature_community_title: "Developer community"
+      feature_community_body: "A place for creators, developers, and companies."
+      feature_community_link: "Join the community →"
       site_footer_copy: "© 2026 Rakuichi Rakumon"
       site_footer_note: "Some listings include samples."
     header:
