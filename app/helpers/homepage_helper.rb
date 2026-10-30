@@ -56,6 +56,34 @@ module HomepageHelper
 
   CATEGORY_TILE_ICON_DEFAULT = "✦".freeze
 
+  # トップのカードが使うカテゴリのデフォルト画像（Issue #130）。
+  # デザイン正本のカード絵（app/assets/images/rakuichi/agent-N.webp、
+  # 既に #108 で取り込み済み）をカテゴリに割り当てる。出品画像が無い
+  # ときにこれを出す。6 枚を順に回す。
+  CATEGORY_DEFAULT_IMAGES = {
+    "生成AI" => "rakuichi/agent-1.webp",
+    "データ分析" => "rakuichi/agent-2.webp",
+    "開発・プログラミング" => "rakuichi/agent-3.webp",
+    "マーケティング" => "rakuichi/agent-4.webp",
+    "業務自動化" => "rakuichi/agent-5.webp",
+    "デザイン" => "rakuichi/agent-6.webp",
+    "リサーチ" => "rakuichi/agent-1.webp",
+    "教育・学習" => "rakuichi/agent-2.webp",
+    "画像生成" => "rakuichi/agent-3.webp",
+    "翻訳" => "rakuichi/agent-4.webp"
+  }.freeze
+
+  CATEGORY_DEFAULT_IMAGE_FALLBACK = "rakuichi/agent-5.webp".freeze
+
+  # カードのデフォルト画像の論理パスを返す。
+  #
+  # @param name [String, nil] カテゴリ表示名
+  # @return [String] asset の論理パス（"rakuichi/agent-N.webp"）
+  def category_default_image(name)
+    CATEGORY_DEFAULT_IMAGES[name.to_s.strip] || CATEGORY_DEFAULT_IMAGE_FALLBACK
+  end
+
+
   # トップのカテゴリタイル用の記号を返す。
   #
   # @param name [String, nil] カテゴリ表示名

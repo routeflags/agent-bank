@@ -11,11 +11,13 @@
 - liked = @liked_listing_ids ? @liked_listing_ids.include?(listing.id) : false
 %article.agent
   = link_to listing_path(listing.url), class: "agent-art", aria: { label: t("lamprey.homepage.card_details", title: listing.title) } do
-    -# 出品画像があるときはカンプどおり実画像を出す。無いときだけ色帯。
+    -# 出品画像 → カテゴリのデフォルト画像 → 色帯の順にフォールバックする。
     - card_image = listing.listing_images&.first
     - card_image_url = card_image && (card_image[:small_3x2] || card_image[:medium] || card_image[:thumb])
     - if card_image_url.present?
       %img.card-art{src: card_image_url, alt: "", loading: "lazy"}
+    - elsif (default_image = category_default_image(category_name)).present?
+      = image_tag default_image, class: "card-art", alt: "", loading: "lazy"
     - else
       .visual{ style: "--tone:#{style[:color]}" }
         %span.visual-word= style[:english_label]
