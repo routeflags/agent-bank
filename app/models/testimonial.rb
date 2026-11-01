@@ -45,6 +45,11 @@ class Testimonial < ApplicationRecord
   validates :text, length: { maximum: TEXT_MAX_LENGTH }, if: :listing_review?
   validates :author_id, uniqueness: { scope: :listing_id }, if: :listing_review?
 
+  # 出品レビューが増減・変更されたら、出品の集計カラム（avg_rating /
+  # reviews_count）を同期する（Issue #106 Phase 2a）。取引レビュー
+  # （listing_id が NULL）は何も変えない。
+  after_commit :refresh_listing_rating, on: [:create, :update, :destroy]
+
   scope :positive, -> { where("grade >= 0.5") }
   scope :negative, -> { where("grade < 0.5") }
   scope :id_order, -> { order("id DESC") }
@@ -86,5 +91,29 @@ class Testimonial < ApplicationRecord
   # 出品（ペルソナ）単位の評価か。取引レビューは false。
   def listing_review?
     listing_id.present?
+  end
+
+  # 影響を受けた出品の集計を再計算する。
+  #
+  # 例外は飲み込んでログに残す。after_commit の時点でレビューは確定しており、
+  # ここで投げ直しても巻き戻せない一方、投稿者には 500 が返り「投稿できたか
+  # 分からない」状態を作ってしまう。集計は表示用のキャッシュなので、
+  # `lamprey:normalize_listing_ratings` で後から修復できる。
+  def refresh_listing_rating
+    affected_listing_ids.each do |id|
+      ListingRatingService.recalculate!(id)
+    end
+  rescue StandardError => e
+    Rails.logger.error(
+      "[ListingRatingService] listing_ids=#{affected_listing_ids.inspect} " \
+      "#{e.class}: #{e.message}"
+    )
+  end
+
+  # 再計算すべき出品の ID。update で紐付け先が変わった場合は、移動元の集計も
+  # 直さないと古い値が残るため両方を返す。取引レビューは空配列。
+  def affected_listing_ids
+    previous_listing_id = previous_changes["listing_id"]&.first
+    [listing_id, previous_listing_id].compact.uniq
   end
 end
