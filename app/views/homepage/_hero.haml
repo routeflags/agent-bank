@@ -16,20 +16,23 @@
   -# Search box — 一覧画面（/browse）へ遷移させる独立した GET フォーム。
   -# q（キーワード）+ category（URL スラッグ）をそのまま渡し、
   -# 絞り込みはサーバー側（既存の一覧検索）に任せる。
-  .raku-search-box
-    %form.raku-search-box__row{action: browse_path, method: "get", role: "search"}
-      %span.raku-search-box__symbol{aria: {hidden: "true"}} ⌕
-      %input.raku-search-box__input{id: "raku-hero-query", type: "search", name: "q", value: params[:q], placeholder: t('lamprey.homepage.search_placeholder'), aria: {label: t('lamprey.homepage.search_placeholder')}, autocomplete: "off"}
-      - categories = @main_categories.presence || []
-      - if categories.any?
-        - selected_url = params[:category].to_s
-        %select.raku-search-box__select{name: "category", aria: {label: t('lamprey.homepage.search_category_label')}}
-          %option{value: "", selected: selected_url.blank?}= t('lamprey.homepage.search_category_all')
-          - categories.each do |category|
-            - name = (@category_display_names && @category_display_names[category.id]) || category.display_name(I18n.locale)
-            %option{value: category.url, selected: selected_url == category.url}= name
-      %button.raku-search-box__submit{type: "submit"}= t('lamprey.homepage.search_button')
-    .raku-search-box__tags
-      %span.raku-search-box__tags-label= t('lamprey.homepage.tags_label')
-      - t("lamprey.homepage.hero_tags").each do |tag|
-        = link_to tag, browse_path(q: tag), class: "raku-search-box__tag"
+  -# __inner は .wrapper（_raku_shell.scss）と同じ 1536px / 左右 4% を持ち、
+  -# 検索ボックスの右端を #homepage-filters の右端に揃える。
+  .raku-hero__inner
+    .raku-search-box
+      %form.raku-search-box__row{action: browse_path, method: "get", role: "search"}
+        %span.raku-search-box__symbol{aria: {hidden: "true"}} ⌕
+        %input.raku-search-box__input{id: "raku-hero-query", type: "search", name: "q", value: params[:q], placeholder: t('lamprey.homepage.search_placeholder'), aria: {label: t('lamprey.homepage.search_placeholder')}, autocomplete: "off"}
+        - categories = @main_categories.presence || []
+        - if categories.any?
+          - selected_url = params[:category].to_s
+          %select.raku-search-box__select{name: "category", aria: {label: t('lamprey.homepage.search_category_label')}}
+            %option{value: "", selected: selected_url.blank?}= t('lamprey.homepage.search_category_all')
+            - categories.each do |category|
+              - name = (@category_display_names && @category_display_names[category.id]) || category.display_name(I18n.locale)
+              %option{value: category.url, selected: selected_url == category.url}= name
+        %button.raku-search-box__submit{type: "submit"}= t('lamprey.homepage.search_button')
+      .raku-search-box__tags
+        %span.raku-search-box__tags-label= t('lamprey.homepage.tags_label')
+        - t("lamprey.homepage.hero_tags").each do |tag|
+          = link_to tag, browse_path(q: tag), class: "raku-search-box__tag"

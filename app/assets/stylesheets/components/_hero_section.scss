@@ -21,10 +21,11 @@ $raku-search-box-width: 970px;
 
 // ヒーロー内側の余白（推定値: 上 140px / 下 72px）。
 // 検索ボックスはこの「大きめの余白」領域の右下（下端・右端）に寄せる。
+// 右端は .wrapper（_raku_shell.scss / #homepage-filters の右端）に揃える。
 $raku-hero-pad-top: 140px;
-$raku-hero-pad-right: 20px;
 $raku-hero-pad-bottom: 72px;
-$raku-hero-pad-left: 20px;
+$raku-hero-shell-max-width: 1536px;
+$raku-hero-shell-pad-x: 4%;
 
 body.dark-theme {
   // ヒーロー画像（トリミング済み raku_hero.png）を全幅背景にし、
@@ -37,11 +38,21 @@ body.dark-theme {
     background-repeat: no-repeat;
     background-color: #0a0a0c;
     border-bottom: 2px solid $raku-search-shadow;
-    padding: $raku-hero-pad-top $raku-hero-pad-right $raku-hero-pad-bottom $raku-hero-pad-left;
+    padding: 0;
     min-height: 420px;
+    display: flex;
+  }
+
+  // ヒーロー内側の器。本文側の .wrapper と同じ幅・左右余白を持たせ、
+  // 検索ボックスの右端が #homepage-filters の右端と一致するようにする。
+  .raku-hero__inner {
     display: flex;
     align-items: flex-end;
     justify-content: flex-end;
+    width: 100%;
+    max-width: $raku-hero-shell-max-width;
+    margin: 0 auto;
+    padding: $raku-hero-pad-top $raku-hero-shell-pad-x $raku-hero-pad-bottom;
   }
 
   .raku-search-box {
@@ -169,7 +180,10 @@ body.dark-theme {
   body.dark-theme {
     .raku-hero {
       min-height: 0;
-      padding: 48px 17px 44px;
+    }
+
+    .raku-hero__inner {
+      padding: 48px $raku-hero-shell-pad-x 44px;
     }
 
     .raku-search-box__row {
