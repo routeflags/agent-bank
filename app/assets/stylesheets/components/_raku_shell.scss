@@ -24,9 +24,11 @@ body.dark-theme {
     max-width: none;
   }
 
-  // トップは .page-content の上パディング（24px相当）を外し、
-  // ヒーローをヘッダーナビに密着させる。他ページは現状維持。
+  // トップは .page-content の上下パディングを外す。上はヒーローを
+  // ヘッダーナビに密着させ、下はフッター手前の余白を詰めるため。
+  // 他ページは現状維持（下 72px）。
   main.page-content.raku-home {
     padding-top: 0;
+    padding-bottom: 0;
   }
 }

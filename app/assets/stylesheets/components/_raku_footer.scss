@@ -1,6 +1,8 @@
 // 楽市楽問 — 固定フッター
+// 本文との間隔は本文側（.page-content の下パディング）が持つ。
+// フッター自身に margin-top を持たせると二重の余白になるため 0。
 .raku-footer {
-  margin-top: 48px;
+  margin-top: 0;
   padding: 32px 0 24px;
   border-top: 1px solid var(--border-color);
   background: var(--bg-secondary);
