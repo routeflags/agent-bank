@@ -19,10 +19,20 @@ $raku-search-tag-bg: #23212a;
 $raku-search-tag-border: #48414a;
 $raku-search-box-width: 970px;
 
+// ヒーロー内側の余白（参考値: 上 140px / 左 460px）。
+// 検索ボックスはこの「大きめの余白」領域の左下（下端・左端）に寄せる。
+// 左 460px は中央寄せ時の残り幅に対する値なので、左下配置では
+// $raku-hero-pad-left を 20px に落として左端に寄せている
+// （大きくしたい場合はこの1値を変えるだけでよい）。
+$raku-hero-pad-top: 140px;
+$raku-hero-pad-right: 20px;
+$raku-hero-pad-bottom: 72px;
+$raku-hero-pad-left: 20px;
+
 body.dark-theme {
   // ヒーロー画像（トリミング済み raku_hero.png）を全幅背景にし、
-  // 検索ボックスだけを中央に置く。キャッチコピーは入れない
-  // （画像自体に baked-in のため）。上下が切れないよう center。
+  // 検索ボックスだけを左下に置く。キャッチコピーは入れない
+  // （画像自体に baked-in のため）。
   .raku-hero {
     background-image: image-url('rakuichi/raku_hero.png');
     background-size: cover;
@@ -30,11 +40,11 @@ body.dark-theme {
     background-repeat: no-repeat;
     background-color: #0a0a0c;
     border-bottom: 2px solid $raku-search-shadow;
-    padding: 72px 20px;
+    padding: $raku-hero-pad-top $raku-hero-pad-right $raku-hero-pad-bottom $raku-hero-pad-left;
     min-height: 420px;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-end;
+    justify-content: flex-start;
   }
 
   .raku-search-box {
