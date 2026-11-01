@@ -106,12 +106,17 @@ class Testimonial < ApplicationRecord
   rescue StandardError => e
     Rails.logger.error(
       "[ListingRatingService] listing_ids=#{affected_listing_ids.inspect} " \
-      "#{e.class}: #{e.message}"
+      "#{e.class}: #{e.message}\n#{Array(e.backtrace).first(5).join("\n")}"
     )
   end
 
   # 再計算すべき出品の ID。update で紐付け先が変わった場合は、移動元の集計も
   # 直さないと古い値が残るため両方を返す。取引レビューは空配列。
+  #
+  # `previous_changes` は直近の save 分しか見ないため、同じトランザクション内で
+  # 2 回 save して 1 回目だけ紐付けを変えた場合は移動元が漏れる。現状そのような
+  # 更新経路は無いため、ここでは扱わない（必要になったら before_destroy /
+  # after_save で ID を溜める）。
   def affected_listing_ids
     previous_listing_id = previous_changes["listing_id"]&.first
     [listing_id, previous_listing_id].compact.uniq

@@ -9,10 +9,28 @@
 #
 # 集計値は「表示用のキャッシュ」であり出品そのものの更新ではないので、`update_columns`
 # で書く（バリデーション・コールバック・`updated_at` を巻き込まない）。
+#
+# 同時実行について: 「集計 SELECT → UPDATE」は出品行をロックしないため、ほぼ同時に
+# 2 件の評価が commit すると、古い集計で上書きされる可能性がある（最終値が 1 件分
+# ずれる）。評価の投稿頻度と、次の評価イベント／`lamprey:normalize_listing_ratings`
+# で自己修復できることを踏まえ、ここではロックを取らない（判定を増やすより、ずれたら
+# 直せる状態を優先する）。厳密さが必要になったら `Listing.lock.find_by(id:)` で
+# 出品行を直列化する。
+#
+# なお `reviews_count` は counter_cache ではない。`belongs_to :listing, counter_cache:`
+# を後から足すと二重計上し、しかも取引レビュー（listing_id が NULL）を数えて
+# しまうので使わないこと。
 class ListingRatingService
   # 星の尺度（1〜5）へ変換するための係数。grade(0..1) の平均を ×4 + 1 する。
   STARS_PER_GRADE = 4
   MIN_RATING = 1.0
+  MAX_RATING = 5.0
+
+  # `listings.avg_rating` は float（単精度）で、SQL 側で比較すると微小な誤差が出る
+  # （例: `CAST(avg_rating AS DOUBLE)` は 4.199999809265137）。AR の読み出しは
+  # テキストプロトコルで 1 桁の値がそのまま返るため実害はないが、比較を関数に
+  # 閉じておくため許容差で「同じ値」を判定する。
+  FLOAT_TOLERANCE = 1e-6
 
   # 出品の `avg_rating` / `reviews_count` を再計算して書き戻す。
   #
@@ -26,10 +44,22 @@ class ListingRatingService
     return nil if listing.nil?
 
     attributes = computed_attributes(listing)
-    return listing if unchanged?(listing, attributes)
+    return listing if same_values?(listing, attributes)
 
     listing.update_columns(attributes)
     listing
+  end
+
+  # 集計カラムが既に最新か（再計算しても値が変わらないか）。
+  #
+  #  rake のドライランで「実質同じなのに書き換え対象」と報告しないために使う。
+  #
+  # @param listing [Listing, nil]
+  # @return [Boolean]
+  def self.up_to_date?(listing)
+    return false if listing.nil?
+
+    same_values?(listing, computed_attributes(listing))
   end
 
   # 現在のレビューから決まる集計値を返す（DB へは書かない）。
@@ -49,12 +79,14 @@ class ListingRatingService
   # レビューが 0 件（平均が nil）のときは 0.0 を返す。0.0 は「評価なし」を表す
   # 既存の表現（手動値と同じ尺度。`displayed_grade` の grade*4+1 と同一の換算）。
   #
+  # 範囲外の grade（AR の検証を迂回した行）でも表示が壊れないよう 1〜5 に丸める。
+  #
   # @param average_grade [Float, nil]
   # @return [Float] 1.0〜5.0、または 0.0
   def self.rating_from(average_grade)
     return 0.0 if average_grade.nil?
 
-    (average_grade.to_f * STARS_PER_GRADE + MIN_RATING).round(1)
+    (average_grade.to_f * STARS_PER_GRADE + MIN_RATING).round(1).clamp(MIN_RATING, MAX_RATING)
   end
 
   # 出品レビューの件数と grade の平均を 1 クエリで取る。
@@ -84,12 +116,23 @@ class ListingRatingService
     return listing_or_id if listing_or_id.is_a?(Listing)
     return nil if listing_or_id.blank?
 
-    Listing.find_by(id: listing_or_id)
+    # listings には TEXT 列（description / skill_markdown）があるため、集計に
+    # 必要な列だけ読む（評価投稿のたびに全列 SELECT しない）。
+    Listing.select(:id, :avg_rating, :reviews_count).find_by(id: listing_or_id)
   end
   private_class_method :find_listing
 
-  def self.unchanged?(listing, attributes)
-    attributes.all? { |column, value| listing.public_send(column) == value }
+  def self.same_values?(listing, attributes)
+    attributes.all? do |column, value|
+      current = listing.public_send(column)
+      next false if current.nil?
+
+      if value.is_a?(Integer)
+        current.to_i == value
+      else
+        (current.to_f - value.to_f).abs < FLOAT_TOLERANCE
+      end
+    end
   end
-  private_class_method :unchanged?
+  private_class_method :same_values?
 end

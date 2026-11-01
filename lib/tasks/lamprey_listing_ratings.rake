@@ -40,22 +40,27 @@ module LampreyListingRatings
 
   # 集計結果と現在値がずれている出品を集める。
   #
+  # 出品全件を走査する（メンテ用途の一回きりのタスクなので、出品数 N に対し
+  # 集計クエリ 1 回ずつで十分と判断）。
+  #
   # @return [Array<Hash>] `{ listing:, current:, expected:, description: }`
   def normalization_targets
-    Listing.order(:id).find_each(order: :asc).filter_map do |listing|
+    targets = []
+    Listing.find_each do |listing|
+      next if ListingRatingService.up_to_date?(listing)
+
+      current = { reviews_count: listing.reviews_count, avg_rating: listing.avg_rating }
       expected = ListingRatingService.expected_attributes(listing)
       next if expected.nil?
 
-      current = { reviews_count: listing.reviews_count, avg_rating: listing.avg_rating }
-      next if current == expected
-
-      {
+      targets << {
         listing: listing,
         current: current,
         expected: expected,
         description: describe_target(listing, current, expected)
       }
     end
+    targets
   end
 
   def summary(targets)

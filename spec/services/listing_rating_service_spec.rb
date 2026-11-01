@@ -99,6 +99,16 @@ RSpec.describe ListingRatingService, type: :model do
       expect(listing.avg_rating).to eq(4.5)
     end
 
+    it "循環小数の平均を四捨五入する（0.8333... → 4.3）" do
+      insert_reviews([1.0, 0.75, 0.75], listing_id: listing.id)
+      reset_listing_values
+
+      recalculate
+
+      expect(listing.avg_rating).to eq(4.3)
+      expect(listing.reviews_count).to eq(3)
+    end
+
     it "四捨五入の境界でも 1 桁に丸める（0.375 → 2.5）" do
       insert_reviews([0.5, 0.25], listing_id: listing.id)
       reset_listing_values
@@ -174,6 +184,48 @@ RSpec.describe ListingRatingService, type: :model do
       expect(updates).to eq(0)
       expect(listing.reload.avg_rating).to eq(4.0)
     end
+
+    it "小数第1位の値でも 2 回目の再計算で UPDATE しない" do
+      insert_reviews([0.775], listing_id: listing.id) # 0.775 * 4 + 1 = 4.1
+      reset_listing_values
+
+      recalculate
+      expect(listing.avg_rating).to eq(4.1)
+
+      updates = count_listing_updates { described_class.recalculate!(listing.id) }
+      expect(updates).to eq(0)
+    end
+  end
+
+  describe ".up_to_date?" do
+    it "集計が遅れていれば false" do
+      insert_reviews([0.75], listing_id: listing.id)
+      reset_listing_values
+
+      expect(described_class.up_to_date?(listing)).to be(false)
+    end
+
+    it "集計が最新なら true" do
+      insert_reviews([0.75], listing_id: listing.id)
+      reset_listing_values
+      recalculate
+
+      expect(described_class.up_to_date?(listing)).to be(true)
+    end
+
+    it "float（単精度）の往復誤差は同じ値として扱う" do
+      insert_reviews([0.775], listing_id: listing.id)
+      reset_listing_values
+      recalculate
+      # DB を往復した単精度の値を模す（4.1 は float では 4.099999904632568）
+      allow(listing).to receive(:avg_rating).and_return(4.099999904632568)
+
+      expect(described_class.up_to_date?(listing)).to be(true)
+    end
+
+    it "出品が無ければ false" do
+      expect(described_class.up_to_date?(nil)).to be(false)
+    end
   end
 
   describe ".expected_attributes" do
@@ -186,6 +238,23 @@ RSpec.describe ListingRatingService, type: :model do
       expect(attributes).to eq({ reviews_count: 2, avg_rating: 3.5 })
       expect(listing.reload.avg_rating).to eq(0.0)
       expect(listing.reviews_count).to eq(0)
+    end
+  end
+
+  describe ".rating_from" do
+    it "grade の平均を 1〜5 に換算する" do
+      expect(described_class.rating_from(0.0)).to eq(1.0)
+      expect(described_class.rating_from(1.0)).to eq(5.0)
+      expect(described_class.rating_from(0.8333333)).to eq(4.3)
+    end
+
+    it "レビューが無ければ 0.0（評価なし）" do
+      expect(described_class.rating_from(nil)).to eq(0.0)
+    end
+
+    it "範囲外の grade でも 1〜5 に収める" do
+      expect(described_class.rating_from(-1.0)).to eq(1.0)
+      expect(described_class.rating_from(2.0)).to eq(5.0)
     end
   end
 
