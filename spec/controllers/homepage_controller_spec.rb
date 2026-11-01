@@ -148,6 +148,33 @@ describe HomepageController, type: :controller do
       expect(listings.count).to eq 0
     end
 
+    # Issue #106 Phase 2b: 一覧の `@listings` は検索結果の Struct
+    # （ListingIndexViewUtils::ListingItem）で評価の集計カラムを持たない。
+    # カードの評価はコントローラが id → 評価の Hash を 1 クエリで先に読む。
+    # リクエストを投げずに事前読み込みだけを検証する（テンプレート描画は
+    # アセット成果物に依存するため、ここでは対象外）。
+    it 'assigns listing ratings keyed by listing id' do
+      listing.update_columns(avg_rating: 4.5, reviews_count: 3)
+      unrated = FactoryBot.create(:listing, community_id: community.id)
+      unrated.update_columns(avg_rating: 0.0, reviews_count: 0)
+      items = Listing.where(id: [listing.id, unrated.id]).order(:id).map do |l|
+        ListingIndexViewUtils::ListingItem.new(l.id, "/listings/#{l.to_param}", l.title,
+                                               nil, nil, nil, nil, nil, nil, l.description.to_s,
+                                               [], l.price)
+      end
+      controller.instance_variable_set(:@listings, items)
+
+      controller.send(:preload_listing_rating_data)
+
+      ratings = controller.instance_variable_get(:@listing_ratings)
+      expect(ratings.keys).to contain_exactly(listing.id, unrated.id)
+      expect(ratings[listing.id][:reviews_count]).to eq(3)
+      expect(ratings[listing.id][:avg_rating].to_f).to be_within(0.001).of(4.5)
+      expect(ratings[unrated.id][:reviews_count]).to eq(0)
+    end
+
+
+
     # Issue #26: SEO 用の prev/next も一覧ページ/トップの切り替えルール
     # （raku_listing_index_path）経由で組み立てること。
     describe 'seo pagination links の遷移先' do

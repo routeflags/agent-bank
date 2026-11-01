@@ -1,9 +1,10 @@
--# 楽市楽問 — ペルソナカード（Issue #111 / #128 / #129）
+-# 楽市楽問 — ペルソナカード（Issue #111 / #128 / #129 / #106 Phase 2b）
 -# デザイン正本（rakuichi-rakumon-assets/index.html の article.agent）に合わせる。
--#   帯 → tag → 名前＋♡ → by 作者 → 説明 → meta（いいね数＋価格）
+-#   帯 → tag → 名前＋♡ → by 作者 → 説明 → meta（いいね数＋評価＋価格）
 -# visual の色・英字・絵文字は HomepageHelper#listing_category_visual から供給を受ける
 -# （定義は HomepageHelper のカテゴリビジュアル表のみ。テンプレートに二重定義しない）。
--# ★・レビュー件数は出さない。星の代わりに実際のいいね数（listing_followers）を出す。
+-# 星は Issue #129 でいいね数に置き換えたが、Issue #106 Phase 2b で「評価がある
+-# ペルソナだけ」★ を併記する形にした（未評価のカードには何も出さない）。
 - category_name = persona_category_name(listing, @category_display_names)
 - style = listing_category_visual(listing, @category_display_names)
 - price_yen = listing.price ? listing.price.to_f : 0
@@ -49,6 +50,12 @@
     .meta
       %span.likes
         = "♡ #{like_count}"
+      -# Issue #106 Phase 2b: 評価があるペルソナだけ「★ 4.2 (3)」を出す。
+      -# 未評価は何も出さない（「★ 0.0」は出さない。判定は reviews_count > 0）。
+      -# カードの listing は検索結果の Struct なので、評価はコントローラの
+      -# 事前読み込み（@listing_ratings）から受け取る（N+1 を避ける）。
+      - if listing_rated?(listing, preloaded: @listing_ratings)
+        %span.rating= listing_rating_text(listing, preloaded: @listing_ratings)
       %span.price
         - if price_yen.positive?
           = "¥#{number_with_delimiter(price_yen.round)}"

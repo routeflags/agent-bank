@@ -114,6 +114,7 @@ class HomepageController < ApplicationController
       search_result.on_success { |listings|
         @listings = exclude_test_listings(listings)
         preload_listing_like_data
+        preload_listing_rating_data
         render_homepage_xhr_listings(location_in_use, shape_name_map)
       }.on_error {
         # ThinkingSphinx が未起動の場合は DB フォールバックで 200 を返す
@@ -144,6 +145,7 @@ class HomepageController < ApplicationController
         # Exclude test listings from public view
         @listings = exclude_test_listings(@listings)
         preload_listing_like_data
+        preload_listing_rating_data
         render locals: locals.merge(
                  seo_pagination_links: seo_pagination_links(params, @listings.current_page, @listings.total_pages))
       }.on_error { |e|
@@ -203,6 +205,24 @@ class HomepageController < ApplicationController
                          else
                            Set.new
                          end
+  end
+
+  # カードの評価を 1 クエリで先に読む（Issue #106 Phase 2b）。
+  #
+  # `@listings` は検索結果の Struct（`ListingIndexViewUtils::ListingItem`）で
+  # 評価の集計カラムを持たない。カードごとに `Listing` を引くと N+1 になるため、
+  # いいね数（`preload_listing_like_data`）と同じ形で id → 評価の Hash を作る。
+  # 表示側は `ListingRatingHelper` が参照する。
+  def preload_listing_rating_data
+    ids = Array(@listings).map(&:id).compact
+    @listing_ratings = {}
+    return if ids.empty?
+
+    Listing.where(id: ids)
+           .pluck(:id, :avg_rating, :reviews_count)
+           .each { |id, avg_rating, reviews_count|
+             @listing_ratings[id] = { avg_rating: avg_rating, reviews_count: reviews_count }
+           }
   end
 
   def marketplace_metrics

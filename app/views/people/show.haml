@@ -78,13 +78,17 @@
           %span.raku-summary__icon 👆
           = t('lamprey.mypage.summary_total_views')
         .raku-summary__value{title: number_with_delimiter(@raku_stats[:total_views])}= compact_number(@raku_stats[:total_views])
-      - if @raku_stats[:avg_rating]
-        .raku-summary__item
-          .raku-summary__label
-            %span.raku-summary__icon ★
-            = t('lamprey.mypage.summary_avg_rating')
-          .raku-summary__value
-            %span.raku-link-gold= "★ #{@raku_stats[:avg_rating]}"
+      -# 評価 KPI（Issue #106 Phase 2b）: 評価のある出品が無くても項目は出し、
+      -# 値を「—」にする（「平均評価」の項目自体を隠さない。#98 の暫定方針）。
+      .raku-summary__item
+        .raku-summary__label
+          %span.raku-summary__icon ★
+          = t('lamprey.mypage.summary_avg_rating')
+        .raku-summary__value
+          - if @raku_stats[:avg_rating]
+            %span.raku-link-gold= t('lamprey.listings.rating_stars', rating: number_with_precision(@raku_stats[:avg_rating], precision: 1))
+          - else
+            %span.raku-summary__value-none{title: t('lamprey.listings.rating_none')}= t('lamprey.listings.rating_dash')
 
       -# ウォレット残高（Issue #58）: 本人のみ。読み取り専用で参照し、
       -# ウォレット行が無くても作成しない（nil → 0円表示）。
@@ -172,11 +176,11 @@
                     .raku-table__skill-desc= StringUtils.first_words(listing.description, 40)
               %td= number_with_delimiter(listing.times_viewed.to_i)
               %td
-                .raku-table__rating
-                  - if listing.avg_rating.to_f > 0
-                    = "★ #{listing.avg_rating.round(1)}"
-                  - else
-                    = "—"
+                -# Issue #106 Phase 2b: 判定は reviews_count > 0。未評価は「—」。
+                - if listing_rated?(listing)
+                  .raku-table__rating= listing_rating_text(listing)
+                - else
+                  = t('lamprey.listings.rating_dash')
               %td
                 -# Issue #52: 価格未設定の出品は非公開になる。編集画面へ誘導する。
                 - if listing.price_cents.to_i.positive?

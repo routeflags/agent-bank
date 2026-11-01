@@ -2478,7 +2478,7 @@ ja:
       first_time_body: "まずはトップページの「おすすめ」「新着」タブから人気のペルソナを眺めてみましょう。気になるペルソナは詳細ページで内容や料金を確認できます。"
     rankings:
       title: "ペルソナランキング"
-      lead: "平均評価と販売実績に基づくペルソナの一覧です。"
+      lead: "販売実績・閲覧数・平均評価の順に並べたペルソナの一覧です。"
       avg_rating_label: "平均評価:"
       sold_label: "販売実績:"
       sold_count: "%{count} 件"
@@ -2555,6 +2555,11 @@ ja:
       contact_seller: "💬 出品者に問い合わせ"
       rating_none: "評価なし"
       review_none: "レビューなし"
+      # Issue #106 Phase 2b: 評価の表示。形式は「★ 4.2 (3)」。
+      # 未評価は「★ 0.0」ではなく「—」を出し、意味は rating_none（評価なし）で補う。
+      rating_stars: "★ %{rating}"
+      rating_count: "(%{count})"
+      rating_dash: "—"
       price_note: ※100万トークンあたりの単価です。トークン消費量に応じて課金されます
       usd_billing_note: "USD請求額の目安: 約 $%{usd}（¥%{jpy}換算）"
       prev_image: "前の画像"

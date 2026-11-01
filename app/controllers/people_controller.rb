@@ -37,11 +37,15 @@ class PeopleController < Devise::RegistrationsController
                               .where(role: "assistant")
                               .where(listings: { author_id: @service.person.id, community_id: @current_community.id })
                               .sum("COALESCE(chat_messages.input_tokens, 0) + COALESCE(chat_messages.output_tokens, 0)").to_i
+    # 評価 KPI（Issue #106 Phase 2b）: 「評価あり」は reviews_count を正とする。
+    # 評価のある出品だけの平均を出す。未評価の出品は avg_rating が 0.0（または
+    # 正規化前の手動値）なので、混ぜると平均が実態とずれる。
+    # 評価のある出品が 1 件も無ければ nil（ビューで「—」を出す）。
     @raku_stats = {
       published: @service.listings.total_entries,
       total_tokens: total_tokens,
       total_views: person_listings.sum(:times_viewed).to_i,
-      avg_rating: person_listings.where("avg_rating > 0").average(:avg_rating)&.round(1)
+      avg_rating: person_listings.where("reviews_count > 0").average(:avg_rating)&.round(1)
     }
 
     # 出品中スキル表はAR実体を直接使う。

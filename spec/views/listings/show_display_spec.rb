@@ -164,4 +164,37 @@ RSpec.describe "出品詳細テンプレート", type: :view do
     expect(html).to include(I18n.t("lamprey.listings.review_already_given", locale: :ja))
     expect(html).not_to include("listing-review-form")
   end
+
+  # ── Issue #106 Phase 2b: 評価の表示（★ 4.2 (3)） ──────────────
+  def give_rating(grade)
+    reviewer = FactoryBot.create(:person, community_id: @community.id)
+    Testimonial.create!(listing: @listing, author: reviewer, receiver: @owner, grade: grade)
+    @listing.reload
+  end
+
+  it "#106 2b: 評価がある出品は評価値と件数を出す" do
+    give_rating(0.75) # 4★ → avg_rating 4.0 / reviews_count 1
+
+    html = render_show(nil)
+    expect(html).to include("raku-price-box__rating")
+    expect(html).to include("★ 4.0")
+    expect(render_show(nil)).to include("(1)")
+  end
+
+  it "#106 2b: reviews_count が 0 なら手動 avg_rating があっても評価行を出さない" do
+    # Phase 2a の正規化前の状態（手動値 4.5 / レビュー 0 件）を再現する。
+    @listing.update_columns(avg_rating: 4.5, reviews_count: 0)
+
+    html = render_show(nil)
+    expect(html).not_to include("raku-price-box__rating")
+    expect(html).not_to include("★")
+    expect(html).not_to include(I18n.t("lamprey.listings.rating_none", locale: :ja))
+  end
+
+  it "#106 2b: 評価の有無で他の要素（価格・CTA）は変わらない" do
+    html = render_show(nil)
+    expect(html).to include("raku-price-box__amount")
+    expect(html).to include("100万トークンあたりの単価です")
+    expect(html).to include("raku-cta-btn")
+  end
 end

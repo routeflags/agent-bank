@@ -70,4 +70,41 @@ RSpec.describe "マイページの数値表示", type: :view do
     expect(html).to include(">42<")
     expect(html).not_to include(">999K<")
   end
+
+  # ── Issue #106 Phase 2b: 平均評価 KPI とスキル表の評価列 ──────
+  it "平均評価は ★ を付けて小数 1 桁で出す" do
+    html = render_mypage({ published: 1, total_tokens: 0, total_views: 0, avg_rating: 4.25 })
+
+    expect(html).to include("★ 4.3")
+  end
+
+  it "評価が無いときも平均評価の項目を出し、値を「—」にする" do
+    html = render_mypage({ published: 1, total_tokens: 0, total_views: 0, avg_rating: nil })
+
+    expect(html).to include(I18n.t("lamprey.mypage.summary_avg_rating", locale: :ja))
+    expect(html).to include("raku-summary__value-none")
+    expect(html).to include(I18n.t("lamprey.listings.rating_dash", locale: :ja))
+  end
+
+  it "スキル表の評価列は評価があるときだけ ★ と件数を出す" do
+    reviewer = FactoryBot.create(:person, community_id: @community.id)
+    Testimonial.create!(listing: @listing, author: reviewer, receiver: @owner, grade: 0.75)
+
+    html = render_mypage({ published: 1, total_tokens: 0, total_views: 0, avg_rating: 4.0 })
+
+    expect(rating_cells(html)).to eq(["★ 4.0 (1)"])
+  end
+
+  it "スキル表の評価列は未評価（reviews_count=0）なら手動値でなく「—」を出す" do
+    @listing.update_columns(avg_rating: 4.5, reviews_count: 0)
+
+    html = render_mypage({ published: 1, total_tokens: 0, total_views: 0, avg_rating: nil })
+
+    expect(rating_cells(html)).to eq([I18n.t("lamprey.listings.rating_dash", locale: :ja)])
+  end
+
+  # スキル表の「評価」列（3 列目）のセル文字列。
+  def rating_cells(html)
+    Nokogiri::HTML(html).css(".raku-table tbody td:nth-child(3)").map { |td| td.text.strip }
+  end
 end

@@ -149,6 +149,15 @@ body.dark-theme {
     white-space: nowrap;
   }
 
+  // Issue #106 Phase 2b: 評価があるペルソナの★。いいね数と同じ字面にそろえる
+  // （星・件数とも同じ 1 行に収める）。
+  .agent .rating {
+    color: var(--accent-gold);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
   .agent .creator {
     font-size: 10px;
     color: #a7a5aa;

@@ -248,12 +248,14 @@
       - if @listing.price && @listing.price_cents.to_i.positive? && FreemiusPricing.configured?
         .raku-price-box__note= t('lamprey.listings.usd_billing_note', usd: FreemiusPricing.format_usd(FreemiusPricing.usd_cents_for_jpy(@listing.price_cents.to_i)), jpy: number_with_delimiter(@listing.price_cents.to_i))
 
-      .raku-price-box__rating
-        - if @listing.respond_to?(:average_rating) && @listing.average_rating.present?
-          ★ #{@listing.average_rating.round(1)}
-          %span.raku-price-box__rating-count= t('lamprey.listings.reviews_count', count: @listing.reviews_count || 0)
-        - else
-          %span.raku-muted-label= t('lamprey.listings.rating_none')
+      -# Issue #106 Phase 2b: 評価は出品レビュー（Testimonial）の集計値。
+      -# 「評価あり」の判定は reviews_count を正とする（avg_rating > 0 は正規化前の
+      -# 手動値で誤表示する）。評価が無いときは評価行ごと描画しない（罫線だけの
+      -# 空ブロックを残さない）。
+      - if listing_rated?(@listing)
+        .raku-price-box__rating
+          %span.raku-price-box__rating-value= listing_rating_stars(@listing)
+          %span.raku-price-box__rating-count= listing_rating_count(@listing)
 
     -# CTA buttons
     - chat_enabled = @listing.default_run_mode.present? && @listing.default_run_mode == 'run_online'

@@ -2,7 +2,9 @@
 
 require "spec_helper"
 
-# Issue #129: カードの星の代わりに実際のいいね数（listing_followers）を出す。
+# Issue #129: カードに実際のいいね数（listing_followers）を出す。
+# Issue #106 Phase 2b: 評価があるカードには★ も併記するが、このカードは未評価
+# （reviews_count=0）なので★は出ない（★ 0.0 を出さないことの担保も兼ねる）。
 #
 # - トップ/一覧のカードに「♡ N」（実データ）が出る
 # - タイトル横の ♡ 操作で follow/unfollow でき、同じページに戻る

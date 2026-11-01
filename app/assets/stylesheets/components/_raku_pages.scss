@@ -79,6 +79,17 @@
   margin-left: 10px;
 }
 
+// Issue #106 Phase 2b: 評価ありの件数。星（金）と分けて控えめの色にする。
+.raku-rank-item__rating-count {
+  color: var(--text-secondary);
+  margin-left: 4px;
+}
+
+// Issue #106 Phase 2b: 未評価。星が無いので金色にしない（— だけ金は不自然）。
+.raku-rank-item__rating-none {
+  color: var(--text-secondary);
+}
+
 .raku-rank-item__sold {
   margin-left: 10px;
 }

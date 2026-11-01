@@ -60,6 +60,12 @@ body.dark-theme {
     max-width: 100%;
   }
 
+  // Issue #106 Phase 2b: 平均評価が未評価（—）のときの値。数値と同じ大きさの
+  // ままだと「0」に見えるため、控えめの色にする。
+  .raku-summary__value-none {
+    color: var(--text-muted);
+  }
+
   .raku-summary__trend {
     display: inline-flex;
     align-items: center;

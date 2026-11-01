@@ -2828,7 +2828,7 @@ en:
       first_time_body: "Start by browsing popular personas in the \"Recommended\" and \"Newest\" tabs on the home page. Open a persona's detail page to check its details and pricing."
     rankings:
       title: "Persona rankings"
-      lead: "Personas ranked by average rating and sales."
+      lead: "Personas ranked by sales, views, and average rating."
       avg_rating_label: "Average rating:"
       sold_label: "Sales:"
       sold_count: "%{count} sold"
@@ -2905,6 +2905,11 @@ en:
       contact_seller: "💬 Contact the seller"
       rating_none: "No rating yet"
       review_none: "No reviews yet"
+      # Issue #106 Phase 2b: ratings are shown as "★ 4.2 (3)".
+      # Unrated listings show "—" instead of "★ 0.0"; rating_none labels it.
+      rating_stars: "★ %{rating}"
+      rating_count: "(%{count})"
+      rating_dash: "—"
       price_note: "Unit price per 1M tokens. Charged based on token usage"
       usd_billing_note: "Estimated USD charge: approx. $%{usd} (converted from ¥%{jpy})"
       prev_image: "Previous image"

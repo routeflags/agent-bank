@@ -18,7 +18,13 @@
               = link_to author_name, person_path(username: listing.author.username), class: "raku-rank-item__author"
               %span.raku-rank-item__rating
                 %span.raku-muted-label= t('lamprey.rankings.avg_rating_label')
-                = "★ #{listing.avg_rating.round(1)}"
+                -# Issue #106 Phase 2b: 評価が無い出品に「★ 0.0」を出さない。
+                -# 判定は reviews_count > 0（avg_rating > 0 は正規化前の手動値で誤る）。
+                - if listing_rated?(listing)
+                  %span.raku-rank-item__rating-value= listing_rating_stars(listing)
+                  %span.raku-rank-item__rating-count= listing_rating_count(listing)
+                - else
+                  %span.raku-rank-item__rating-none{title: t('lamprey.listings.rating_none')}= t('lamprey.listings.rating_dash')
               - if listing.total_sold.to_i > 0
                 %span.raku-rank-item__sold
                   %span.raku-muted-label= t('lamprey.rankings.sold_label')
