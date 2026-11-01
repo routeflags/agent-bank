@@ -169,9 +169,23 @@ $elementSpacing: lines(0.5);
 .header-inbox {
   @include big-type;
 
-  // Icon fix
+  // Icon fix — レガシーヘッダー（inline の行組み）でテキストのベースラインに
+  // 合わせるための相対オフセット。0.25em × 19.25px = 4.8125px。
   position: relative;
   top: em(4);
+
+  // 新トップバー（.topbar）は親の .header-inbox-link が
+  // inline-flex + align-items: center + height: 100% で中央揃えを担うため、
+  // このレガシー用オフセットを持ち込むとアイコン中心がバー中心より
+  // 4.8px 下にずれる（Issue #131）。
+  // 境界は「レガシー用の相対オフセットは .topbar 配下では 0」と、
+  // オフセットの定義箇所に併記する（トップバーの幾何は _topbar.scss が
+  // 所有するが、この打ち消しを別ファイルへ分けると、片方だけを見て
+  // 変更したときに同じずれが再発するため）。
+  // 特異性 (0,2,0) > (0,1,0) なので読み込み順にも依存しない。
+  .topbar & {
+    top: 0;
+  }
 }
 
 .badge {
