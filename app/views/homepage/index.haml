@@ -138,6 +138,18 @@
     = t(".this_is_private_community")
 - else
   - if @listing_page
+    -# パンくず（出品詳細ページと同じ .raku-breadcrumb を使う）。
+    -# カテゴリ絞り込み中は「ペルソナ一覧 > カテゴリ名」を現在地にする。
+    - selected_category_name = selected_category && ((@category_display_names && @category_display_names[selected_category.id]) || selected_category.display_name(I18n.locale))
+    .raku-breadcrumb
+      %a.raku-breadcrumb__link{href: landing_page_path}= t('lamprey.listings.home')
+      %span.raku-breadcrumb__separator ›
+      - if selected_category_name
+        %a.raku-breadcrumb__link{href: browse_path}= t('lamprey.listings.skill_list')
+        %span.raku-breadcrumb__separator ›
+        %h1.raku-breadcrumb__current= selected_category_name
+      - else
+        %h1.raku-breadcrumb__current= t('lamprey.listings.skill_list')
     .row
       - if @category_menu_enabled
         .col-3.visible-tablet
