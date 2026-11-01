@@ -660,6 +660,33 @@ label.error {
   }
 }
 
+// ダークテーマのライトボックスは「白い紙面」なので、中身の文字色も
+// 紙面に合わせる（Issue #132 の検証で発覚）。body.dark-theme の文字色は
+// 白（--text-primary）で、白背景に対して 1.0:1＝本文が読めない状態だった。
+// 紙面の色（$background）は変えず、文字色と縞だけを紙面に合わせる。
+body.dark-theme .lightbox .lightbox-content {
+  color: #333;
+
+  h1, h2, h3, h4, h5, h6 {
+    color: #1a1a1a;
+  }
+
+  // ブランドの teal（#59b3a2）は白地で 2.50:1 のため、同系で
+  // 5.47:1 の濃い teal に落とす（4.5:1 以上）。
+  // 閉じるアイコン（.lightbox-x）は専用ルールで #767676 を指定して
+  // いるので除外する。
+  a:not(.lightbox-x) {
+    color: #0f766e;
+  }
+
+  // ダークテーマ共通の縞（body.dark-theme tbody tr:nth-child(odd) の
+  // #242424）を紙面用の薄い縞に置き換える。そのままだと濃色の行に
+  // 濃色文字が乗って 1.1:1 になる。
+  tbody tr:nth-child(odd) {
+    background-color: #f2f2f2;
+  }
+}
+
 // 閉じるアイコンの色（Issue #132）
 // アイコンは白背景（.lightbox-content の $background）上に置かれるため、
 // 白に対して 4.5:1 以上になる #767676（4.54:1）にしている。
