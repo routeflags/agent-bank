@@ -24,13 +24,19 @@ body.dark-theme {
     max-width: none;
   }
 
-  // トップは .page-content の上パディングを外し、ヒーローをヘッダーに
-  // 密着させる。フッター手前は詰めすぎず、セクション間の余白と同程度
-  // （24px）だけ空ける。他ページは現状維持（下 72px）。
-  $raku-home-footer-gap: 24px;
+  // トップ（hero あり）は .page-content の上パディングを外し、ヒーローを
+  // ヘッダーに密着させる。フッター手前は詰めすぎず、セクション間の余白と
+  // 同程度（24px）だけ空ける。
+  $raku-index-footer-gap: 24px;
 
   main.page-content.raku-home {
     padding-top: 0;
-    padding-bottom: $raku-home-footer-gap;
+  }
+
+  // homepage#index は通常の 72px 下パディングのままだとフッター間が
+  // 空きすぎるため、トップと同じ 24px に揃える（/browse 等）。
+  main.page-content.raku-home,
+  main.page-content.raku-listing {
+    padding-bottom: $raku-index-footer-gap;
   }
 }
