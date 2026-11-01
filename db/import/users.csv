@@ -1,0 +1,2 @@
+email,given_name,family_name,display_name,username,locale,is_admin,password
+sample.taro@example.com,太郎,山田,山田 太郎,sample_taro,ja,false,
