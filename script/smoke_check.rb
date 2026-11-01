@@ -38,10 +38,12 @@ require "uri"
 TIMEOUT_SEC = 5
 LISTING_PATH = "/ja/listings/15-kodotai-lang-kodosheng-cheng-rebiyu"
 PROFILE_PATH = "/ja/gourutailangte"
-FORBIDDEN_LABEL = "※デモ数値/※サンプル/高評価/★"
+FORBIDDEN_LABEL = "※デモ数値/※サンプル/高評価/★ 0.0"
 
+# 「★」単体は評価 UI のラベル（Issue #106 で実装）として正当なので禁止しない。
+# 禁止するのは「実体のない評価の表示」＝未評価なのに 0.0 を出すケース。
 def forbidden_words
-  ["※デモ数値", "※サンプル", "高評価", "★"]
+  ["※デモ数値", "※サンプル", "高評価", "★ 0.0"]
 end
 
 def fetch(base, path_or_url)
