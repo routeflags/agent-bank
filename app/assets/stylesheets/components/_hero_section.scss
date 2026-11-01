@@ -31,15 +31,20 @@ body.dark-theme {
   // ヒーロー画像（トリミング済み raku_hero.png）を全幅背景にし、
   // 検索ボックスだけを右下に置く。キャッチコピーは入れない
   // （画像自体に baked-in のため）。
+  // ヒーローは sticky トップバーの下まで伸ばし、半透明バー越しに
+  // 画像上端（「AIのチカラで、」のコピー）が見えるようにする。
+  // バー分だけ上に伸ばすので、見かけの高さと検索ボックスの位置は
+  // 従来どおり（min-height にバー高を足して相殺）。
   .raku-hero {
     background-image: image-url('rakuichi/raku_hero.png');
     background-size: cover;
-    background-position: center;
+    background-position: center top;
     background-repeat: no-repeat;
     background-color: #0a0a0c;
     border-bottom: 2px solid $raku-search-shadow;
     padding: 0;
-    min-height: 420px;
+    margin-top: calc(-1 * var(--raku-topbar-h, 69px));
+    min-height: calc(420px + var(--raku-topbar-h, 69px));
     display: flex;
   }
 
@@ -182,8 +187,9 @@ body.dark-theme {
       min-height: 0;
     }
 
+    // バー分だけ上に伸びるので、上パディングにもバー高を足す。
     .raku-hero__inner {
-      padding: 48px $raku-hero-shell-pad-x 44px;
+      padding: calc(48px + var(--raku-topbar-h, 69px)) $raku-hero-shell-pad-x 44px;
     }
 
     .raku-search-box__row {

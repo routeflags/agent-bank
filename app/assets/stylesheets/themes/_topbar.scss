@@ -6,7 +6,12 @@
 // ═══════════════════════════════════════════════════════════
 
 // #060608ed と等価（旧 Sass 3.4 は8桁HEXを解釈できないため rgba 表記）
-$topbar-bg: rgba(6, 6, 8, 0.93);
+// iOS 26（Liquid Glass）風に半透明＋強めのブラーで背後を透かす。
+// 可読性のため不透明度は 55% を下限にしている。
+$topbar-bg: rgba(10, 10, 12, 0.55);
+$topbar-bg-solid: rgba(6, 6, 8, 0.93); // backdrop-filter 非対応時の代替
+$topbar-blur: 30px;
+$topbar-saturate: 180%;
 $topbar-border: #46351e;
 $topbar-gold: #dfb560;
 $topbar-muted: #aaa;
@@ -14,14 +19,48 @@ $topbar-panel: #111;
 $topbar-btn-bg: #111115;
 $topbar-btn-border: #61534c;
 
+// トップバーの実測高さ。sticky バーに本文を潜らせる（ヒーローを
+// バーの下まで伸ばす）ため、ヒーロー側の余白計算で参照する。
+// 実測: 768px 以上 = 69px / 767px 以下 = 77px
+:root {
+  --raku-topbar-h: 69px;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --raku-topbar-h: 77px;
+  }
+}
+
+// 半透明のガラス表現。_dark_header.scss が
+// `background-color: var(--bg-secondary) !important` で不透明にしている
+// ため、ここでも !important で上書きする。
 body.dark-theme #sidewinder-wrapper > header.topbar {
   position: sticky;
   top: 0;
   z-index: 30;
-  background: $topbar-bg;
+  background-color: $topbar-bg !important;
   border-bottom: 1px solid $topbar-border;
-  -webkit-backdrop-filter: blur(15px);
-  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur($topbar-blur) saturate($topbar-saturate);
+  backdrop-filter: blur($topbar-blur) saturate($topbar-saturate);
+  // ガラス上端のハイライト（1px の光）
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+// backdrop-filter が無い環境では透かすと可読性が落ちるので従来の不透明に戻す。
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body.dark-theme #sidewinder-wrapper > header.topbar {
+    background-color: $topbar-bg-solid !important;
+  }
+}
+
+// 透明効果を減らす設定（iOS の「透明度を下げる」相当）に追随する。
+@media (prefers-reduced-transparency: reduce) {
+  body.dark-theme #sidewinder-wrapper > header.topbar {
+    background-color: var(--bg-secondary) !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 body.dark-theme .topbar-inner {
