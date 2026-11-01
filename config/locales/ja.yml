@@ -1015,6 +1015,8 @@ ja:
       news: ニュース
       register_details: プライバシーポリシー
       terms: 利用規約
+    lightbox:
+      close: 閉じる
     logged_in:
       admin: サイト管理
       go_to_your_profile_page: プロフィール

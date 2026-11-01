@@ -1,6 +1,17 @@
-.lightbox{:id => id}
+-# ライトボックス（jquery.lightbox_me でモーダル表示する共通レイアウト）
+-#
+-# labelledby に「ダイアログのタイトル要素の id」を渡すと、ダイアログの
+-# セマンティクス（role="dialog" / aria-modal / aria-labelledby）と、開いた
+-# ときにフォーカスを受けるための tabindex="-1" が付く（Issue #132）。
+-# 渡さない場合は従来どおりのマークアップのまま（名前のないダイアログを
+-# 増やさないため、オプトインにしている）。
+- dialog_labelledby = (defined?(labelledby) && labelledby.present?) ? labelledby : nil
+- dialog_attrs = dialog_labelledby ? {:role => "dialog", :"aria-modal" => "true", :"aria-labelledby" => dialog_labelledby, :tabindex => "-1"} : {}
+.lightbox{**dialog_attrs, :id => id}
   .lightbox-content
-    %a{:href => "#", :class => "close lightbox-x", :id => "close_#{id}"}
-      = icon_tag('cross')
+    -# アイコンだけのリンクなので、スクリーンリーダー向けの名前を aria-label で与える。
+    -# 中の <i> は装飾なので aria-hidden にする。
+    %a{:href => "#", :class => "close lightbox-x", :id => "close_#{id}", :"aria-label" => t("layouts.lightbox.close")}
+      = icon_tag('cross', [], :"aria-hidden" => "true")
 
     = yield

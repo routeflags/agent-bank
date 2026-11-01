@@ -660,18 +660,26 @@ label.error {
   }
 }
 
-a.lightbox-x {
+// 閉じるアイコンの色（Issue #132）
+// アイコンは白背景（.lightbox-content の $background）上に置かれるため、
+// 白に対して 4.5:1 以上になる #767676（4.54:1）にしている。
+// 変更前の #aaacad は 2.28:1、ダークテーマ（themes/_dark_variables.scss）の
+// `body.dark-theme a` が上書きした #59b3a2 は 2.50:1 でいずれも不足していた。
+// `body.dark-theme a` は「要素1 + クラス1」の詳細度なので、`.lightbox` を挟んで
+// クラス2つにし、!important を使わずスコープの明示で勝たせる（#130 の再発防止）。
+.lightbox a.lightbox-x {
   width: lines(1.25);
   height: lines(1.25);
   padding: 15px 30px 30px 15px;
   position: absolute;
   right: 0;
   top: 0;
-  color: #aaacad;
+  color: #767676;
   z-index: 1;
 
   &:hover {
-    color: #919294;
+    // hover 時も 4.5:1 以上を保ち、通常時より暗くなる関係を維持する
+    color: #5f6163;
   }
 
   @include media(tablet) {
@@ -679,6 +687,64 @@ a.lightbox-x {
     height: lines(1.5);
     padding: 25px 45px 45px 25px;
     @include big-type;
+  }
+}
+
+/*
+  ------------------------
+  Markdown help: 見出しの見本
+  ------------------------
+*/
+// 「結果」列は「見出しで書くとこう見える」を示す見本。実際の h1/h2/h3 を表セル
+// 内で使うとライトボックスの見出し順（h2 の後に h1）が壊れるため、div + クラスで
+// 同じ見た目を再現する（Issue #132）。
+// 宣言値は partials/_texts.scss の h1/h2/h3 と .lightbox-content の見出しルール
+// に合わせている。色は見出しと同じく継承に任せ、ここでは指定しない。
+.markdown-help-table {
+  .markdown-help-heading {
+    @include source-sans-pro;
+    margin: 0;
+    padding: 0;
+  }
+
+  // h1 相当（_texts.scss:33 h1 + reset.scss の font-size: 1em）
+  .markdown-help-heading--h1 {
+    -webkit-font-smoothing: antialiased;
+    font-size: 1em;
+    font-weight: 700;
+    margin-bottom: lines(0.5);
+
+    @include media(small-tablet) {
+      @include large-type;
+      margin-top: lines(0.25, $large-type);
+      margin-bottom: lines(0.5, $large-type);
+    }
+  }
+
+  // h2 相当（_texts.scss:44 h2 + .lightbox-content h2 の margin-bottom）
+  .markdown-help-heading--h2 {
+    @include normal-type;
+    font-weight: 500;
+    margin-bottom: lines(0.25);
+
+    @include media(small-tablet) {
+      @include big-type;
+      font-weight: 500; // _texts.scss が big-type の 600 を上書きしている
+    }
+
+    @include media(tablet) {
+      // .lightbox-content h2（詳細度が上）が big-type を当てるので weight は 600
+      font-weight: 600;
+    }
+  }
+
+  // h3 相当（reset.scss で font-size: 1em、weight はブラウザ既定の bold のまま）
+  .markdown-help-heading--h3 {
+    -webkit-font-smoothing: antialiased;
+    font-size: 1em;
+    font-weight: bold;
+    margin-top: lines(0.5);
+    margin-bottom: lines(0.25);
   }
 }
 

@@ -1,5 +1,7 @@
-= render :layout => "layouts/lightbox", locals: {id: "markdown-help-popup", field: nil} do
-  %h2= t("layouts.markdown_help.title")
+= render :layout => "layouts/lightbox", locals: {id: "markdown-help-popup", field: nil, labelledby: "markdown-help-popup-title"} do
+  -# ライトボックスの見出し兼アクセシブル名（aria-labelledby の参照先）。
+  -# ライトボックス内の見出しは h2 以下で構成する（h2 の後に h1 を出さない）。
+  %h2{:id => "markdown-help-popup-title"}= t("layouts.markdown_help.title")
 
   %p= t("layouts.markdown_help.description")
 
@@ -16,11 +18,14 @@
           %br>/
           = format("### %s", t("layouts.markdown_help.h3"))
         %td
-          %h1= t("layouts.markdown_help.h1")
+          -# 結果列は「見出しで書くとこう見える」という見本。実際の見出しタグを
+          -# 使うと見出しアウトラインが壊れる（h2 の後に h1）ため、見た目を保った
+          -# まま div + クラスに置換している（Issue #132）。
+          %div.markdown-help-heading.markdown-help-heading--h1= t("layouts.markdown_help.h1")
           %br/
-          %h2= t("layouts.markdown_help.h2")
+          %div.markdown-help-heading.markdown-help-heading--h2= t("layouts.markdown_help.h2")
           %br/
-          %h3= t("layouts.markdown_help.h3")
+          %div.markdown-help-heading.markdown-help-heading--h3= t("layouts.markdown_help.h3")
       %tr
         %td= format("*%s*", t("layouts.markdown_help.italic"))
         %td
@@ -85,7 +90,58 @@
 
 - content_for :markdown_help_javascript do
   :javascript
-    $('#markdown-popup-link').click(function() { $('#markdown-help-popup').lightbox_me({centered: true, zIndex: 1000000}); return false});
+    (function() {
+      var $trigger = $('#markdown-popup-link');
+      var $dialog = $('#markdown-help-popup');
+      var FOCUSABLE = 'a[href], area[href], button, input, select, textarea, iframe, [tabindex]:not([tabindex="-1"])';
+      var TRAP_NS = 'keydown.markdownHelpA11y';
+
+      function focusableInDialog() {
+        return $dialog.find(FOCUSABLE).filter(':visible');
+      }
+
+      // Tab / Shift+Tab をダイアログ内で循環させる（aria-modal="true" の前提を
+      // キーボード操作でも満たすため）。
+      function keepFocusInside(e) {
+        if (e.which !== 9) { return; }
+        var $focusable = focusableInDialog();
+        if (!$focusable.length) { e.preventDefault(); return; }
+        var first = $focusable[0];
+        var last = $focusable[$focusable.length - 1];
+
+        // ダイアログ本体（tabindex="-1"）にフォーカスがあるときは、
+        // 先頭／末尾へ明示的に送る（ダイアログは body の末尾に移動されるため、
+        // そのまま Tab を押すとダイアログの外へ抜けてしまう）。
+        if (e.target === $dialog[0]) {
+          e.preventDefault();
+          (e.shiftKey ? last : first).focus();
+        } else if (e.shiftKey && e.target === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && e.target === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+
+      $trigger.on('click', function() {
+        // Esc での閉じは lightbox_me の既定動作（closeEsc: true）が受け持つ。
+        // onLoad / onClose でフォーカスだけをここで面倒にする。
+        $dialog.lightbox_me({
+          centered: true,
+          zIndex: 1000000,
+          onLoad: function() {
+            $dialog.on(TRAP_NS, keepFocusInside);
+            $dialog.focus();
+          },
+          onClose: function() {
+            $dialog.off(TRAP_NS);
+            $trigger.focus();
+          }
+        });
+        return false;
+      });
+    })();
 
 - if defined?(run_js_immediately) && run_js_immediately
   = yield :markdown_help_javascript
