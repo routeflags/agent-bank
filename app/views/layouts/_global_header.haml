@@ -38,6 +38,9 @@
             🔍
 
     .top-actions
+      -# ログアウトはユーザー名ドロップダウン（_header_user_menu.haml:19-21）と
+      -# モバイルメニュー（_header_menu.haml:8-10）にあるため、ヘッダー右上に
+      -# ボタンは置かない（Issue #133: 導線の重複とヘッダー幅の圧迫）。
       - if logged_in
         .top-actions__user
           = render :partial => "layouts/header_anchors", locals: {avatar_url: avatar_url, current_user_name: current_user_name, icons: icons}
@@ -45,8 +48,6 @@
         = render :partial => "layouts/header_right_visible_tablet", locals: {unread_count: unread_count, inbox_path: inbox_path, icons: icons}
         = link_to profile_path, class: "top-actions__mypage visible-tablet" do
           = t("lamprey.header.mypage")
-        = link_to logout_path, class: "top-actions__logout visible-tablet" do
-          = t("layouts.logged_in.logout")
       - else
         = link_to login_path, class: "raku-nav__login top-actions__login visible-tablet", id: "header-login-link" do
           = t("lamprey.header.login")
