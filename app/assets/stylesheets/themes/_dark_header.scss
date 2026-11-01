@@ -204,22 +204,31 @@ body.dark-theme {
     }
   }
 
-  // New listing button
+  // New listing button（レガシー画面向けの赤ボタン）
+  // トップバー（_topbar.scss）の「出品する」は .topbar-nav__link も併せ持つ
+  // ため、色・背景は _topbar.scss 側（通常は白文字・hover で Gold）が所有する。
+  // 以前はここで `color: #fff !important` と固定していたため、_topbar.scss の
+  // :hover 色と .is-active が打ち消されていた（Issue #130）。
+  // 状態色を上書きするときは !important を使わず、対象セレクタを絞ること。
   .new-listing-link {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    background-color: var(--accent-red);
-    color: #fff !important;
     border-radius: var(--radius-sm);
     font-size: 14px;
     font-weight: 600;
     text-decoration: none;
     transition: background-color var(--transition-fast);
 
-    &:hover {
-      background-color: var(--accent-red-hover);
+    // トップバーのナビ項目は _topbar.scss に譲る（赤ボタンに戻さない）
+    &:not(.topbar-nav__link) {
+      background-color: var(--accent-red);
+      color: #fff;
+
+      &:hover {
+        background-color: var(--accent-red-hover);
+      }
     }
   }
 

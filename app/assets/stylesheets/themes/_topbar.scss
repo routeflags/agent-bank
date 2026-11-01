@@ -167,6 +167,9 @@ body.dark-theme .topbar-nav__link {
 
 // E2E 用の new-listing-link class をナビ項目に付けているため、
 // レガシーの赤ボタン見た目を打ち消してナビリンクに統一する。
+// 通常時は透明背景 + 白文字（従来どおり）。hover は他のナビ項目
+// （_dark_header.scss の .raku-nav__link:hover = Gold + --bg-card-hover 面）と
+// 同じ反応に揃える（Issue #130）。
 body.dark-theme .topbar .topbar-nav__link.new-listing-link {
   background: transparent;
   background-color: transparent;
@@ -176,7 +179,9 @@ body.dark-theme .topbar .topbar-nav__link.new-listing-link {
 
   &:hover {
     color: $topbar-gold;
-    background-color: transparent;
+    // 他のナビ項目と同じ hover 面。半透明ガラス上の不透明面なので
+    // Gold(#dfb560) × #2a2a2a = 7.5:1（4.5:1 以上）で読める。
+    background-color: var(--bg-card-hover);
   }
 
   &.is-active {
