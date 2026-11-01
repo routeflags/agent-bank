@@ -1616,10 +1616,13 @@ CREATE TABLE `testimonials` (
   `updated_at` datetime DEFAULT NULL,
   `receiver_id` varchar(255) DEFAULT NULL,
   `blocked` tinyint(1) DEFAULT 0,
+  `listing_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `index_testimonials_on_listing_id_and_author_id` (`listing_id`,`author_id`),
   KEY `index_testimonials_on_author_id` (`author_id`) USING BTREE,
   KEY `index_testimonials_on_receiver_id` (`receiver_id`) USING BTREE,
-  KEY `index_testimonials_on_transaction_id` (`transaction_id`) USING BTREE
+  KEY `index_testimonials_on_transaction_id` (`transaction_id`) USING BTREE,
+  KEY `index_testimonials_on_listing_id` (`listing_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `transaction_process_tokens`;
@@ -1820,6 +1823,7 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261102000001'),
 ('20261028000001'),
 ('20261027000001'),
 ('20261025000005'),

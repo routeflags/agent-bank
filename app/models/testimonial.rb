@@ -12,21 +12,38 @@
 #  updated_at       :datetime
 #  receiver_id      :string(255)
 #  blocked          :boolean          default(FALSE)
+#  listing_id       :integer
 #
 # Indexes
 #
-#  index_testimonials_on_author_id       (author_id)
-#  index_testimonials_on_receiver_id     (receiver_id)
-#  index_testimonials_on_transaction_id  (transaction_id)
+#  index_testimonials_on_author_id                    (author_id)
+#  index_testimonials_on_listing_id                   (listing_id)
+#  index_testimonials_on_listing_id_and_author_id     (listing_id,author_id) UNIQUE
+#  index_testimonials_on_receiver_id                  (receiver_id)
+#  index_testimonials_on_transaction_id               (transaction_id)
 #
 
 class Testimonial < ApplicationRecord
 
+  # 評価本文の上限（Issue #106 Phase 1）。出品レビューにのみ適用する。
+  TEXT_MAX_LENGTH = 1000
+
+  # UI の星 1〜5。grade(0..1) と相互変換する。
+  STARS = (1..5)
+
   belongs_to :author, :class_name => "Person"
   belongs_to :receiver, :class_name => "Person"
   belongs_to :tx, class_name: "Transaction", foreign_key: "transaction_id", inverse_of: :testimonials
+  # 出品（ペルソナ）単位の評価（Issue #106 Phase 1）。取引レビューは transaction_id
+  # で紐づき listing_id は NULL のままなので optional。
+  belongs_to :listing, optional: true
 
   validates_inclusion_of :grade, :in => 0..1, :allow_nil => false
+
+  # 以下は出品レビュー（listing_id あり）に限定した検証。既存の取引レビュー
+  # （listing_id は NULL）の入力条件を締め付けないため if で切り替える。
+  validates :text, length: { maximum: TEXT_MAX_LENGTH }, if: :listing_review?
+  validates :author_id, uniqueness: { scope: :listing_id }, if: :listing_review?
 
   scope :positive, -> { where("grade >= 0.5") }
   scope :negative, -> { where("grade < 0.5") }
@@ -47,7 +64,27 @@ class Testimonial < ApplicationRecord
     (grade * 4 + 1).to_i
   end
 
+  # 星 1〜5 を grade(0..1) に換算する（Issue #106 Phase 1）。
+  # `displayed_grade`（grade*4+1）の逆変換。範囲外・非数値は nil を返し、
+  # grade の inclusion 検証で弾く。
+  #
+  # @param stars [String, Integer, nil] UI から受け取った星の数
+  # @return [Float, nil] 1→0.0, 2→0.25, 3→0.5, 4→0.75, 5→1.0
+  def self.grade_from_stars(stars)
+    star = Integer(stars, exception: false)
+    return nil if star.nil? || !STARS.cover?(star)
+
+    (star - 1) / 4.0
+  end
+
   def positive?
     grade >= 0.5
+  end
+
+  private
+
+  # 出品（ペルソナ）単位の評価か。取引レビューは false。
+  def listing_review?
+    listing_id.present?
   end
 end

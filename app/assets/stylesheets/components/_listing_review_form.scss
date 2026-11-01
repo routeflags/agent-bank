@@ -1,0 +1,88 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽問 — ペルソナ評価フォーム（Issue #106 Phase 1）
+//
+// ダーク／ライト両テーマで成立させるため、テーマ変数（CSS カスタムプロパティ）
+// のみを参照する。`body.dark-theme` 配下には閉じない。
+// ═══════════════════════════════════════════════════════════
+
+.raku-review-box {
+  max-width: 720px;
+  margin: 24px auto;
+  padding: 20px 24px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+}
+
+.raku-review-box__title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.raku-review-box__note {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.raku-review-box__status {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.raku-review-form__row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.raku-review-form__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.raku-review-form__select,
+.raku-review-form__textarea {
+  width: 100%;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+
+  &:focus {
+    outline: 2px solid var(--accent-gold);
+    outline-offset: 1px;
+  }
+}
+
+.raku-review-form__textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.raku-review-form__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  background-color: var(--accent-gold);
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+
+  &:hover { background-color: var(--accent-gold-hover); }
+}

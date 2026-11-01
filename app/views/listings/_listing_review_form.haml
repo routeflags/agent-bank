@@ -1,0 +1,22 @@
+-# Issue #106 Phase 1: ペルソナ（出品）評価の投稿導線。
+-#
+-# 描画条件: その出品の ChatSession で AI 応答を受け取った利用者（出品者本人を除く）。
+-# 未ログイン・出品者本人・AI 応答なしの場合は何も描画しない。
+-# 評価済みの場合はフォームの代わりにその旨だけを出す（1人1出品1回）。
+- review_policy = Policy::ListingReviewPolicy.new(@listing, @current_user)
+- unless review_policy.author?
+  - if review_policy.already_reviewed?
+    .raku-review-box{id: "listing-review-status"}
+      %p.raku-review-box__status= t('lamprey.listings.review_already_given')
+  - elsif review_policy.can_create?
+    .raku-review-box{id: "listing-review-form"}
+      %h2.raku-review-box__title= t('lamprey.listings.review_form_title')
+      %p.raku-review-box__note= t('lamprey.listings.review_form_note')
+      = form_tag listing_testimonials_path(listing_id: @listing.id), method: :post, class: 'raku-review-form' do
+        .raku-review-form__row
+          = label_tag 'testimonial_stars', t('lamprey.listings.review_stars_label'), class: 'raku-review-form__label'
+          = select_tag 'testimonial[stars]', options_for_select((1..5).map { |star| [t('lamprey.listings.review_stars_option', count: star), star] }, 5), id: 'testimonial_stars', class: 'raku-review-form__select'
+        .raku-review-form__row
+          = label_tag 'testimonial_text', t('lamprey.listings.review_text_label'), class: 'raku-review-form__label'
+          = text_area_tag 'testimonial[text]', nil, id: 'testimonial_text', rows: 4, maxlength: Testimonial::TEXT_MAX_LENGTH, class: 'raku-review-form__textarea', placeholder: t('lamprey.listings.review_text_placeholder')
+        = submit_tag t('lamprey.listings.review_submit'), id: 'testimonial_submit', class: 'raku-review-form__submit'

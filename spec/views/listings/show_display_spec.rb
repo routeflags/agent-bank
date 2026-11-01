@@ -116,4 +116,52 @@ RSpec.describe "出品詳細テンプレート", type: :view do
     expect(panel).to include("Python と英語会話")
     expect(panel).not_to include(I18n.t("lamprey.listings.no_features", locale: :ja))
   end
+
+  # ── Issue #106 Phase 1: ペルソナ評価の投稿導線 ──────────────
+  def give_ai_reply(person, listing = @listing)
+    session = FactoryBot.create(:chat_session, listing: listing, person_id: person.id)
+    FactoryBot.create(:chat_message, chat_session: session, role: "assistant", seq: 2)
+    session
+  end
+
+  it "#106: AI応答を受け取った利用者には評価フォームを出す" do
+    person = FactoryBot.create(:person, username: "reviewform", community_id: @community.id)
+    give_ai_reply(person)
+
+    html = render_show(person)
+    expect(html).to include("listing-review-form")
+    expect(html).to include(I18n.t("lamprey.listings.review_form_title", locale: :ja))
+    expect(html).to include("testimonial[stars]")
+    expect(html).to include("testimonial[text]")
+  end
+
+  it "#106: 出品者本人には評価フォームを出さない" do
+    give_ai_reply(@owner)
+
+    expect(render_show(@owner)).not_to include("listing-review-form")
+  end
+
+  it "#106: AI応答のない利用者には評価フォームを出さない" do
+    person = FactoryBot.create(:person, username: "reviewnone", community_id: @community.id)
+    session = FactoryBot.create(:chat_session, listing: @listing, person_id: person.id)
+    FactoryBot.create(:chat_message, chat_session: session, role: "user", seq: 1)
+
+    expect(render_show(person)).not_to include("listing-review-form")
+  end
+
+  it "#106: 未ログインには評価フォームを出さない" do
+    expect(render_show(nil)).not_to include("listing-review-form")
+  end
+
+  it "#106: 評価済みなら評価済み表示を出しフォームは出さない" do
+    person = FactoryBot.create(:person, username: "reviewed", community_id: @community.id)
+    give_ai_reply(person)
+    Testimonial.create!(listing: @listing, author: person, receiver: @owner,
+                        grade: 1.0, text: "good")
+
+    html = render_show(person)
+    expect(html).to include("listing-review-status")
+    expect(html).to include(I18n.t("lamprey.listings.review_already_given", locale: :ja))
+    expect(html).not_to include("listing-review-form")
+  end
 end

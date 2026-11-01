@@ -549,6 +549,9 @@ Rails.application.routes.draw do
         get :verification_required
       end
       resources :comments, :only => [:create, :destroy]
+      # Issue #106 Phase 1: 出品（ペルソナ）単位の評価投稿。
+      # 既存の /:person_id/testimonials（取引レビュー）とはパスもヘルパーも別。
+      resources :testimonials, only: [:create], controller: "listing_testimonials"
       resources :listing_images do
         collection do
           post :add_from_file

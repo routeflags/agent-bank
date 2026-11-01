@@ -1090,6 +1090,12 @@ ja:
       invitation_sent: 招待状は正常に送信されました
       invitation_successfully_unsubscribed: 招待メールの登録を解除しました。
       inviting_new_users_is_not_allowed_in_this_community: 新しいユーザを招待することは許可されていません。
+      # Issue #106 Phase 1: ペルソナ評価の投稿
+      listing_review_thanks: 評価を投稿しました。ありがとうございました！
+      listing_review_already_given: このペルソナはすでに評価済みです。
+      listing_review_own_listing: 自分の出品は評価できません。
+      listing_review_not_eligible: 評価できるのは、このペルソナとのAIチャットで回答を受け取った方です。
+      listing_review_failed: 評価を投稿できませんでした。すでに評価済みか、入力内容に問題があります。
       login_again: もう一度ログインしてください。
       login_failed: ログインに失敗しました。正確にご入力願います。
       account_creation_successful: "%{person_name}さん、ようこそ%{service_name}へ！"
@@ -2574,6 +2580,14 @@ ja:
       cancellation: "返金・キャンセル条件"
       features_default: "機能"
       reviews_count: "(%{count}件の評価)"
+      review_form_title: このペルソナを評価する
+      review_form_note: このペルソナとのAIチャットで回答を受け取った方が、お一人1回だけ評価できます。
+      review_stars_label: 評価
+      review_stars_option: "★%{count}（%{count}/5）"
+      review_text_label: レビュー本文（任意）
+      review_text_placeholder: 使い心地やよかった点を書いてください（任意・1000文字まで）
+      review_submit: 評価を投稿する
+      review_already_given: このペルソナは評価済みです。投稿ありがとうございました。
       no_features: "このペルソナの機能はまだ登録されていません。"
       no_description: "このペルソナの説明はまだありません。"
       no_reviews: "まだレビューはありません。"

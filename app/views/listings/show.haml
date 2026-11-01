@@ -338,3 +338,8 @@
   -# 販売者名は短く識別性が低いため、どのペルソナと会話しているかを
   -# タイトルで示す。タイトルが空のときだけフォールバックする。
   = raw(react_component("ChatPanelApp", props: { listing_id: @listing.id, persona_name: @listing.title.presence || 'AI Assistant', i18n: chat_panel_i18n }, prerender: false).to_s.gsub(/^[ \t]+\n/, ""))
+
+-# ── ペルソナ評価（Issue #106 Phase 1） ────────────────
+-# チャットパネル直後に置く。条件を満たさない利用者には何も出ない
+-# （判定は Policy::ListingReviewPolicy）。
+= render partial: 'listings/listing_review_form'

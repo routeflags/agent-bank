@@ -41,6 +41,12 @@ class ChatSession < ApplicationRecord
 
   scope :active, -> { where(status: "active") }
   scope :for_person, ->(person) { where(person_id: person.id) }
+  # AI 応答（assistant メッセージ）が 1 件以上あるセッション（Issue #106 Phase 1）。
+  # ペルソナ評価は「実際に AI の回答を受け取ったこと」を投稿根拠にするため、
+  # user メッセージのみのセッション（未回答・失敗）は対象外とする。
+  scope :with_assistant_message, -> {
+    joins(:chat_messages).where(chat_messages: { role: "assistant" }).distinct
+  }
 
   # Builds the system prompt from the associated Listing's persona fields.
   #
