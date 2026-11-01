@@ -1,9 +1,13 @@
 // 楽市楽問 — ページヘッダー（旧カバーセクションの置き換え）
 // カバー画像は使用しないため、タイトルのみを通常フローで描画する。
+// 幅・左右余白は本文側の .wrapper（1536px / 左右 4%）と同じ器に揃え、
+// ページをまたいで見出しの左端が本文と一致するようにする。
+// 上余白はガラスバー直下の共通値 24px（--raku-page-top-gap）。
 .raku-page-head {
-  max-width: 1080px;
+  width: 100%;
+  max-width: 1536px;
   margin: 0 auto;
-  padding: 32px 24px 0;
+  padding: var(--raku-page-top-gap, 24px) 4% 0;
 
   &__inner {
     h1 {

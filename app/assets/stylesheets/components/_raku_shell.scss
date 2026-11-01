@@ -29,6 +29,13 @@ body.dark-theme {
   // 同程度（24px）だけ空ける。
   $raku-index-footer-gap: 24px;
 
+  // ガラスバー直下の上余白は全ページ共通トークンで揃える
+  // （_topbar.scss の --raku-page-top-gap: 24px / モバイル 12px）。
+  main.page-content {
+    padding-top: var(--raku-page-top-gap, 24px);
+  }
+
+  // ヒーローがあるトップだけは画像をバーの下まで潜らせるので 0。
   main.page-content.raku-home {
     padding-top: 0;
   }

@@ -24,11 +24,14 @@ $topbar-btn-border: #61534c;
 // 実測: 768px 以上 = 69px / 767px 以下 = 77px
 :root {
   --raku-topbar-h: 69px;
+  // ガラスバー直下の本文の上余白（全ページ共通）
+  --raku-page-top-gap: 24px;
 }
 
 @media (max-width: 767px) {
   :root {
     --raku-topbar-h: 77px;
+    --raku-page-top-gap: 12px;
   }
 }
 
