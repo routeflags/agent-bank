@@ -2,6 +2,16 @@
 
 class Admin2::AdminBaseController < ApplicationController
   layout 'layouts/admin'
+
+  # 管理画面（/admin 配下）の保護（Issue #120）。
+  #
+  # `ADMIN_ALLOWED_IPS` が設定されているときだけ、送信元 IP の許可リストを強制する。
+  # 未設定なら何もしない（開発・テストの挙動は従来どおり）。
+  #
+  # prepend にしているのは、未ログイン時のリダイレクト（ensure_is_admin）より
+  # 先に 403 を返すため。
+  prepend_before_action :restrict_admin_by_ip
+
   before_action :ensure_is_admin
 
   #Allow admin to access admin panel before email confirmation
@@ -13,6 +23,19 @@ class Admin2::AdminBaseController < ApplicationController
   end
 
   private
+
+  # ENV の IP 許可リストに無い送信元には 403 を返す（ログイン状態に関係なく）。
+  # ADMIN_ALLOWED_IPS が未設定なら何もしない。
+  def restrict_admin_by_ip
+    return unless AdminAccessControl.ip_restriction_enabled?
+    return if AdminAccessControl.ip_allowed?(request.remote_ip)
+
+    Rails.logger.warn(
+      "[AdminAccessControl] /admin へのアクセスを IP で拒否しました: " \
+      "remote_ip=#{request.remote_ip.inspect} path=#{request.path}"
+    )
+    head :forbidden
+  end
 
   def setup_seo_service
     @seo_service = SeoService.new(@current_community, params)

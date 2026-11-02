@@ -68,7 +68,11 @@ Rails.application.config.session_store(
   :migrate_to_cookie_store,
   key: APP_CONFIG.cookie_session_key,
   expire_after: ActiveSessionsHelper::SESSION_TTL,
-  secure: APP_CONFIG.always_use_ssl.to_s.casecmp("true") == 0
+  # TLS 強制時（FORCE_SSL）は secure を有効にする（Issue #120）。
+  # config.x.force_secure_cookies は config/environments/production.rb で設定される。
+  # 未設定時は従来どおり false（nil にしないことで挙動を変えない）。
+  secure: APP_CONFIG.always_use_ssl.to_s.casecmp("true") == 0 ||
+          Rails.application.config.x.force_secure_cookies == true
 )
 
 # Use the database for sessions instead of the cookie-based default,

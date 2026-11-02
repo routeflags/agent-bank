@@ -1,5 +1,23 @@
 class Rack::Attack
 
+  ### 管理画面（/admin）の専用制限（Issue #120） ###
+
+  # 管理画面は操作量が少ないので、全体制限（req/ip）より厳しくしておく。
+  # ログイン試行（session/ip、sessions/login）とは独立したキーで数えるため、
+  # 管理画面への大量アクセスがログイン制限を消費することはない。
+  ADMIN_THROTTLE_LIMIT = 60
+  ADMIN_THROTTLE_PERIOD = 5.minutes
+
+  # ロケール接頭辞（/ja/admin など）を許容した上で、先頭セグメントが admin かを見る。
+  # /admin2（旧 URL のリダイレクト）や /administrators のような類似パスは対象外。
+  LOCALE_SEGMENT = /\A[a-z]{2}(?:[-_][A-Za-z]{2,4})?\z/
+
+  def self.admin_path?(path)
+    segments = path.to_s.split("/").reject(&:empty?)
+    segments.shift if segments.first&.match?(LOCALE_SEGMENT)
+    segments.first == "admin"
+  end
+
   ### Configure Cache ###
 
   # If you don't want to use Rails.cache (Rack::Attack's default), then
@@ -26,6 +44,15 @@ class Rack::Attack
   # Key: "rack::attack:#{Time.now.to_i/:period}:req/ip:#{req.ip}"
   throttle('req/ip', :limit => 300, :period => 5.minutes) do |req|
     req.env['action_dispatch.remote_ip'].to_s # unless req.path.start_with?('/assets')
+  end
+
+  # Throttle admin area requests by IP (60 / 5min)
+  #
+  # Key: "rack::attack:#{Time.now.to_i/:period}:admin/ip:#{req.ip}"
+  throttle('admin/ip',
+           :limit => Rack::Attack::ADMIN_THROTTLE_LIMIT,
+           :period => Rack::Attack::ADMIN_THROTTLE_PERIOD) do |req|
+    req.env['action_dispatch.remote_ip'].to_s if Rack::Attack.admin_path?(req.path)
   end
 
   ### Prevent Brute-Force Login Attacks ###

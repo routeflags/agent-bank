@@ -1,4 +1,5 @@
 require_relative './common.rb'
+require_relative '../../lib/tls_settings'
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
@@ -47,6 +48,23 @@ Rails.application.configure do
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   # config.force_ssl = true
+  #
+  # TLS 強制は ENV で切り替える（Issue #120）。本番は現在 HTTP 運用のため、
+  # 未設定なら現状維持（force_ssl 無効、セッション Cookie も secure 無効）。
+  # FORCE_SSL=1 もしくは APP_DOMAIN が https:// のときに有効化する。
+  config.x.force_secure_cookies = false
+  if TlsSettings.force_ssl?
+    config.force_ssl = true
+
+    # /_health は Caddy などからの内部ヘルスチェック用に HTTP のまま通す
+    # （EnforceSsl ミドルウェアと同じ扱い。Issue #120）。
+    config.ssl_options = {
+      redirect: { exclude: ->(request) { request.path == "/_health" } }
+    }
+
+    # config/initializers/session_store.rb がこのフラグを見て secure: true にする
+    config.x.force_secure_cookies = true
+  end
 
   # Include generic and useful information about system operation, but avoid logging too much
   # information to avoid inadvertent exposure of personally identifiable information (PII).
