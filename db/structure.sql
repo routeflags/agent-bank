@@ -1054,7 +1054,7 @@ CREATE TABLE `listings` (
   `default_run_mode` varchar(255) DEFAULT 'download',
   `total_sold` int(11) DEFAULT 0,
   `avg_rating` float DEFAULT 0,
-  `skill_markdown` text DEFAULT NULL COMMENT '出品者のスキル説明 (Markdown) — 所有者のみ閲覧可・フロント非表示',
+  `skill_markdown` mediumtext DEFAULT NULL COMMENT '出品者のスキル説明 (Markdown) — 所有者のみ閲覧可・フロント非表示',
   `reviews_count` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `index_listings_on_uuid` (`uuid`),
