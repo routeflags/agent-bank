@@ -23,6 +23,7 @@
 | `.env` | `APP_DOMAIN=persona-bank.jp` / `FORCE_SSL=1` / `domain=persona-bank.jp` / `always_use_ssl=true` |
 | `Caddyfile` 20 行目 | `{$APP_DOMAIN:localhost} {` |
 | スモーク | **OK 全 21 項目が成功（0.7秒）** |
+| `https://www.persona-bank.jp/ja` | **301** → `https://persona-bank.jp/ja`（証明書 `CN=www.persona-bank.jp` / Let's Encrypt） |
 | ACME | http-01 で取得成功（Caddy ログ `authorizations succeeded; finalizing order`） |
 
 ---
@@ -69,7 +70,7 @@ GoDaddy のパーキングページが出る。**この 2 本を削除するの�
 | 候補 | 判定 | 理由 |
 |---|---|---|
 | `@`（`persona-bank.jp`） | **採用** | 本番 URL はこれ 1 本に固定する |
-| `www` | 使わない | `www` は現在 apex への CNAME。Caddy は `APP_DOMAIN` の 1 ホストしか証明書を取らないため、`www` を使うなら別途 Caddyfile に追記が必要。今は不要 |
+| `www` | 301 で apex へ寄せる | `www` は apex への CNAME のまま。Caddyfile の `www.{$APP_DOMAIN}` ブロックが `https://persona-bank.jp{uri}` へ **301** し、証明書も `www` 用に自動取得する（実測: `CN=www.persona-bank.jp` / Let's Encrypt） |
 | `*`（ワイルドカード） | 使わない | 未知のホスト名でも Caddy に届き、ACME の取得失敗・レート制限の原因になる。アプリは 1 ホストで足りる |
 
 ---

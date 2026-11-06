@@ -41,3 +41,10 @@ http://{$APP_DOMAIN:localhost} {
 		format json
 	}
 }
+
+# www でアクセスされた場合は apex（正規ホスト）へ 301 で寄せる。
+# 証明書は `www.{$APP_DOMAIN}` についても Caddy が自動取得する（DNS の www が apex を
+# 向いている前提）。app_domain 未設定の HTTP 運用では `www.localhost` になり実質未使用。
+www.{$APP_DOMAIN:localhost} {
+	redir https://{$APP_DOMAIN:localhost}{uri} permanent
+}
