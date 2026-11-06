@@ -29,37 +29,58 @@
 
 ---
 
-## 1. ドメインを用意する
+## 1. ドメインを決める（決定済み: `lamprey.routeflags.com`）
 
-新規に取る場合も、既存ドメインのサブドメインを使う場合も同じ。
+**新規取得は不要。** 既存の `routeflags.com` のサブドメイン `lamprey` を使う。
 
-- サブドメインで構わない（例: `lamprey.example.com`）。
-- ネームサーバーは取得先のデフォルトのままで良い。
-- **この時点でサーバー側の変更は不要。**
+| 項目 | 値 |
+|---|---|
+| 本番 URL | `https://lamprey.routeflags.com` |
+| DNS の管理元 | エックスサーバー（NS は `ns1`〜`ns5.xserver.jp`） |
+| 現在の解決先 | `*.routeflags.com` のワイルドカード A で `111.110.244.167`（自宅回線側） |
 
-決まったら、以降のコマンドの `lamprey.example.com` を自ドメインに置き換える。
+### なぜ `www` / `*` / `@` を使わないか
+
+| 候補 | 判定 | 理由 |
+|---|---|---|
+| `lamprey`（採用） | **使う** | 単一ホスト。既存サイト・メールに影響しない |
+| `*`（ワイルドカード） | **使わない** | `*.routeflags.com` は既に `111.110.244.167` を向いており、**任意のサブドメインが自宅側に落ちる**。ここを VPS に向けると、Caddy が関知しないホスト名で証明書取得を叩かれ、レート制限やエラーの元になる。アプリは 1 ホストで足りるのでワイルドカードは不要 |
+| `www` | **使わない** | `www.routeflags.com` も同じワイルドカードで解決され、既存サイトが使っている領域。触らない |
+| `@`（apex `routeflags.com`） | **使わない** | 本番サイトと MX（`sv16090.xserver.jp`）が乗っている。A を差し替えると**メールが止まる**リスクがある |
+
+> 明示レコードはワイルドカードより優先されるので、`lamprey` の A を足せば
+> そのホストだけ VPS に向く。他は一切変わらない。
 
 ---
 
 ## 2. DNS の A レコードを VPS に向ける
 
-| 種別 | 名前 | 値 | TTL |
-|---|---|---|---|
-| A | `lamprey`（または `@`） | `153.126.189.79` | 300（短めに） |
+エックスサーバーのサーバーパネル → 対象ドメイン → **DNS レコード設定**で、
+次の 1 行を**追加**する（既存レコードは編集しない）。
 
-- IPv6 を使う場合は AAAA は**追加しない**（VPS 側の v6 到達性を確認していないため）。
-- ワイルドカード（`*`）は不要。
+| ホスト名 | 種別 | 内容 | 優先度 | TTL |
+|---|---|---|---|---|
+| `lamprey` | A | `153.126.189.79` | （空） | `300`（最短。落ち着いたら 3600 で可） |
 
-### 浸透確認（期待結果: IP が 1 行だけ返る）
+- `www` は付けない（`www.lamprey.…` は使わない）。
+- `*`（ワイルドカード）は**追加しない**。
+- **AAAA は追加しない**（VPS の IPv6 到達性を確認していないため）。
+- 反映まで数分かかる。パネルに「反映」ボタンがあれば押す。
+
+### 浸透確認（期待結果: `153.126.189.79` が 1 行だけ返る）
 
 ```bash
-dig +short lamprey.example.com A
+dig +short lamprey.routeflags.com A
 # => 153.126.189.79
 
-# 伝播前は何も返らない / 古い IP が返る。TTL 300 なら数分〜15分で切り替わる。
+# リゾルバのキャッシュを避けて確認する
+dig +short @8.8.8.8 lamprey.routeflags.com A
+dig +short @1.1.1.1 lamprey.routeflags.com A
 ```
 
-`0.0.0.0` や別 IP が返るうちは **次に進まない**（Caddy の証明書取得が失敗する）。
+**`111.110.244.167` が返るうちはワイルドカードに落ちている＝明示レコードが
+未反映**。この状態で先へ進むと Caddy が自宅側ホストへ行き、証明書が取れない。
+慌てず数分待って再確認する（それでも変わらなければホスト名の綴りと TTL を確認）。
 
 ---
 
@@ -69,19 +90,29 @@ dig +short lamprey.example.com A
 `Web(80)` と `Web(443)` を許可する。SSH(22) は現状のまま。
 
 ```bash
-# 外から（手元の Mac で）
-nc -vz lamprey.example.com 80
-# => Connection to lamprey.example.com port 80 [tcp/http] succeeded!
+# 外から（手元の Mac で）。ドメインを引かず IP 直で見るのが速い。
+nc -vz 153.126.189.79 80
+# => Connection to 153.126.189.79 port 80 [tcp/http] succeeded!
 
-nc -vz lamprey.example.com 443
-# => Connection to lamprey.example.com port 443 [tcp/https] succeeded!
+nc -vz 153.126.189.79 443
+# => Connection to 153.126.189.79 port 443 [tcp/https] succeeded!
 ```
 
-`Operation timed out` のままなら **パケットフィルタが閉じている**。ここを開けずに
-次へ進むと、Caddy の ACME チャレンジ（HTTP-01）が通らず証明書が取れない。
+### 実測済みの状態（2026-11-06）
 
-> サーバー内から確認する場合は `ssh ubuntu@153.126.189.79 'sudo ss -ltnp | grep -E ":(80|443)"'`
-> で Caddy が待ち受けていること（`docker compose` の `caddy` コンテナ）。
+| ポート | 実測 | 意味 |
+|---|---|---|
+| 80 | `succeeded!` | パケットフィルタは**通っている** |
+| 443 | `Connection refused` | Caddy が HTTP 固定で 443 を listen していないため。**正常**。4 章の HTTPS 化後に成功すればよい |
+| 22 | `succeeded!` | そのまま |
+
+`443` が HTTPS 化後も `refused` のままなら、パケットフィルタ（`Web(443)`）を
+確認する。`Operation timed out`（拒否ではなく無応答）の場合はパケットフィルタで
+落ちている。ここが閉じていると Caddy の ACME チャレンジ（HTTP-01）が通らず
+証明書が取れない。
+
+> サーバー内からは `ssh ubuntu@153.126.189.79 'sudo ss -ltnp | grep -E ":(80|443)"'`
+> で Caddy（`compose` の `caddy` コンテナ）の待ち受けを確認できる。
 
 ---
 
@@ -91,8 +122,8 @@ nc -vz lamprey.example.com 443
 
 ```bash
 cd ansible
-ansible-playbook playbooks/app.yml -e app_domain=lamprey.example.com --check --diff  # 差分確認
-ansible-playbook playbooks/app.yml -e app_domain=lamprey.example.com                 # 反映
+ansible-playbook playbooks/app.yml -e app_domain=lamprey.routeflags.com --check --diff  # 差分確認
+ansible-playbook playbooks/app.yml -e app_domain=lamprey.routeflags.com                 # 反映
 ```
 
 `app.yml` がやること:
@@ -108,8 +139,8 @@ ssh ubuntu@153.126.189.79
 cd /opt/agent-bank
 
 # 1) .env
-sed -i 's|^APP_DOMAIN=.*|APP_DOMAIN=lamprey.example.com|' .env
-sed -i 's|^domain=.*|domain=lamprey.example.com|' .env
+sed -i 's|^APP_DOMAIN=.*|APP_DOMAIN=lamprey.routeflags.com|' .env
+sed -i 's|^domain=.*|domain=lamprey.routeflags.com|' .env
 
 # 2) Caddyfile の 1 行（http:// を外すだけ。これで自動 HTTPS が有効になる）
 sed -i 's|^http://\({[^}]*}\)|\1|' Caddyfile   # 20行目が `{$APP_DOMAIN:localhost} {` になっていれば成功
@@ -134,16 +165,16 @@ sudo docker compose -f compose.production.yaml logs --tail=30 caddy
 ## 5. `https://` の到達確認
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\n' https://lamprey.example.com/ja
+curl -sS -o /dev/null -w '%{http_code}\n' https://lamprey.routeflags.com/ja
 # => 200
 
-curl -sSI http://lamprey.example.com/ja | head -1
+curl -sSI http://lamprey.routeflags.com/ja | head -1
 # => HTTP/1.1 308 Permanent Redirect        ← Caddy が HTTPS へ飛ばす
 
 # 証明書が正規に取れているか（自己署名ではないこと）
-echo | openssl s_client -servername lamprey.example.com -connect lamprey.example.com:443 2>/dev/null \
+echo | openssl s_client -servername lamprey.routeflags.com -connect lamprey.routeflags.com:443 2>/dev/null \
   | openssl x509 -noout -issuer -subject -dates
-# => issuer が Let's Encrypt 系、subject が CN = lamprey.example.com
+# => issuer が Let's Encrypt 系、subject が CN = lamprey.routeflags.com
 ```
 
 ---
@@ -155,7 +186,7 @@ Caddy 側の HTTPS が確認できてから入れる。Rails 側でも
 
 ```bash
 # Ansible
-cd ansible && ansible-playbook playbooks/app.yml -e app_domain=lamprey.example.com -e force_ssl=true
+cd ansible && ansible-playbook playbooks/app.yml -e app_domain=lamprey.routeflags.com -e force_ssl=true
 
 # 手作業
 ssh ubuntu@153.126.189.79 'cd /opt/agent-bank && sed -i "s|^FORCE_SSL=.*|FORCE_SSL=1|" .env \
@@ -165,9 +196,9 @@ ssh ubuntu@153.126.189.79 'cd /opt/agent-bank && sed -i "s|^FORCE_SSL=.*|FORCE_S
 ### 期待結果
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\n' https://lamprey.example.com/ja      # 200
+curl -sS -o /dev/null -w '%{http_code}\n' https://lamprey.routeflags.com/ja      # 200
 ssh ubuntu@153.126.189.79 "curl -sS -o /dev/null -w '%{http_code}\\n' http://127.0.0.1:3000/_health"   # 200（SSL 除外）
-curl -sSI https://lamprey.example.com/ja | grep -i set-cookie                 # Secure が付く
+curl -sSI https://lamprey.routeflags.com/ja | grep -i set-cookie                 # Secure が付く
 ```
 
 ---
@@ -178,7 +209,7 @@ curl -sSI https://lamprey.example.com/ja | grep -i set-cookie                 # 
 ssh ubuntu@153.126.189.79 'cd /opt/agent-bank && PW=$(sed -n "s/^ROOT_PASSWORD=//p" ~/.env | head -1) \
   && echo "$PW" | sudo -S -p "" docker run --rm --network host \
   -v /opt/agent-bank/script/smoke_check.rb:/tmp/smoke_check.rb:ro \
-  agent-bank-web ruby /tmp/smoke_check.rb https://lamprey.example.com'
+  agent-bank-web ruby /tmp/smoke_check.rb https://lamprey.routeflags.com'
 # => 21/21 成功（すべて OK）
 ```
 
