@@ -1,0 +1,22 @@
+# 秘密情報のテンプレート（このファイルはコミットする。実値は入れない）。
+#
+# 使い方:
+#   cp group_vars/vault.example.yml group_vars/vault.yml
+#   ansible-vault edit group_vars/vault.yml
+#
+# `group_vars/vault.yml` は .gitignore 済み。平文で置く場合は
+#   ansible-playbook playbooks/app.yml --ask-vault-pass
+# のように Vault パスワードを渡すこと。
+#
+# 注意:
+# - .env の全キーをここで管理する必要はない。ここに書いたキーだけが
+#   lineinfile で上書きされる（未指定のキーは現状の値が残る）。
+# - 値を空文字のままにすると「そのキーを空にする」意図になるため、
+#   触らないキーは行ごとコメントアウトする。
+vault_env: {}
+# 例:
+# vault_env:
+#   MYSQL_ROOT_PASSWORD: "..."
+#   MYSQL_USER: "..."
+#   MYSQL_PASSWORD: "..."
+#   SECRET_KEY_BASE: "..."

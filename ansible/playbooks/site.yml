@@ -1,0 +1,122 @@
+# OS ベースライン（Issue #121）
+#
+# やること:
+#   1. Ubuntu であることの確認
+#   2. apt インデックス更新と安全なアップグレード
+#   3. 運用に必要なパッケージ（rsync / curl / ufw 等）
+#   4. Docker が無ければ導入（既にある場合は何もしない）
+#   5. UFW で 22/80/443 を許可して有効化（既存ルールは削除しない）
+#
+# 実行（ansible/ 直下）:
+#   ansible-playbook playbooks/site.yml --check --diff
+#   ansible-playbook playbooks/site.yml
+#
+# 注意:
+# - UFW を有効化するので、SSH ポートが ufw_ssh_port と一致していることを
+#   tasks 内で検証してから有効化する。
+# - 既存スタック（docker compose の 5 サービス）には触らない。
+---
+- name: OS ベースライン（apt / Docker / UFW）
+  hosts: app
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: 対象 OS を確認する
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == 'Ubuntu'
+        fail_msg: "Ubuntu 以外は対象外です（検出: {{ ansible_distribution }}）"
+        quiet: true
+
+    - name: 現行の UFW ルールを表示する（読み取りのみ・変更しない）
+      ansible.builtin.command: ufw status verbose
+      register: ufw_status
+      changed_when: false
+      failed_when: false
+
+    - name: 現行の UFW ルール
+      ansible.builtin.debug:
+        msg: "{{ ufw_status.stdout_lines | default(['（ufw 未導入）']) }}"
+
+    - name: SSH ポートが許可リストに入っていることを確認する
+      ansible.builtin.assert:
+        that:
+          - ufw_ssh_port | int in (ufw_allowed_ports | map('int') | list)
+        fail_msg: >-
+          ufw_ssh_port（{{ ufw_ssh_port }}）が ufw_allowed_ports に入っていません。
+          UFW を有効化すると SSH が切れるため中止します。
+        quiet: true
+
+    - name: apt インデックスを更新する
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: インストール済みパッケージを安全に更新する
+      ansible.builtin.apt:
+        upgrade: safe
+        autoremove: false
+      when: os_upgrade | bool
+
+    - name: 運用に必要なパッケージを入れる
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - rsync
+          - ufw
+        state: present
+
+    - name: Docker の有無を確認する
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+      failed_when: false
+
+    - name: Docker を入れる（未導入のときだけ）
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+        state: present
+      when: docker_version.rc != 0
+
+    - name: Docker サービスを有効にする
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: 着信の既定を拒否にする
+      ansible.builtin.command: ufw default deny incoming
+      changed_when: false
+      when: ufw_enable | bool
+
+    - name: 発信の既定を許可にする
+      ansible.builtin.command: ufw default allow outgoing
+      changed_when: false
+      when: ufw_enable | bool
+
+    - name: 必要なポートを許可する（既存ルールは削除しない）
+      ansible.builtin.command: "ufw allow {{ item }}/tcp"
+      loop: "{{ ufw_allowed_ports + ufw_extra_ports }}"
+      changed_when: false
+      when: ufw_enable | bool
+
+    - name: UFW を有効化する（未だ有効でないときだけ）
+      ansible.builtin.command: ufw --force enable
+      when:
+        - ufw_enable | bool
+        - "'Status: active' not in (ufw_status.stdout | default(''))"
+
+    - name: 設定後の UFW 状態を表示する
+      ansible.builtin.command: ufw status verbose
+      register: ufw_final
+      changed_when: false
+      when: ufw_enable | bool
+
+    - name: UFW 結果
+      ansible.builtin.debug:
+        msg: "{{ ufw_final.stdout_lines | default([]) }}"
+      when: ufw_enable | bool

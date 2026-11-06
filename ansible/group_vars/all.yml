@@ -1,0 +1,42 @@
+# 全ホスト共通の変数（秘密情報はここに書かない）。
+
+# --- 配置 ---
+# アプリの置き場。script/deploy_production.sh の REMOTE_DIR と同じ。
+app_dir: /opt/agent-bank
+compose_file: compose.production.yaml
+compose_project: agent-bank
+# スモーク実行に使う既存イメージ（<project>-web）。
+web_image_name: agent-bank-web
+
+# --- 公開ドメインと TLS（Issue #121） ---
+# 空文字なら現行どおり HTTP 運用（Caddyfile は `http://` 固定のまま）。
+# FQDN を入れると Caddyfile の 1 行を HTTPS 形に差し替え、Caddy の自動 HTTPS を有効にする。
+app_domain: ""
+# Rails の force_ssl とセッション Cookie の secure を有効にするか。
+# true にするのは app_domain 設定後（HTTP のまま true にすると到達不能）。
+force_ssl: false
+
+# --- 管理画面の IP 許可リスト（Issue #120） ---
+# カンマ区切りの IP / CIDR / IPv6。空なら管理画面の IP 制限は無効（素通り）。
+admin_allowed_ips: ""
+
+# --- OS ベースライン（site.yml） ---
+# apt の安全な更新を実行するか。
+os_upgrade: true
+
+# UFW。許可ポートは現行稼働と同等（22/80/443）。
+# 既存ルールは削除しない（ufw reset / delete は使わない）。
+ufw_enable: true
+ufw_ssh_port: 22
+ufw_allowed_ports:
+  - 22
+  - 80
+  - 443
+# 追加で開けたいポートがあればここに足す（例: 3307 トンネル用など。通常は空）。
+ufw_extra_ports: []
+
+# --- アプリ反映（app.yml） ---
+# web イメージを再ビルドするか（コード変更を反映する場合は true）。
+app_build: true
+# 反映後にスモークチェックを実行するか。
+smoke_enabled: true
