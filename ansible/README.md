@@ -70,14 +70,14 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory \
 | `os_upgrade` | `true` | apt の安全な更新をやるか |
 | `ufw_enable` | `true` | UFW を触るか |
 
-既定値は `group_vars/all.yml`。
+既定値は `inventory/group_vars/all/vars.yml`。
 
 ---
 
 ## 3. 秘密情報の扱い
 
-- `group_vars/vault.yml`（**git 管理外**）に `vault_env` を置き、
-  `ansible-vault edit` で管理する。テンプレートは `group_vars/vault.example.yml`。
+- `inventory/group_vars/all/vault.yml`（**git 管理外**）に `vault_env` を置き、
+  `ansible-vault edit` で管理する。テンプレートは `inventory/group_vars/all/vault.example.yml`。
 - 平文で置く場合は `--ask-vault-pass` で渡す。
 - `vault_env` に書いたキー**だけ**が `.env` に反映される。書いていない
   キーは現行値が残る（`lineinfile` は指定行のみ更新）。

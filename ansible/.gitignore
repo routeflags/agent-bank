@@ -1,4 +1,4 @@
 # 秘密はリポジトリに入れない。
-group_vars/vault.yml
+inventory/group_vars/all/vault.yml
 .vault_pass
 *.retry

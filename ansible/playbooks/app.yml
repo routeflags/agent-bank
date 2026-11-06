@@ -19,7 +19,10 @@
 ---
 - name: アプリの反映（コード転送 / .env / Caddyfile / compose up / スモーク）
   hosts: app
-  become: true
+  # ファイル（.env / Caddyfile）は ubuntu 所有なので root 不要。
+  # docker だけ sudo が必要で、パスワードは vault から stdin で渡す
+  # （スクリプトに書かず argv にも出さない。script/deploy_production.sh と同じ方式）。
+  become: false
   gather_facts: false
 
   vars:
@@ -166,14 +169,22 @@
 
     - name: web イメージをビルドする
       ansible.builtin.command:
-        cmd: docker compose -f {{ compose_file }} build web
+        cmd: sudo -S -p '' docker compose -f {{ compose_file }} build web
         chdir: "{{ app_dir }}"
+        stdin: "{{ vault_sudo_password | default('') }}"
       when: app_build | bool
 
     - name: スタックを起動する
       ansible.builtin.command:
-        cmd: docker compose -f {{ compose_file }} up -d
+        cmd: sudo -S -p '' docker compose -f {{ compose_file }} up -d
         chdir: "{{ app_dir }}"
+        stdin: "{{ vault_sudo_password | default('') }}"
+      register: compose_up
+      # 何も変わっていないときは changed にしない（冪等性の見える化）。
+      changed_when: >-
+        ('Started' in (compose_up.stdout | default('')) ~ (compose_up.stderr | default('')))
+        or ('Recreated' in (compose_up.stdout | default('')) ~ (compose_up.stderr | default('')))
+        or ('Created' in (compose_up.stdout | default('')) ~ (compose_up.stderr | default('')))
 
     - name: /_health が 200 を返すまで待つ
       ansible.builtin.uri:
@@ -192,27 +203,35 @@
     - name: スモークチェック（コンテナ内から）
       ansible.builtin.command:
         cmd: >-
-          docker run --rm --network host
+          sudo -S -p '' docker run --rm --network host
           -v {{ app_dir }}/script/smoke_check.rb:/tmp/smoke_check.rb:ro
           {{ web_image_name }} ruby /tmp/smoke_check.rb {{ smoke_base }}
+        stdin: "{{ vault_sudo_password | default('') }}"
       register: smoke
       changed_when: false
       when: smoke_enabled | bool
+
+    # --check ではスモークが skip され stdout_lines が無いので、先に要約を作る。
+    - name: スモーク結果を要約する
+      ansible.builtin.set_fact:
+        smoke_summary: "{{ (smoke.stdout_lines | last) if (smoke.stdout_lines | default([]) | length > 0) else 'スキップ（--check）' }}"
 
     - name: 結果の要約
       ansible.builtin.debug:
         msg:
           - "サイトアドレス: {{ caddy_line.stdout | trim }}"
           - "FORCE_SSL: {{ '1' if force_ssl | bool else '（未設定）' }}"
-          - "スモーク: {{ (smoke.stdout_lines | default(['スキップ'])) | last }}"
+          - "スモーク: {{ smoke_summary }}"
 
   handlers:
     - name: caddy を再起動する
       ansible.builtin.command:
-        cmd: docker compose -f {{ compose_file }} restart caddy
+        cmd: sudo -S -p '' docker compose -f {{ compose_file }} restart caddy
         chdir: "{{ app_dir }}"
+        stdin: "{{ vault_sudo_password | default('') }}"
 
     - name: web と worker を再作成する
       ansible.builtin.command:
-        cmd: docker compose -f {{ compose_file }} up -d --no-deps --force-recreate web worker
+        cmd: sudo -S -p '' docker compose -f {{ compose_file }} up -d --no-deps --force-recreate web worker
         chdir: "{{ app_dir }}"
+        stdin: "{{ vault_sudo_password | default('') }}"

@@ -1,5 +1,9 @@
 # 全ホスト共通の変数（秘密情報はここに書かない）。
 
+# sudo のパスワード（このユーザーは docker 実行に sudo が必要）。
+# 値は inventory/group_vars/vault.yml（ansible-vault）にある。
+ansible_become_password: "{{ vault_sudo_password | default('') }}"
+
 # --- 配置 ---
 # アプリの置き場。script/deploy_production.sh の REMOTE_DIR と同じ。
 app_dir: /opt/agent-bank

@@ -1,10 +1,10 @@
 # 秘密情報のテンプレート（このファイルはコミットする。実値は入れない）。
 #
 # 使い方:
-#   cp group_vars/vault.example.yml group_vars/vault.yml
-#   ansible-vault edit group_vars/vault.yml
+#   cp inventory/group_vars/all/vault.example.yml inventory/group_vars/all/vault.yml
+#   ansible-vault edit inventory/group_vars/all/vault.yml
 #
-# `group_vars/vault.yml` は .gitignore 済み。平文で置く場合は
+# `inventory/group_vars/all/vault.yml` は .gitignore 済み。平文で置く場合は
 #   ansible-playbook playbooks/app.yml --ask-vault-pass
 # のように Vault パスワードを渡すこと。
 #

@@ -7,8 +7,23 @@
 **サーバー側（`.env` と Caddyfile）** の 2 系統に分かれる。所要は DNS 浸透待ちを
 除いて 30 分程度。
 
-> 現状: サーバー内は全面稼働（スモーク 21/21）。`Caddyfile` は
-> `http://{$APP_DOMAIN:localhost} {` で HTTP 固定。`APP_DOMAIN` 未設定。
+> **2026-11-06 適用済み。** `https://persona-bank.jp` で HTTP/2 200、証明書は
+> Let's Encrypt（CN=`persona-bank.jp`、有効期限 2027-02-04）、`http://` は 308 で
+> HTTPS へ、セッション Cookie は `Secure`、スモーク 21/21。
+> 以下の手順は「別ドメインへ移す／やり直す」ときの再現手順として残している。
+
+### 適用結果（実測）
+
+| 項目 | 結果 |
+|---|---|
+| `https://persona-bank.jp/ja` | HTTP/2 **200** |
+| `http://persona-bank.jp/ja` | **308** → `https://persona-bank.jp/ja` |
+| 証明書 | `subject: CN=persona-bank.jp` / `issuer: C=US; O=Let's Encrypt; CN=YE2` / 期限 2027-02-04 / `SSL certificate verify ok` |
+| `set-cookie` | `Secure` / `HttpOnly` / `SameSite=Lax` |
+| `.env` | `APP_DOMAIN=persona-bank.jp` / `FORCE_SSL=1` / `domain=persona-bank.jp` / `always_use_ssl=true` |
+| `Caddyfile` 20 行目 | `{$APP_DOMAIN:localhost} {` |
+| スモーク | **OK 全 21 項目が成功（0.7秒）** |
+| ACME | http-01 で取得成功（Caddy ログ `authorizations succeeded; finalizing order`） |
 
 ---
 
