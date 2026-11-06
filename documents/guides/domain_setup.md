@@ -29,58 +29,63 @@
 
 ---
 
-## 1. ドメインを決める（決定済み: `lamprey.routeflags.com`）
-
-**新規取得は不要。** 既存の `routeflags.com` のサブドメイン `lamprey` を使う。
+## 1. ドメイン（決定済み: `persona-bank.jp`）
 
 | 項目 | 値 |
 |---|---|
-| 本番 URL | `https://lamprey.routeflags.com` |
-| DNS の管理元 | エックスサーバー（NS は `ns1`〜`ns5.xserver.jp`） |
-| 現在の解決先 | `*.routeflags.com` のワイルドカード A で `111.110.244.167`（自宅回線側） |
+| 本番 URL | `https://persona-bank.jp` |
+| レジストラ / DNS | GoDaddy（NS は `ns39/ns40.domaincontrol.com`） |
+| 正しい A レコード | `@` → `153.126.189.79`（**1 本だけ**） |
 
-### なぜ `www` / `*` / `@` を使わないか
+### ⚠️ 取得直後の状態で残っている不要な A レコード（実測 2026-11-06）
+
+```
+dig +short persona-bank.jp A
+3.33.130.190      ← GoDaddy のパーキング（/lander に飛ばすだけの 114 バイトの HTML）
+15.197.148.33     ← 同上
+153.126.189.79    ← 本番 VPS（Caddy が応答）
+```
+
+A が 3 本あると**ブラウザが 3 本のうち 1 本をランダムに選ぶ**ため、2/3 の確率で
+GoDaddy のパーキングページが出る。**この 2 本を削除するのが最初の作業**。
+
+### `www` / `*` を使わない理由
 
 | 候補 | 判定 | 理由 |
 |---|---|---|
-| `lamprey`（採用） | **使う** | 単一ホスト。既存サイト・メールに影響しない |
-| `*`（ワイルドカード） | **使わない** | `*.routeflags.com` は既に `111.110.244.167` を向いており、**任意のサブドメインが自宅側に落ちる**。ここを VPS に向けると、Caddy が関知しないホスト名で証明書取得を叩かれ、レート制限やエラーの元になる。アプリは 1 ホストで足りるのでワイルドカードは不要 |
-| `www` | **使わない** | `www.routeflags.com` も同じワイルドカードで解決され、既存サイトが使っている領域。触らない |
-| `@`（apex `routeflags.com`） | **使わない** | 本番サイトと MX（`sv16090.xserver.jp`）が乗っている。A を差し替えると**メールが止まる**リスクがある |
-
-> 明示レコードはワイルドカードより優先されるので、`lamprey` の A を足せば
-> そのホストだけ VPS に向く。他は一切変わらない。
+| `@`（`persona-bank.jp`） | **採用** | 本番 URL はこれ 1 本に固定する |
+| `www` | 使わない | `www` は現在 apex への CNAME。Caddy は `APP_DOMAIN` の 1 ホストしか証明書を取らないため、`www` を使うなら別途 Caddyfile に追記が必要。今は不要 |
+| `*`（ワイルドカード） | 使わない | 未知のホスト名でも Caddy に届き、ACME の取得失敗・レート制限の原因になる。アプリは 1 ホストで足りる |
 
 ---
 
-## 2. DNS の A レコードを VPS に向ける
+## 2. DNS の A レコードを整理する
 
-エックスサーバーのサーバーパネル → 対象ドメイン → **DNS レコード設定**で、
-次の 1 行を**追加**する（既存レコードは編集しない）。
+GoDaddy → マイプロダクト → `persona-bank.jp` → **DNS**。
 
-| ホスト名 | 種別 | 内容 | 優先度 | TTL |
-|---|---|---|---|---|
-| `lamprey` | A | `153.126.189.79` | （空） | `300`（最短。落ち着いたら 3600 で可） |
+| 操作 | タイプ | 名前 | 値 |
+|---|---|---|---|
+| **削除** | A | `@` | `3.33.130.190` |
+| **削除** | A | `@` | `15.197.148.33` |
+| **残す**（無ければ追加） | A | `@` | `153.126.189.79` |
 
-- `www` は付けない（`www.lamprey.…` は使わない）。
-- `*`（ワイルドカード）は**追加しない**。
-- **AAAA は追加しない**（VPS の IPv6 到達性を確認していないため）。
-- 反映まで数分かかる。パネルに「反映」ボタンがあれば押す。
+- TTL は `600`（GoDaddy の既定）で構わない。切り替えを速くしたいなら `600` のまま数分待つ。
+- **AAAA は追加しない**（VPS の IPv6 到達性を確認していない）。
+- `www` の CNAME はそのままで良い（apex が 1 本になれば `www` も VPS を向く。ただし `https://www.…` は証明書が無いので使わない）。
+- GoDaddy の **「ドメイン転送 / Forwarding」が有効**だとこの A 2 本が再生成される。転送を使っていないなら設定ごと解除する。
 
 ### 浸透確認（期待結果: `153.126.189.79` が 1 行だけ返る）
 
 ```bash
-dig +short lamprey.routeflags.com A
+dig +short persona-bank.jp A
 # => 153.126.189.79
 
-# リゾルバのキャッシュを避けて確認する
-dig +short @8.8.8.8 lamprey.routeflags.com A
-dig +short @1.1.1.1 lamprey.routeflags.com A
+dig +short @8.8.8.8 persona-bank.jp A
+dig +short @1.1.1.1 persona-bank.jp A
 ```
 
-**`111.110.244.167` が返るうちはワイルドカードに落ちている＝明示レコードが
-未反映**。この状態で先へ進むと Caddy が自宅側ホストへ行き、証明書が取れない。
-慌てず数分待って再確認する（それでも変わらなければホスト名の綴りと TTL を確認）。
+`3.33.130.190` / `15.197.148.33` がまだ混ざるうちは **次に進まない**
+（その IP はパーキングを返すので、Caddy の証明書取得も不安定になる）。
 
 ---
 
@@ -122,8 +127,8 @@ nc -vz 153.126.189.79 443
 
 ```bash
 cd ansible
-ansible-playbook playbooks/app.yml -e app_domain=lamprey.routeflags.com --check --diff  # 差分確認
-ansible-playbook playbooks/app.yml -e app_domain=lamprey.routeflags.com                 # 反映
+ansible-playbook playbooks/app.yml -e app_domain=persona-bank.jp --check --diff  # 差分確認
+ansible-playbook playbooks/app.yml -e app_domain=persona-bank.jp                 # 反映
 ```
 
 `app.yml` がやること:
@@ -139,8 +144,8 @@ ssh ubuntu@153.126.189.79
 cd /opt/agent-bank
 
 # 1) .env
-sed -i 's|^APP_DOMAIN=.*|APP_DOMAIN=lamprey.routeflags.com|' .env
-sed -i 's|^domain=.*|domain=lamprey.routeflags.com|' .env
+sed -i 's|^APP_DOMAIN=.*|APP_DOMAIN=persona-bank.jp|' .env
+sed -i 's|^domain=.*|domain=persona-bank.jp|' .env
 
 # 2) Caddyfile の 1 行（http:// を外すだけ。これで自動 HTTPS が有効になる）
 sed -i 's|^http://\({[^}]*}\)|\1|' Caddyfile   # 20行目が `{$APP_DOMAIN:localhost} {` になっていれば成功
@@ -165,16 +170,16 @@ sudo docker compose -f compose.production.yaml logs --tail=30 caddy
 ## 5. `https://` の到達確認
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\n' https://lamprey.routeflags.com/ja
+curl -sS -o /dev/null -w '%{http_code}\n' https://persona-bank.jp/ja
 # => 200
 
-curl -sSI http://lamprey.routeflags.com/ja | head -1
+curl -sSI http://persona-bank.jp/ja | head -1
 # => HTTP/1.1 308 Permanent Redirect        ← Caddy が HTTPS へ飛ばす
 
 # 証明書が正規に取れているか（自己署名ではないこと）
-echo | openssl s_client -servername lamprey.routeflags.com -connect lamprey.routeflags.com:443 2>/dev/null \
+echo | openssl s_client -servername persona-bank.jp -connect persona-bank.jp:443 2>/dev/null \
   | openssl x509 -noout -issuer -subject -dates
-# => issuer が Let's Encrypt 系、subject が CN = lamprey.routeflags.com
+# => issuer が Let's Encrypt 系、subject が CN = persona-bank.jp
 ```
 
 ---
@@ -186,7 +191,7 @@ Caddy 側の HTTPS が確認できてから入れる。Rails 側でも
 
 ```bash
 # Ansible
-cd ansible && ansible-playbook playbooks/app.yml -e app_domain=lamprey.routeflags.com -e force_ssl=true
+cd ansible && ansible-playbook playbooks/app.yml -e app_domain=persona-bank.jp -e force_ssl=true
 
 # 手作業
 ssh ubuntu@153.126.189.79 'cd /opt/agent-bank && sed -i "s|^FORCE_SSL=.*|FORCE_SSL=1|" .env \
@@ -196,9 +201,9 @@ ssh ubuntu@153.126.189.79 'cd /opt/agent-bank && sed -i "s|^FORCE_SSL=.*|FORCE_S
 ### 期待結果
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\n' https://lamprey.routeflags.com/ja      # 200
+curl -sS -o /dev/null -w '%{http_code}\n' https://persona-bank.jp/ja      # 200
 ssh ubuntu@153.126.189.79 "curl -sS -o /dev/null -w '%{http_code}\\n' http://127.0.0.1:3000/_health"   # 200（SSL 除外）
-curl -sSI https://lamprey.routeflags.com/ja | grep -i set-cookie                 # Secure が付く
+curl -sSI https://persona-bank.jp/ja | grep -i set-cookie                 # Secure が付く
 ```
 
 ---
@@ -209,7 +214,7 @@ curl -sSI https://lamprey.routeflags.com/ja | grep -i set-cookie                
 ssh ubuntu@153.126.189.79 'cd /opt/agent-bank && PW=$(sed -n "s/^ROOT_PASSWORD=//p" ~/.env | head -1) \
   && echo "$PW" | sudo -S -p "" docker run --rm --network host \
   -v /opt/agent-bank/script/smoke_check.rb:/tmp/smoke_check.rb:ro \
-  agent-bank-web ruby /tmp/smoke_check.rb https://lamprey.routeflags.com'
+  agent-bank-web ruby /tmp/smoke_check.rb https://persona-bank.jp'
 # => 21/21 成功（すべて OK）
 ```
 
