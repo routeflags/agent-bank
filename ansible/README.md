@@ -88,6 +88,12 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory \
 
 ---
 
+> **`--diff` は付けないこと。** `.env` を `lineinfile` で書き換えるため、`--diff` を
+> 付けると差分の前後行（DB パスワード等）が画面に出る。差分確認は
+> `--check`（diff なし）+ 反映後に `grep -E '^(APP_DOMAIN|FORCE_SSL)=' .env` で行う。
+
+---
+
 ## 4. Caddyfile の付け外し（重要）
 
 リポジトリの `Caddyfile` は `http://{$APP_DOMAIN:localhost} {` で HTTP 固定の方針を

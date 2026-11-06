@@ -81,6 +81,17 @@
           cp {{ app_dir }}/.env.example {{ app_dir }}/.env して必要な値を埋めてから再実行してください。
         quiet: true
 
+    # .env / Caddyfile を書き換える前に退避する（直前の 1 世代だけ保持）。
+    - name: .env と Caddyfile をバックアップする
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ item }}.bak"
+        remote_src: true
+        mode: "0600"
+      loop:
+        - "{{ app_dir }}/.env"
+        - "{{ app_dir }}/Caddyfile"
+
     - name: .env を読み込む
       ansible.builtin.slurp:
         src: "{{ app_dir }}/.env"
