@@ -18,6 +18,38 @@ class Rack::Attack
     segments.first == "admin"
   end
 
+  ### API のトークン単位の制限（Issue #142） ###
+
+  # 1 トークンあたり 60 req / 5min。Cookie 認証（Bearer なし）のリクエストは
+  # 同じ制限を IP 単位で数える。キーに生トークンを残さないため、digest を使う。
+  API_TOKEN_LIMIT = 60
+  API_TOKEN_PERIOD = 5.minutes
+
+  # /api/v1 配下か（API ルートはロケール接頭辞の外にある）。
+  API_PATH_PATTERN = %r{\A/api/v1(?:/|\z)}
+
+  # `Authorization: Bearer <token>`。ActionController のトークン認証と同じく
+  # `Token <token>` 形式も受ける。
+  AUTHORIZATION_PATTERN = /\A(?:Bearer|Token)\s+(\S+)\z/i
+
+  def self.api_path?(path)
+    API_PATH_PATTERN.match?(path.to_s)
+  end
+
+  # Authorization ヘッダの生トークン（無ければ nil）。
+  def self.bearer_token(req)
+    match = AUTHORIZATION_PATTERN.match(req.get_header("HTTP_AUTHORIZATION").to_s.strip)
+    match && match[1]
+  end
+
+  # throttle のキー。生トークンはキーにもログにも残さず digest にする。
+  def self.api_throttle_key(req)
+    raw_token = bearer_token(req)
+    return "token:#{APIToken.digest(raw_token)}" if raw_token.present?
+
+    "ip:#{req.env['action_dispatch.remote_ip']}"
+  end
+
   ### Configure Cache ###
 
   # If you don't want to use Rails.cache (Rack::Attack's default), then
@@ -53,6 +85,14 @@ class Rack::Attack
            :limit => Rack::Attack::ADMIN_THROTTLE_LIMIT,
            :period => Rack::Attack::ADMIN_THROTTLE_PERIOD) do |req|
     req.env['action_dispatch.remote_ip'].to_s if Rack::Attack.admin_path?(req.path)
+  end
+
+  # Throttle /api/v1 by token digest (60 / 5min), falling back to IP
+  # Key: "rack::attack:#{Time.now.to_i/:period}:api/token:#{digest or ip}"
+  throttle('api/token',
+           :limit => Rack::Attack::API_TOKEN_LIMIT,
+           :period => Rack::Attack::API_TOKEN_PERIOD) do |req|
+    Rack::Attack.api_throttle_key(req) if Rack::Attack.api_path?(req.path)
   end
 
   ### Prevent Brute-Force Login Attacks ###
@@ -113,17 +153,16 @@ class Rack::Attack
 
   ### Custom Throttle Response ###
 
-  # By default, Rack::Attack returns an HTTP 429 for throttled responses,
-  # which is just fine.
-  #
-  # If you want to return 503 so that the attacker might be fooled into
-  # believing that they've successfully broken your app (or you just want to
-  # customize the response), then uncomment these lines.
-  # self.throttled_response = lambda do |env|
-  #  [ 503,  # status
-  #    {},   # headers
-  #    ['']] # body
-  # end
+  # 429 のボディ。API（/api/v1）だけ JSON で返し、管理画面・ログインは
+  # rack-attack 既定の text/plain のまま（Issue #142）。
+  # 旧 `throttled_response` は rack-attack 6 で deprecated なので使わない。
+  self.throttled_responder = lambda do |req|
+    if Rack::Attack.api_path?(req.path)
+      [429, { 'content-type' => 'application/json' }, [{ error: 'rate_limited' }.to_json]]
+    else
+      Rack::Attack::Configuration::DEFAULT_THROTTLED_RESPONDER.call(req)
+    end
+  end
 
   ActiveSupport::Notifications.subscribe(/rack_attack/) do |name, start, finish, request_id, req|
     data = {name: name,

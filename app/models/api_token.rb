@@ -26,7 +26,8 @@
 #
 # 平文トークンは保持しない。`issue!` が返す平文を保存するのは利用者側の
 # 責任で、サーバーは SHA-256 digest だけを照合する。
-# ローカルプロセス（MCP クライアント）からの Bearer 認証は #142 で有効化する。
+# ローカルプロセス（MCP クライアント）からの Bearer 認証は #142 で有効化した
+# （`APIAuthenticatable`）。
 #
 # 既存の `AuthToken`（unsubscribe / login 用、8 バイト・使い捨て）とは用途も
 # 寿命も違うため、別モデル・別テーブルにしている。
@@ -157,7 +158,8 @@ class APIToken < ApplicationRecord
   # 認証成功時に最終使用日時を記録する。
   #
   # 認証は全リクエストで走るため、`updated_at` を動かさず検証もスキップする
-  # 更新にしている。1 分間引きは #142 側で入れる。
+  # 更新にしている。呼び出し側（`APIAuthenticatable`）が 1 分間引いてから
+  # 呼ぶので、毎リクエストの UPDATE にはならない。
   #
   # @return [Boolean]
   def touch_last_used!

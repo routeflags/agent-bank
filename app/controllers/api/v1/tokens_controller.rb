@@ -2,37 +2,14 @@
 
 # MCP（ローカル実行）用パーソナルアクセストークンの発行・一覧・失効 API（Issue #141）。
 #
-# 認証は当面 Devise セッション（Cookie）で行う。Web UI からの発行・失効用で、
-# ローカルプロセスからの Bearer 認証は #142 がこのトークンを使って実装する。
+# 認証は Web UI の Devise セッション（Cookie）と、MCP クライアントの
+# `Authorization: Bearer` の両方を受ける（#142）。どちらで認証しても
 # 平文トークンは発行時に一度だけ返し、一覧には digest も含めない。
 class API::V1::TokensController < ApplicationController
-  # API controller — CSRF token not needed (authenticated via Devise session/cookie)
-  skip_before_action :verify_authenticity_token
+  include APIAuthenticatable
 
-  skip_before_action :fetch_community,
-                     :fetch_community_plan_expiration_status,
-                     :perform_redirect,
-                     :initialize_feature_flags,
-                     :save_current_host_with_port,
-                     :fetch_community_membership,
-                     :redirect_removed_locale,
-                     :set_locale,
-                     :redirect_locale_param,
-                     :setup_seo_service,
-                     :fetch_community_admin_status,
-                     :warn_about_missing_payment_info,
-                     :set_homepage_path,
-                     :maintenance_warning,
-                     :cannot_access_if_banned,
-                     :cannot_access_without_confirmation,
-                     :ensure_consent_given,
-                     :ensure_user_belongs_to_community,
-                     :set_display_expiration_notice,
-                     :setup_intercom_user,
-                     :setup_custom_footer,
-                     :disarm_custom_head_script
-
-  before_action :ensure_authenticated
+  # 参照系のみの API なので read を要求する。
+  api_requires_scope :read
 
   # GET /api/v1/tokens
   #
@@ -78,12 +55,6 @@ class API::V1::TokensController < ApplicationController
   end
 
   private
-
-  def ensure_authenticated
-    unless current_user
-      render json: { error: "ログインが必要です" }, status: :unauthorized
-    end
-  end
 
   # 平文・digest は返さない。
   def serialize_token(token)

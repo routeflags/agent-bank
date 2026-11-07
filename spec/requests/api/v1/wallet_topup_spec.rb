@@ -218,7 +218,7 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
       it "does not credit the wallet" do
         expect {
           post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: "pi_test_success" }
-        }.not_to change { wallet.reload.balance_cents }
+        }.not_to(change { wallet.reload.balance_cents })
       end
     end
 
@@ -360,7 +360,7 @@ RSpec.describe "Api::V1::WalletTopup", type: :request do
       expect(json["dev_mode"]).to eq(true)
 
       expect { post "/api/v1/wallet_topup/confirm", params: { payment_intent_id: intent_id } }
-        .not_to change { wallet.reload.balance_cents }
+        .not_to(change { wallet.reload.balance_cents })
       json = JSON.parse(response.body)
       expect(json["amount_credited"]).to eq(0)
     end
