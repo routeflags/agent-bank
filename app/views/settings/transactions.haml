@@ -21,6 +21,9 @@
           %th= t("lamprey.mypage.skill_usage_th_messages")
           %th= t("lamprey.mypage.skill_usage_th_tokens")
           %th= t("lamprey.mypage.skill_usage_th_charge")
+          -# Issue #148: 実行経路（Web / MCP）。channel は #144 で追加した
+          -# chat_sessions.channel をそのまま使う（web / mcp の 2 値）。
+          %th= t("lamprey.mypage.skill_usage_th_route")
       %tbody
         - @skill_usage_sessions.each do |session|
           - message_count = session.chat_messages.size
@@ -35,6 +38,8 @@
             -# 課金額: usage_records に chat_session_id / listing_id が無く、
             -# セッション単位の課金を特定できないため "—" を表示する。
             %td —
+            -# 未知の値が入っても画面を壊さないよう、mcp 以外は Web 扱い。
+            %td= session.channel == ChatSession::CHANNEL_MCP ? t("lamprey.mypage.skill_usage_route_mcp") : t("lamprey.mypage.skill_usage_route_web")
     = will_paginate @skill_usage_sessions
   - else
     .raku-table__empty= t("lamprey.mypage.skill_usage_empty")
