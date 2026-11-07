@@ -1,0 +1,30 @@
+{
+  "name": "@agentbank/mcp",
+  "version": "0.1.0",
+  "description": "Agent Bank（Lamprey）のペルソナを MCP クライアントから検索・取得する stdio サーバー",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "agentbank-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && node --test .test-dist/test/*.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.1",
+    "ajv": "^8.17.1",
+    "typescript": "^5.9.3"
+  }
+}

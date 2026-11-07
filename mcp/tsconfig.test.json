@@ -1,0 +1,12 @@
+{
+  // テストは dist/ を汚さないよう別ディレクトリへ出す。
+  // 実行は `node --test .test-dist/test/*.test.js`（npm test）。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": ".test-dist",
+    "declaration": false,
+    "noEmit": false
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}
