@@ -99,7 +99,10 @@ module Ai
           finish_reason = choice[:finish_reason]
         end
 
-        if content.present?
+        # Issue #139: 空白だけの差分（"\n" や "  "）も本文の一部。
+        # `present?` は "\n" を blank と判定するため、改行だけのチャンクが
+        # 落ちてフェンス付きコードブロックの改行が潰れていた。
+        unless content.nil? || content.empty?
           @accumulated_content += content
           yield({ content: content, finish_reason: finish_reason }) if block_given?
         end

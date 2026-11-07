@@ -493,6 +493,14 @@
   padding: 12px;
   overflow-x: auto;
   margin: 8px 0;
+
+  /* Issue #139: フェンス内の改行・字下げをそのまま見せる。
+     バブル側の word-break 継承で行が折り返されないよう pre で固定し、
+     長い行は横スクロールにする。 */
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+  tab-size: 2;
 }
 
 .chatMessage--assistant .chatMessage__bubble pre code {
@@ -722,6 +730,25 @@
   color: #d4a853;
   text-align: right;
   margin-top: 4px;
+}
+
+/* 実行設定の値表示（モデル名など、選べない項目。Issue #139）。
+   <select> と同じ見た目にするが、操作できないのでクリック反応は持たない。 */
+.chatPanel__settingsStatic {
+  padding: 8px 12px;
+  background: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+}
+
+/* 値の補足（モデルの単価など）。 */
+.chatPanel__settingsHint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #999;
+  line-height: 1.4;
 }
 
 .chatPanel__toneButtons {

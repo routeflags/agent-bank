@@ -2365,6 +2365,9 @@ ja:
       balance_label: "残高"
       settings_title: "⚙️ 実行設定"
       settings_model: "モデル"
+      # Issue #139: 実行設定のモデル表示（選択式ではない）。
+      settings_model_unknown: "未設定"
+      settings_model_price: "入力 $%{input} / 出力 $%{output}（100万トークンあたり）"
       settings_token_limit: "トークン上限"
       settings_tokens_unit: "%{count} トークン"
       settings_token_unlimited: "上限なし"

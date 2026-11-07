@@ -339,7 +339,9 @@
   -# ヘッダーは販売者名ではなく出品タイトルを出す（Issue #67）。
   -# 販売者名は短く識別性が低いため、どのペルソナと会話しているかを
   -# タイトルで示す。タイトルが空のときだけフォールバックする。
-  = raw(react_component("ChatPanelApp", props: { listing_id: @listing.id, persona_name: @listing.title.presence || 'AI Assistant', i18n: chat_panel_i18n }, prerender: false).to_s.gsub(/^[ \t]+\n/, ""))
+  -# 実行設定のモデルもサーバー側で解決して渡す（Issue #139）。
+  -# 正本は listing_ai_models.is_default で、Ai::ProviderFactory と同じ行。
+  = raw(react_component("ChatPanelApp", props: { listing_id: @listing.id, persona_name: @listing.title.presence || 'AI Assistant', i18n: chat_panel_i18n, model: chat_panel_model(@listing) }, prerender: false).to_s.gsub(/^[ \t]+\n/, ""))
 
 -# ── ペルソナ評価（Issue #106 Phase 1） ────────────────
 -# チャットパネル直後に置く。条件を満たさない利用者には何も出ない

@@ -168,4 +168,35 @@ RSpec.describe Ai::AnthropicAdapter do
       end
     end
   end
+  describe "#stream の空白チャンク（Issue #139）" do
+    # Anthropic も改行を「改行だけの content_block_delta」で送ってくる。
+    let(:stub_client_class) do
+      lines = event_lines
+      Class.new do
+        define_method(:initialize) { |**| }
+        define_method(:post) do |headers:, body:, &block|
+          lines.each { |line| block.call(line) }
+        end
+      end
+    end
+
+    let(:event_lines) do
+      [
+        '{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"```bash"}}',
+        '{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"\n"}}',
+        '{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"quien tls example.com"}}',
+        '{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"\n```"}}',
+        '{"type":"message_delta","delta":{"stop_reason":"end_turn"}}'
+      ]
+    end
+
+    it "改行だけのチャンクを捨てずに連結する" do
+      adapter = described_class.new(ai_model, streaming_client: stub_client_class)
+      yielded = []
+      adapter.stream([{ role: "user", content: "hi" }]) { |chunk| yielded << chunk[:content] }
+
+      expect(adapter.accumulated_content).to eq("```bash\nquien tls example.com\n```")
+      expect(yielded).to include("\n")
+    end
+  end
 end

@@ -94,7 +94,10 @@ module Ai
         case event[:type]
         when "content_block_delta"
           text = event.dig(:delta, :text)
-          if text.present?
+          # Issue #139: 空白だけの差分（"\n" や "  "）も本文の一部。
+          # `present?` は "\n" を blank と判定するため、改行だけのチャンクが
+          # 落ちてフェンス付きコードブロックの改行が潰れていた。
+          unless text.nil? || text.empty?
             @accumulated_content += text
             yield({ content: text, type: "content_block_delta" }) if block_given?
           end

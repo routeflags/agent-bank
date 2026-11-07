@@ -17,6 +17,10 @@ import { saveActiveElement, restoreFocus, focusInitial, trapTabKey, pullFocusIns
  * @param {Object} props
  * @param {number} props.listing_id
  * @param {string} props.persona_name
+ * @param {Object} [props.model] 実行設定に出すモデル（Issue #139）。
+ *   サーバーが listing_ai_models.is_default から作る
+ *   { name, input_price_per_million, output_price_per_million }。
+ *   クライアント側に既定モデルは持たない。
  */
 
 // ─── Utility functions ───────────────────────────────────
@@ -51,16 +55,69 @@ function sanitizeHTML(text) {
 }
 
 // ─── Simple Markdown renderer (no external deps) ──────────
+//
+// Issue #139: フェンス付きコードブロックは **本文と切り離して** 先に確定させ、
+// 中の改行・字下げをそのまま <pre> へ渡す。以前は全文に一括で正規表現を掛けて
+// いたため、コードブロック内の改行が段落分割（</p><p>）や <br/> に置換され、
+// さらにフェンス判定が「3 連バッククォート＋任意の言語＋改行」に固定されていて、
+// 言語名の前に空白がある場合・行末に空白がある場合・CRLF のいずれでも
+// マッチせず、インラインコードの正規表現がフェンスを飲み込んでいた
+// （本文が 1 行に潰れて見えた原因）。
 
-function renderMarkdown(text) {
-  if (!text) return '';
+// 単独行のフェンス（開き／閉じ）。言語名の前後の空白と CRLF を許容する。
+var FENCE_LINE = /^[ \t]*```[ \t]*([^\s`]*)[^`]*$/;
 
-  // Sanitize first: escape any HTML that could be injected
-  var sanitized = sanitizeHTML(text);
+// フェンスで本文とコードブロックに分割する。
+// 閉じフェンスが無い場合（ストリーミング途中）は残りをコードとして扱い、
+// 途中経過でもコードとして読めるようにする。
+function splitFencedBlocks(text) {
+  var lines = text.split('\n');
+  var blocks = [];
+  var prose = [];
+  var code = null;
 
-  var html = sanitized
-    // Code blocks (triple backtick)
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+  var flushProse = function () {
+    if (prose.length) {
+      blocks.push({ type: 'text', content: prose.join('\n') });
+      prose = [];
+    }
+  };
+
+  for (var i = 0; i < lines.length; i++) {
+    var fence = lines[i].match(FENCE_LINE);
+    if (!fence) {
+      if (code) code.lines.push(lines[i]);
+      else prose.push(lines[i]);
+      continue;
+    }
+    if (code) {
+      blocks.push({ type: 'code', lang: code.lang, content: code.lines.join('\n') });
+      code = null;
+    } else {
+      flushProse();
+      code = { lang: fence[1], lines: [] };
+    }
+  }
+  if (code) blocks.push({ type: 'code', lang: code.lang, content: code.lines.join('\n') });
+  flushProse();
+  return blocks;
+}
+
+// コードブロックは改行・字下げを保ったまま <pre> に入れる（本文の
+// 行単位変換を一切掛けない）。中身は sanitizeHTML 済み。
+function renderCodeBlock(block) {
+  var lang = (block.lang || '').replace(/[^A-Za-z0-9_+-]/g, '');
+  var langAttr = lang ? ' class="language-' + lang + '"' : '';
+  return '<pre class="chatMessage__codeBlock"><code' + langAttr + '>' +
+    block.content + '</code></pre>';
+}
+
+// 本文（コードブロック以外）の行単位変換。
+function renderProseBlock(text) {
+  var body = text.replace(/^\n+/, '').replace(/\n+$/, '');
+  if (!body) return '';
+
+  var html = body
     // Inline code
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     // Bold
@@ -92,6 +149,18 @@ function renderMarkdown(text) {
   });
 
   return '<p>' + html + '</p>';
+}
+
+function renderMarkdown(text) {
+  if (!text) return '';
+
+  // Sanitize first: escape any HTML that could be injected.
+  // 改行コードは LF に揃えてからフェンスを判定する（CRLF 対応）。
+  var sanitized = sanitizeHTML(text).replace(/\r\n?/g, '\n');
+
+  return splitFencedBlocks(sanitized).map(function (block) {
+    return block.type === 'code' ? renderCodeBlock(block) : renderProseBlock(block.content);
+  }).join('');
 }
 
 // ─── i18n ─────────────────────────────────────────────────────
@@ -141,6 +210,8 @@ var DEFAULT_I18N = {
   balance_label: '残高',
   settings_title: '⚙️ 実行設定',
   settings_model: 'モデル',
+  settings_model_unknown: '未設定',
+  settings_model_price: '入力 $%{input} / 出力 $%{output}（100万トークンあたり）',
   settings_token_limit: 'トークン上限',
   settings_tokens_unit: '%{count} トークン',
   settings_token_unlimited: '上限なし',
@@ -397,7 +468,6 @@ class ChatPanelApp extends React.Component {
       isConnected: false,
       inputText: '',
       // Settings
-      selectedModel: 'gpt-4o',
       tokenLimit: 4000,
       outputLength: 'standard',
       // Issue #102: 既定は「ペルソナ既定」（＝トーン指定なし）。
@@ -441,7 +511,6 @@ class ChatPanelApp extends React.Component {
     this.handleNewChat = this.handleNewChat.bind(this);
     this.handleSelectSession = this.handleSelectSession.bind(this);
     this.handleRenameSession = this.handleRenameSession.bind(this);
-    this.handleModelChange = this.handleModelChange.bind(this);
     this.handleTokenChange = this.handleTokenChange.bind(this);
     this.handleTokenUnlimitedChange = this.handleTokenUnlimitedChange.bind(this);
     this.handleOutputLength = this.handleOutputLength.bind(this);
@@ -1039,10 +1108,6 @@ class ChatPanelApp extends React.Component {
 
   // ─── Settings handlers ────────────────────────────────
 
-  handleModelChange(e) {
-    this.setState({ selectedModel: e.target.value });
-  }
-
   // Issue #105: チェック時は tokenLimit を null（上限なし）にし、
   // settings.token_limit に null を送る。外すと既定 4000 に戻す。
   handleTokenUnlimitedChange(e) {
@@ -1231,6 +1296,10 @@ class ChatPanelApp extends React.Component {
     var state = this.state;
     var self = this;
     var personaName = this.props.persona_name || 'AI Assistant';
+    // 実行設定のモデル（Issue #139）。正本はサーバーの listing_ai_models.is_default で、
+    // props.model はその同じ行から作られる（Ai::ProviderFactory と同一の解決）。
+    // クライアント側に既定モデルを持たない（二重定義をしない）。
+    var model = this.props.model || null;
 
     // §13 Result/Artifact preview — latest completed assistant answer with is_result === true (Issue #65)
     var latestResult = null;
@@ -1499,19 +1568,24 @@ class ChatPanelApp extends React.Component {
 
           React.createElement('h4', { className: 'chatPanel__settingsTitle' }, t('settings_title')),
 
-          // Model selection
-          React.createElement('div', { className: 'chatPanel__settingsGroup' },
-            React.createElement('label', { className: 'chatPanel__settingsLabel', htmlFor: 'chatPanel-modelSelect' }, t('settings_model')),
-            React.createElement('select', {
-              className: 'chatPanel__settingsSelect',
-              id: 'chatPanel-modelSelect',
-              value: state.selectedModel,
-              onChange: this.handleModelChange,
-            },
-              React.createElement('option', { value: 'gpt-4o' }, 'GPT-4o'),
-              React.createElement('option', { value: 'gpt-4o-mini' }, 'GPT-4o Mini'),
-              React.createElement('option', { value: 'claude-sonnet' }, 'Claude Sonnet'),
-              React.createElement('option', { value: 'claude-haiku' }, 'Claude Haiku')
+          // Model (Issue #139): 実際に実行・課金されるモデルを表示する。
+          // 以前の <select> はサーバーに送られない飾りで、しかも既定と違う
+          // GPT-4o を表示していた（送信内容は Ai::ProviderFactory が解決する
+          // 出品の既定モデル）。選んでも変わらない選択肢は置かない。
+          React.createElement('div', {
+            className: 'chatPanel__settingsGroup',
+            role: 'group',
+            'aria-labelledby': 'chatPanel-modelLabel',
+          },
+            React.createElement('span', { className: 'chatPanel__settingsLabel', id: 'chatPanel-modelLabel' }, t('settings_model')),
+            React.createElement('div', { className: 'chatPanel__settingsStatic' },
+              model ? model.name : t('settings_model_unknown')
+            ),
+            model && model.input_price_per_million != null && React.createElement('div', { className: 'chatPanel__settingsHint' },
+              tFormat('settings_model_price', {
+                input: model.input_price_per_million,
+                output: model.output_price_per_million,
+              })
             )
           ),
 

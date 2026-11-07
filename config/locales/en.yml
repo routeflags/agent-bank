@@ -2999,6 +2999,9 @@ en:
       balance_label: "Balance"
       settings_title: "⚙️ Execution settings"
       settings_model: "Model"
+      # Issue #139: read-only model display in the execution settings.
+      settings_model_unknown: "Not configured"
+      settings_model_price: "In $%{input} / out $%{output} per 1M tokens"
       settings_token_limit: "Token limit"
       settings_tokens_unit: "%{count} tokens"
       settings_token_unlimited: "Unlimited"

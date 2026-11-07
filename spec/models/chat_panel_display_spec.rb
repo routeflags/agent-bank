@@ -42,4 +42,20 @@ RSpec.describe "ChatPanel の表示契約", type: :model do
   it "#89: props 未渡し時のみ汎用名にフォールバックする" do
     expect(js).to include("this.props.persona_name || 'AI Assistant'")
   end
+
+  # Issue #139: モデルはサーバーが解決した props.model だけを出す。
+  # 以前は 'gpt-4o' が直書きされていて、出品の既定（GPT-4o Mini）と
+  # 食い違ったまま既定より高価なモデル名を表示していた。
+  it "#139: モデルは props から描画し、クライアント側に既定を持たない" do
+    expect(js).to include("this.props.model")
+    expect(js).not_to include("selectedModel")
+    expect(js).not_to match(/['\"]gpt-4o['\"]/)
+    expect(js).not_to include("chatPanel-modelSelect")
+  end
+
+  # Issue #139: フェンス付きコードブロックの改行を保つ。
+  it "#139: コードブロックは pre で改行を保持する（CSS）" do
+    css = File.read(Rails.root.join("client/app/components/ChatPanel/chatPanel.css"))
+    expect(css).to match(/\.chatMessage__bubble pre \{[^}]*white-space: pre/m)
+  end
 end

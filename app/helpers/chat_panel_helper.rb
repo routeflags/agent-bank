@@ -22,7 +22,8 @@ module ChatPanelHelper
     history_rename
     loading empty_state input_placeholder
     disclaimer balance_label settings_title
-    settings_model settings_token_limit settings_tokens_unit
+    settings_model settings_model_unknown settings_model_price
+    settings_token_limit settings_tokens_unit
     settings_token_unlimited
     settings_output_length output_short output_standard
     output_long settings_tone tone_polite
@@ -42,5 +43,33 @@ module ChatPanelHelper
     chat = chat.respond_to?(:symbolize_keys) ? chat.symbolize_keys : {}
 
     CHAT_I18N_KEYS.index_with { |key| chat[key] }
+  end
+
+  # ChatPanel の「実行設定 > モデル」に出す情報（Issue #139）。
+  #
+  # 正本は listing_ai_models.is_default。Ai::ProviderFactory が実際に解決・
+  # 課金する行と同じものを引くので、サーバーが使うモデルと画面の表示が
+  # 食い違わない（クライアント側に既定モデルを持たせない）。
+  #
+  # @return [Hash, nil] { name:, input_price_per_million:, output_price_per_million: }
+  def chat_panel_model(listing)
+    ai_model = listing.listing_ai_models.defaults.first&.ai_model
+    return nil unless ai_model
+
+    {
+      name: ai_model.name,
+      input_price_per_million: price_per_million(ai_model.cost_per_1k_input),
+      output_price_per_million: price_per_million(ai_model.cost_per_1k_output)
+    }
+  end
+
+  private
+
+  # 100 万トークンあたりの USD 単価（表示用の文字列）。
+  # 未設定（単価 NULL）のモデルは nil を返し、画面では単価行を出さない。
+  def price_per_million(cost_per_1k)
+    return nil if cost_per_1k.nil?
+
+    format("%.2f", BigDecimal(cost_per_1k.to_s) * 1000)
   end
 end

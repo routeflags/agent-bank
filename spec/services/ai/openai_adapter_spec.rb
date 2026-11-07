@@ -165,6 +165,39 @@ RSpec.describe Ai::OpenAiAdapter do
     end
   end
 
+  describe "#stream の空白チャンク（Issue #139）" do
+    # OpenAI はコードブロックの改行を「改行だけのチャンク」で送ってくる。
+    # blank 判定で捨てるとフェンス内の改行が潰れる（実機で発生）。
+    let(:stub_client_class) do
+      lines = sse_lines
+      Class.new do
+        define_method(:initialize) { |**| }
+        define_method(:post) do |headers:, body:, &block|
+          lines.each { |line| block.call(line) }
+        end
+      end
+    end
+
+    let(:sse_lines) do
+      [
+        '{"choices":[{"delta":{"content":"```bash"},"finish_reason":null}]}',
+        '{"choices":[{"delta":{"content":"\n"},"finish_reason":null}]}',
+        '{"choices":[{"delta":{"content":"quien tls example.com"},"finish_reason":null}]}',
+        '{"choices":[{"delta":{"content":"\n```"},"finish_reason":null}]}',
+        '{"choices":[{"delta":{},"finish_reason":"stop"}]}'
+      ]
+    end
+
+    it "改行だけのチャンクを捨てずに連結する" do
+      adapter = described_class.new(ai_model, streaming_client: stub_client_class)
+      yielded = []
+      adapter.stream([{ role: "user", content: "hi" }]) { |chunk| yielded << chunk[:content] }
+
+      expect(adapter.accumulated_content).to eq("```bash\nquien tls example.com\n```")
+      expect(yielded).to include("\n")
+    end
+  end
+
   describe "#stream のエラー" do
     let(:error_body) do
       '{"error":{"message":"You have no credits remaining.",' \
