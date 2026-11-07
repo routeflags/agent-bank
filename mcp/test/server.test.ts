@@ -489,6 +489,14 @@ describe("実行の変換（run_persona）", () => {
       expected: /リクエストが多すぎます。[\s\S]*自動では再実行しません/,
     },
     {
+      name: "429 daily_limit_exceeded は上限と使用額、JST 0 時のリセットを伝える",
+      status: 429,
+      body: { error: "daily_limit_exceeded", limit_cents: 500, used_cents: 512.5 },
+      // レート制限と混同すると「5 分待てば直る」と誤解させるため、
+      // 待っても解消しないこと（JST 0 時リセット）まで書く。
+      expected: /本日の利用上限に達しました（上限 500 円 \/ 使用 512\.50 円）[\s\S]*日本時間の 0 時にリセットされます/,
+    },
+    {
       name: "502 は実行失敗の理由と error_type を伝える",
       status: 502,
       body: {
@@ -497,6 +505,17 @@ describe("実行の変換（run_persona）", () => {
         error_type: "provider_not_configured",
       },
       expected: /ペルソナの実行に失敗しました: AI プロバイダーが設定されていません（error_type: provider_not_configured）/,
+    },
+    {
+      name: "502 の message が句点で終わっても句点を重ねない",
+      status: 502,
+      body: {
+        error: "run_failed",
+        message: "予期しないエラーが発生しました。しばらくしてからもう一度お試しください。",
+        error_type: "unknown",
+      },
+      // detail の末尾「。」は落とし、「。。」にしない（error_type は detail の後ろ）。
+      expected: /お試しください（error_type: unknown）。[\s\S]*自動では再実行しません/
     },
     {
       name: "404 persona_not_found はペルソナの探し直しを促す",

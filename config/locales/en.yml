@@ -3048,7 +3048,7 @@ en:
     # right after it is issued.
     mcp:
       heading: "MCP connection"
-      lead: "MCP clients such as Claude Desktop can search personas and read their details. Treat the token you issue here like a password and never show it to anyone."
+      lead: "MCP clients such as Claude Desktop can search personas, read their details, and run them. A token allowed to run (run) is charged from your balance on every run. Treat the token you issue here like a password and never show it to anyone."
       issue_heading: "Issue a token"
       name_label: "Name"
       name_placeholder: "e.g. Claude Desktop"
@@ -3069,7 +3069,7 @@ en:
       copy_failed: "Copy failed. Please select the text and copy it manually."
       snippet_heading: "Paste into your config file"
       snippet_hint: "Paste this into Claude Desktop's claude_desktop_config.json."
-      package_note: "@agentbank/mcp is not published to npm yet. You can also start it from the repository with node mcp/dist/index.js."
+      package_note: "@agentbank/mcp is not published to npm yet, so the snippet above will not start as-is. For now set command to node and args to <path to this repository>/mcp/dist/index.js; once it is published on npm the snippet works unchanged."
       list_heading: "Issued tokens"
       th_name: "Name"
       th_scopes: "Scopes"

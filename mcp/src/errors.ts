@@ -81,6 +81,9 @@ interface Failure {
   topupUrl: string;
   /** 502 の失敗分類（例: provider_not_configured）。 */
   errorType: string;
+  /** 429 daily_limit_exceeded の上限（円）と当日の使用額（円）。 */
+  limitCents: number;
+  usedCents: number;
   baseUrl: string;
 }
 
@@ -93,6 +96,8 @@ function readFailure(status: number, body: unknown, context: ApiErrorContext): F
     detail: asString(record["message"]),
     topupUrl: asString(record["topup_url"]),
     errorType: asString(record["error_type"]),
+    limitCents: asNumber(record["limit_cents"]),
+    usedCents: asNumber(record["used_cents"]),
     baseUrl: context.baseUrl,
   };
 }
@@ -135,10 +140,8 @@ function runMessage(failure: Failure): string {
         "。message を空でない文字列にし、max_tokens を正の整数にして実行し直してください",
       ].join("");
     case 429:
-      // 実行は課金を伴うため、どちらの 429 でも自動では再送しない。
-      return failure.code === "concurrent_run"
-        ? "同じトークンで別の実行が進行中です。その実行が終わってから、もう一度 run_persona を呼んでください（自動では再実行しません）"
-        : "リクエストが多すぎます。しばらく待ってから実行し直してください（自動では再実行しません）";
+      // 実行は課金を伴うため、どの 429 でも自動では再送しない。
+      return busyMessage(failure);
     default:
       return failure.status >= 500 ? runFailedMessage(failure) : serverFailureMessage(failure);
   }
@@ -171,9 +174,44 @@ function insufficientBalanceMessage(failure: Failure): string {
   return lines.join("\n");
 }
 
+/**
+ * 429。実行系には 3 種類あり、待ち方がそれぞれ違う。
+ *
+ * - `concurrent_run`: 同じトークンの実行が進行中。終わるのを待つ。
+ * - `daily_limit_exceeded`: 日次上限（既定 500 円／トークン）。待っても
+ *   5 分では解消せず、**JST 0 時**にリセットされる。
+ * - それ以外: レート制限（参照 60 / 実行 20 リクエスト・5 分）。
+ */
+function busyMessage(failure: Failure): string {
+  if (failure.code === "concurrent_run") {
+    return "同じトークンで別の実行が進行中です。その実行が終わってから、もう一度 run_persona を呼んでください（自動では再実行しません）";
+  }
+
+  if (failure.code === "daily_limit_exceeded") {
+    const limit = yen(failure.limitCents);
+    const used = yen(failure.usedCents);
+
+    return [
+      `本日の利用上限に達しました（上限 ${limit} / 使用 ${used}）。`,
+      "上限は日本時間の 0 時にリセットされます。",
+      "すぐに使いたい場合は、マイページの『MCP 接続』で新しいトークンを発行するか、管理者に上限の変更を相談してください（自動では再実行しません）。",
+    ].join("");
+  }
+
+  return "リクエストが多すぎます。しばらく待ってから実行し直してください（自動では再実行しません）";
+}
+
+/** 円の表示。小数 2 桁まで、末尾の 0 は落とす。 */
+function yen(cents: number): string {
+  return `${Number.isInteger(cents) ? cents : cents.toFixed(2)} 円`;
+}
+
 /** 502 など。実行が成立しなかった理由と、次に確かめることを伝える。 */
 function runFailedMessage(failure: Failure): string {
-  const detail = failure.detail === "" ? "" : `: ${failure.detail}`;
+  // API の message は「…してください。」のように句点で終わることがある。
+  // そのまま繋ぐと「。。」になるので、末尾の句読点は落としてから使う。
+  const trimmedDetail = failure.detail.replace(/[。．.、]+$/u, "");
+  const detail = trimmedDetail === "" ? "" : `: ${trimmedDetail}`;
   const errorType = failure.errorType === "" ? "" : `（error_type: ${failure.errorType}）`;
 
   return [
@@ -211,6 +249,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function asString(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+/** 数値として読める値だけを返す（JSON の number を想定）。 */
+function asNumber(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 /**

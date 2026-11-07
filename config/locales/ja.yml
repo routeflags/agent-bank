@@ -2406,7 +2406,7 @@ ja:
     # MCP 接続（Issue #146）。平文トークンは発行直後の 1 回だけ表示する。
     mcp:
       heading: "MCP 接続"
-      lead: "Claude Desktop などの MCP クライアントから、ペルソナの検索と詳細の確認ができます。ここで発行したトークンはパスワードと同じ扱いで、人に見せないでください。"
+      lead: "Claude Desktop などの MCP クライアントから、ペルソナの検索・詳細の確認・実行ができます。run（実行）を許可したトークンは、実行のたびに残高から料金が引かれます。ここで発行したトークンはパスワードと同じ扱いで、人に見せないでください。"
       issue_heading: "トークンを発行する"
       name_label: "名前"
       name_placeholder: "例: Claude Desktop"
@@ -2427,7 +2427,7 @@ ja:
       copy_failed: "コピーできませんでした。選択して手動でコピーしてください。"
       snippet_heading: "設定ファイルに貼り付ける"
       snippet_hint: "Claude Desktop の claude_desktop_config.json に貼り付けます。"
-      package_note: "@agentbank/mcp はまだ npm に公開されていないため、リポジトリの mcp/ から node mcp/dist/index.js でも起動できます。"
+      package_note: "@agentbank/mcp はまだ npm に公開されていないため、上の雛形のままでは起動できません。いまは command を node、args を「このリポジトリのパス/mcp/dist/index.js」に置き換えてください（npm 公開後はこの雛形がそのまま使えます）。"
       list_heading: "発行済みのトークン"
       th_name: "名前"
       th_scopes: "スコープ"
