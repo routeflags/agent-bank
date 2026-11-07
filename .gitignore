@@ -188,3 +188,8 @@ storage/
 /artifacts/
 /vendor/bundle/
 /screenshots/
+
+# MCP サーバー（mcp/ の Node パッケージ。Issue #143）
+mcp/node_modules/
+mcp/dist/
+mcp/.test-dist/
