@@ -372,14 +372,13 @@ class HomepageController < ApplicationController
   #
   # タブの値（popular / newest / rating）だけを受け付け、未知の値は
   # 既定（popular = サーバー既定の並び）に落とす。
+  # 受け付ける値の定義は検索クエリの正本（PersonaSearchQuery）に置き、
+  # API（#145）と同じ並び順になるようにしている。
   #
   # @param sort [String, nil] `?sort=` の値
   # @return [String] "popular" / "newest" / "rating"
-  HOMEPAGE_SORT_ORDERS = %w[popular newest rating].freeze
-
   def homepage_sort_order(sort)
-    value = sort.to_s
-    HOMEPAGE_SORT_ORDERS.include?(value) ? value : "popular"
+    PersonaSearchQuery.sort_order(sort)
   end
 
   def filter_unnecessary(search_params, numeric_fields)

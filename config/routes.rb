@@ -745,6 +745,10 @@ Rails.application.routes.draw do
       # MCP 用パーソナルアクセストークン（Issue #141）。発行・一覧・失効のみ。
       # Bearer での認証は #142 で有効化する。
       resources :tokens, only: [:index, :create, :destroy]
+
+      # AI ペルソナ（出品）の公開情報（Issue #145）。
+      # MCP の search_personas / get_persona 用。read scope。
+      resources :personas, only: [:index, :show]
     end
     mount ActionCable.server => '/cable'
   end
