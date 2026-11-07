@@ -42,6 +42,10 @@ class APIToken < ApplicationRecord
   # 平文トークンのエントロピー（bytes）。urlsafe_base64 なので 43 文字になる。
   RAW_TOKEN_BYTES = 32
 
+  # 利用者が付ける識別名の最大長。画面の入力欄（maxlength）とサーバー側の
+  # 検証を同じ値から導く。
+  MAX_NAME_LENGTH = 100
+
   belongs_to :person
 
   # MariaDB では json 列が longtext + json_valid チェックでダンプされるため、
@@ -52,7 +56,7 @@ class APIToken < ApplicationRecord
   before_validation :normalize_scopes
 
   validates :person_id, presence: true
-  validates :name, presence: true, length: { maximum: 100 }
+  validates :name, presence: true, length: { maximum: MAX_NAME_LENGTH }
   validates :token_digest, presence: true, uniqueness: true
   validates :scopes, presence: true
   validate :scopes_must_be_known

@@ -96,6 +96,7 @@
 //= require datepicker
 //= require follow
 //= require review_likes
+//= require settings_mcp
 //= require paypal_account_settings
 //= require transaction
 //= require listing_form

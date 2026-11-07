@@ -146,6 +146,14 @@ Rails.application.routes.draw do
     get "/logout" => "sessions#destroy", :as => :logout
     get "/confirmation_pending" => "community_memberships#confirmation_pending", :as => :confirmation_pending
     get "/login" => "sessions#new", :as => :login
+
+    # MCP 接続画面の短縮 URL（Issue #146）。設定画面の他のタブは
+    # `/:person_id/settings/*` だが、MCP のトークンはつねにログイン中の本人の
+    # ものなので `/settings/mcp` からも入れるようにする
+    # （SettingsController#mcp_shortcut が本人の画面へ送る）。
+    # `(/:locale)/:person_id/settings/mcp` が先に定義されていると person_id を
+    # "settings" として拾ってしまうため、それより前に置く。
+    get "/settings/mcp" => "settings#mcp_shortcut", :as => :mcp_settings_shortcut
     get "/listing_bubble/:id" => "listings#listing_bubble", :as => :listing_bubble
     get "/listing_bubble_multiple/:ids" => "listings#listing_bubble_multiple", :as => :listing_bubble_multiple
     get '/:person_id/settings/payments' => 'payment_settings#index', :as => :person_payment_settings
@@ -696,6 +704,11 @@ Rails.application.routes.draw do
             post :unsubscribe
             get :listings
             get :transactions
+            # MCP 接続画面（Issue #146）。トークンの発行・失効は同じ画面で
+            # 完結させる（平文は発行レスポンスにだけ載せる）。
+            get :mcp
+            post :mcp_token, action: :create_mcp_token
+            delete :mcp_token, action: :destroy_mcp_token
           end
         end
         resources :testimonials

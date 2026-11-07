@@ -1209,6 +1209,8 @@ ja:
       listings_search_placeholder: リスティングのタイトルを検索する
       transactions_search_placeholder: お支払い履歴のタイトルまたは商品を検索する
       transactions: 取引
+      # MCP 接続（Issue #146）
+      mcp: MCP 接続
   listings:
     bubble_listing_not_visible:
       listing_not_visible: 出品を閲覧する権限がありません。
@@ -2401,6 +2403,52 @@ ja:
       truncated_continue_prompt: "続きを生成してください。前回の回答の続きからお願いします。"
       copy: "コピー"
       copied: "コピー済み"
+    # MCP 接続（Issue #146）。平文トークンは発行直後の 1 回だけ表示する。
+    mcp:
+      heading: "MCP 接続"
+      lead: "Claude Desktop などの MCP クライアントから、ペルソナの検索と詳細の確認ができます。ここで発行したトークンはパスワードと同じ扱いで、人に見せないでください。"
+      issue_heading: "トークンを発行する"
+      name_label: "名前"
+      name_placeholder: "例: Claude Desktop"
+      name_hint: "あとで見分けるためのメモです。クライアント名を入れておくと分かりやすくなります。"
+      scopes_label: "できること（スコープ）"
+      scope_read: "参照（read）"
+      scope_read_hint: "ペルソナの検索と詳細の取得。課金は発生しません。"
+      scope_run: "実行（run）"
+      scope_run_hint: "ペルソナの実行。実行すると料金が発生します。参照（read）も含みます。"
+      issue_submit: "トークンを発行"
+      issued_heading: "「%{name}」を発行しました"
+      issued_once_notice: "このトークンはこの画面に一度しか表示されません。今すぐコピーして、安全な場所に保存してください。"
+      token_label: "トークン"
+      token_hint: "失くした場合はこの画面で失効させ、新しいものを発行してください。"
+      copy: "コピー"
+      copy_snippet: "スニペットをコピー"
+      copied: "コピーしました"
+      copy_failed: "コピーできませんでした。選択して手動でコピーしてください。"
+      snippet_heading: "設定ファイルに貼り付ける"
+      snippet_hint: "Claude Desktop の claude_desktop_config.json に貼り付けます。"
+      package_note: "@agentbank/mcp はまだ npm に公開されていないため、リポジトリの mcp/ から node mcp/dist/index.js でも起動できます。"
+      list_heading: "発行済みのトークン"
+      th_name: "名前"
+      th_scopes: "スコープ"
+      th_last_used: "最終使用"
+      th_created: "発行日"
+      th_status: "状態"
+      th_actions: "操作"
+      never_used: "未使用"
+      empty: "まだトークンを発行していません"
+      revoke: "失効"
+      revoke_label: "「%{name}」を失効させる"
+      revoke_confirm: "「%{name}」を失効させます。取り消しはできません。よろしいですか？"
+      revoked_notice: "「%{name}」を失効させました。"
+      status:
+        active: "有効"
+        revoked: "失効"
+        expired: "期限切れ"
+      errors:
+        heading: "トークンを発行できませんでした"
+        name_blank: "名前を入力してください。"
+        name_too_long: "名前は%{max}文字以内で入力してください。"
     freemius_return:
       success_title: "購入が完了しました"
       success_body: "お支払いを受け付けました。購入内容の反映まで少々お待ちください。"

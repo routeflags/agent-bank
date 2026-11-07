@@ -1,0 +1,108 @@
+- content_for :extra_javascript do
+  :javascript
+    window.ST.initializeMcpConnect();
+
+- content_for :title_header do
+  %h1
+    = t("layouts.settings.settings")
+    = "-"
+    = t("layouts.settings.mcp")
+
+= render partial: "layouts/left_hand_navigation", locals: { links: settings_links_for(@current_user, @current_community) }
+
+-# MCP 接続（Issue #146）。発行・一覧・失効を 1 画面で完結させる。
+-# 平文トークンと設定スニペットは、発行したリクエストのレスポンスにだけ
+-# 描画する（flash / session には載せないので、リロードした GET では消える）。
+-# トークンはつねに本人のものなので、表示対象は @current_user 固定。
+- selected_scopes = params[:scopes].present? ? Array(params[:scopes]).map(&:to_s) : ["read"]
+
+.mcp-connect.left-navi-section.settings-section
+  %h2= t("lamprey.mcp.heading")
+  %p.mcp-connect__lead= t("lamprey.mcp.lead")
+
+  - if @token_errors.present?
+    .mcp-connect__errors{role: "alert"}
+      %p.mcp-connect__errors-title= t("lamprey.mcp.errors.heading")
+      %ul
+        - @token_errors.each do |message|
+          %li= message
+
+  - if @raw_token.present?
+    .mcp-connect__issued
+      %h3.mcp-connect__subheading= t("lamprey.mcp.issued_heading", name: @api_token.name)
+      %p.mcp-connect__warning= t("lamprey.mcp.issued_once_notice")
+
+      .mcp-connect__field
+        -# 平文トークンは <code> に出す（label の for は labelable な要素にしか
+        -# 使えないため、見出し相当の段落で示す）。
+        %p.mcp-connect__label{id: "mcp-raw-token-label"}= t("lamprey.mcp.token_label")
+        .mcp-connect__copy-row
+          %code.mcp-connect__code{id: "mcp-raw-token", "aria-labelledby" => "mcp-raw-token-label"}= @raw_token
+          %button.mcp-connect__button{type: "button", "data-mcp-copy" => "#mcp-raw-token", "data-mcp-copied-message" => t("lamprey.mcp.copied"), "data-mcp-copy-failed-message" => t("lamprey.mcp.copy_failed"), "aria-describedby" => "mcp-raw-token-hint"}
+            = t("lamprey.mcp.copy")
+        %p.mcp-connect__hint{id: "mcp-raw-token-hint"}= t("lamprey.mcp.token_hint")
+
+      .mcp-connect__field
+        %h3.mcp-connect__subheading= t("lamprey.mcp.snippet_heading")
+        %p.mcp-connect__hint= t("lamprey.mcp.snippet_hint")
+        %pre.mcp-connect__snippet
+          %code{id: "mcp-config-snippet"}= JSON.pretty_generate(@mcp_client_config)
+        %button.mcp-connect__button{type: "button", "data-mcp-copy" => "#mcp-config-snippet", "data-mcp-copied-message" => t("lamprey.mcp.copied"), "data-mcp-copy-failed-message" => t("lamprey.mcp.copy_failed")}
+          = t("lamprey.mcp.copy_snippet")
+        %p.mcp-connect__note= t("lamprey.mcp.package_note")
+
+      -# コピー結果の読み上げ用。ボタン押下時に JS が文言を入れる。
+      %p.mcp-connect__status{id: "mcp-copy-status", role: "status", "aria-live" => "polite"}
+
+  %h3.mcp-connect__subheading= t("lamprey.mcp.issue_heading")
+  = form_tag mcp_token_person_settings_path(@current_user), method: :post, class: "mcp-connect__form" do
+    .mcp-connect__field
+      = label_tag "mcp_token_name", t("lamprey.mcp.name_label"), class: "mcp-connect__label"
+      = text_field_tag "name", params[:name], id: "mcp_token_name", class: "text_field mcp-connect__input", maxlength: APIToken::MAX_NAME_LENGTH, required: true, placeholder: t("lamprey.mcp.name_placeholder"), "aria-describedby" => "mcp-token-name-hint"
+      %p.mcp-connect__hint{id: "mcp-token-name-hint"}= t("lamprey.mcp.name_hint")
+
+    %fieldset.mcp-connect__fieldset
+      %legend.mcp-connect__label= t("lamprey.mcp.scopes_label")
+      .mcp-connect__scope
+        = check_box_tag "scopes[]", "read", selected_scopes.include?("read"), id: "mcp_scope_read"
+        .mcp-connect__scope-body
+          = label_tag "mcp_scope_read", t("lamprey.mcp.scope_read"), class: "mcp-connect__scope-label"
+          %p.mcp-connect__hint{id: "mcp-scope-read-hint"}= t("lamprey.mcp.scope_read_hint")
+      .mcp-connect__scope
+        = check_box_tag "scopes[]", "run", selected_scopes.include?("run"), id: "mcp_scope_run"
+        .mcp-connect__scope-body
+          = label_tag "mcp_scope_run", t("lamprey.mcp.scope_run"), class: "mcp-connect__scope-label"
+          %p.mcp-connect__hint{id: "mcp-scope-run-hint"}= t("lamprey.mcp.scope_run_hint")
+
+    = submit_tag t("lamprey.mcp.issue_submit"), class: "send_button mcp-connect__submit"
+
+  %h3.mcp-connect__subheading= t("lamprey.mcp.list_heading")
+  - if @api_tokens.any?
+    %table.raku-table.mcp-connect__table
+      %thead
+        %tr
+          %th= t("lamprey.mcp.th_name")
+          %th= t("lamprey.mcp.th_scopes")
+          %th= t("lamprey.mcp.th_last_used")
+          %th= t("lamprey.mcp.th_created")
+          %th= t("lamprey.mcp.th_status")
+          %th= t("lamprey.mcp.th_actions")
+      %tbody
+        - @api_tokens.each do |token|
+          - active = token.active?
+          %tr
+            %td= token.name
+            %td= token.scope_list.join(", ")
+            %td= token.last_used_at ? token.last_used_at.strftime("%Y/%m/%d %H:%M") : t("lamprey.mcp.never_used")
+            %td= token.created_at.strftime("%Y/%m/%d %H:%M")
+            %td
+              %span.raku-table__status{class: (active ? "raku-table__status--active" : "raku-table__status--paused")}
+                %span.raku-table__status-dot
+                = t("lamprey.mcp.status.#{token.revoked? ? 'revoked' : (token.expired? ? 'expired' : 'active')}")
+            %td
+              - if active
+                -# 確認ダイアログは jquery-ujs が form[data-confirm] で拾う
+                -# （button 上の data-confirm は form 内のボタンには効かない）。
+                = button_to t("lamprey.mcp.revoke"), mcp_token_person_settings_path(@current_user, token_id: token.id), method: :delete, class: "mcp-connect__button mcp-connect__button--danger", form: { class: "mcp-connect__revoke-form", data: { confirm: t("lamprey.mcp.revoke_confirm", name: token.name) } }, "aria-label" => t("lamprey.mcp.revoke_label", name: token.name)
+  - else
+    .raku-table__empty= t("lamprey.mcp.empty")

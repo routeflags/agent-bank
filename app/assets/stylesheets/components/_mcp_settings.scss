@@ -1,0 +1,218 @@
+// ═══════════════════════════════════════════════════════════
+// 楽市楽問 — MCP 接続（設定画面 / Issue #146）
+// ═══════════════════════════════════════════════════════════
+
+// 既存の設定画面と同じく `.left-navi-section` の中に置く。表は `.raku-table`、
+// 送信ボタンは `.send_button` をそのまま使う（ここで定義するのは MCP 画面
+// 固有の部分だけ）。
+//
+// レガシー CSS の `button:hover`（特異度 0,1,1）はコンポーネントクラス
+// （0,1,0）に勝つため、独自ボタンは :hover / :active / :focus-visible で
+// 背景色を明示する（0,2,0 で上回る）。
+
+body.dark-theme {
+  .mcp-connect {
+    &__lead {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.7;
+      margin: 0 0 20px;
+    }
+
+    &__subheading {
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 700;
+      margin: 24px 0 10px;
+    }
+
+    &__field {
+      margin-bottom: 20px;
+    }
+
+    &__label {
+      display: block;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    &__input {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    &__fieldset {
+      border: 0;
+      margin: 0 0 20px;
+      padding: 0;
+    }
+
+    &__scope {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 12px;
+
+      // レガシーの `input[type="checkbox"]` は本文と並ぶ前提のため、
+      // ラベル（display: block）とは別のボックスに分けてから横に並べる。
+      input[type="checkbox"] {
+        margin: 3px 0 0;
+        flex-shrink: 0;
+      }
+    }
+
+    &__scope-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    &__scope-label {
+      display: inline-block;
+      color: var(--text-primary);
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    &__hint,
+    &__note {
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.6;
+      margin: 4px 0 0;
+    }
+
+    // 発行直後のみ表示するブロック（平文トークンとスニペット）。
+    &__issued {
+      background-color: var(--bg-card);
+      border: 1px solid var(--accent-gold);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-bottom: 24px;
+
+      .mcp-connect__subheading:first-child {
+        margin-top: 0;
+      }
+    }
+
+    &__warning {
+      color: var(--accent-gold);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.6;
+      margin: 0 0 16px;
+    }
+
+    &__copy-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    // 平文トークン。長いので折り返す（横スクロールで隠さない）。
+    &__code {
+      display: inline-block;
+      max-width: 100%;
+      padding: 10px 12px;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 13px;
+      word-break: break-all;
+      user-select: all;
+    }
+
+    &__snippet {
+      margin: 0 0 12px;
+      padding: 12px;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    // コピー / 失効ボタン。レガシーの汎用 button 配色（青）を上書きする。
+    &__button {
+      display: inline-block;
+      padding: 8px 16px;
+      margin: 0;
+      background-color: var(--bg-card-hover);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+      height: auto;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+
+      &:hover,
+      &:active,
+      &:focus-visible {
+        background-color: var(--bg-secondary);
+        border-color: var(--text-secondary);
+        color: var(--text-primary);
+      }
+
+      &--danger {
+        // 破壊的操作（DESIGN.md §10 Destructive = Red）。赤背景 + 白文字
+        // （#ffffff on --accent-red = 5.8:1）。赤文字をダーク背景に置くと
+        // 2.65:1 になるため、失効ボタンは塗りにする。
+        background-color: var(--accent-red);
+        border-color: var(--accent-red);
+        color: #ffffff;
+
+        &:hover,
+        &:active,
+        &:focus-visible {
+          background-color: var(--accent-red-hover);
+          border-color: var(--accent-red-hover);
+          color: #ffffff;
+        }
+      }
+    }
+
+    &__revoke-form {
+      margin: 0;
+    }
+
+    &__submit {
+      margin-bottom: 24px;
+    }
+
+    &__status {
+      min-height: 20px;
+      margin: 8px 0 0;
+      color: var(--accent-teal);
+      font-size: 13px;
+    }
+
+    &__errors {
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      background-color: rgba(196, 30, 58, 0.12);
+      border: 1px solid var(--accent-red);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 13px;
+
+      ul {
+        margin: 6px 0 0;
+        padding-left: 20px;
+      }
+    }
+
+    &__errors-title {
+      margin: 0;
+      font-weight: 700;
+    }
+  }
+}

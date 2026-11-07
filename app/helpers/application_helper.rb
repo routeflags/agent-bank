@@ -366,6 +366,15 @@ module ApplicationHelper
             :icon_class => icon_class("notification_settings"),
             :path => notifications_person_settings_path(person),
             :name => "notifications"
+          },
+          # MCP 接続（Issue #146）。トークンは本人のものだけなので、
+          # 管理者が他人の設定を見ているとき（restrict_for_admin）は出さない。
+          {
+            :id => "settings-tab-mcp",
+            :text => t("layouts.settings.mcp"),
+            :icon_class => icon_class("link"),
+            :path => mcp_person_settings_path(person),
+            :name => "mcp"
           }
         ]
     end

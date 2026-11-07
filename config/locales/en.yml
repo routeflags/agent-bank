@@ -1491,6 +1491,8 @@ en:
       transactions_search_placeholder: Search for a transaction title or other party
         involved
       transactions: Transactions
+      # MCP connection (Issue #146)
+      mcp: MCP connection
   listings:
     bubble_listing_not_visible:
       listing_not_visible: You do not have permission to view this listing.
@@ -3039,6 +3041,53 @@ en:
       truncated_continue_prompt: "Please continue from where the previous response stopped."
       copy: "Copy"
       copied: "Copied"
+    # MCP connection (Issue #146). The plaintext token is shown only once,
+    # right after it is issued.
+    mcp:
+      heading: "MCP connection"
+      lead: "MCP clients such as Claude Desktop can search personas and read their details. Treat the token you issue here like a password and never show it to anyone."
+      issue_heading: "Issue a token"
+      name_label: "Name"
+      name_placeholder: "e.g. Claude Desktop"
+      name_hint: "A note to tell your tokens apart later. The client name works well."
+      scopes_label: "What it can do (scopes)"
+      scope_read: "Read (read)"
+      scope_read_hint: "Search personas and read their details. Does not incur charges."
+      scope_run: "Run (run)"
+      scope_run_hint: "Run personas. Running incurs charges and also includes read access."
+      issue_submit: "Issue token"
+      issued_heading: "Issued “%{name}”"
+      issued_once_notice: "This token is shown only once. Copy it now and keep it somewhere safe."
+      token_label: "Token"
+      token_hint: "If you lose it, revoke it on this page and issue a new one."
+      copy: "Copy"
+      copy_snippet: "Copy snippet"
+      copied: "Copied"
+      copy_failed: "Copy failed. Please select the text and copy it manually."
+      snippet_heading: "Paste into your config file"
+      snippet_hint: "Paste this into Claude Desktop's claude_desktop_config.json."
+      package_note: "@agentbank/mcp is not published to npm yet. You can also start it from the repository with node mcp/dist/index.js."
+      list_heading: "Issued tokens"
+      th_name: "Name"
+      th_scopes: "Scopes"
+      th_last_used: "Last used"
+      th_created: "Issued"
+      th_status: "Status"
+      th_actions: "Actions"
+      never_used: "Never used"
+      empty: "You have not issued any tokens yet"
+      revoke: "Revoke"
+      revoke_label: "Revoke “%{name}”"
+      revoke_confirm: "Revoke “%{name}”? This cannot be undone."
+      revoked_notice: "Revoked “%{name}”."
+      status:
+        active: "Active"
+        revoked: "Revoked"
+        expired: "Expired"
+      errors:
+        heading: "Could not issue the token"
+        name_blank: "Please enter a name."
+        name_too_long: "The name must be %{max} characters or fewer."
     freemius_return:
       success_title: "Purchase complete"
       success_body: "Your payment was received. Please wait a moment while your purchase is activated."
