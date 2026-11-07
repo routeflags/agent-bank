@@ -90,6 +90,17 @@ module APIAuthenticatable
   # 課金・利用量記録（#145）がトークン単位で扱えるように公開している。
   attr_reader :current_api_token
 
+  # 認証済みの人の所属マーケットプレイス。
+  #
+  # API は `fetch_community`（HTML ページ向け）を実行しないため、
+  # `@current_community` が無い。出品の可視性や検索のスコープはここで解決する
+  # （#145 の参照系、#144 の実行系）。
+  #
+  # @return [Community]
+  def api_community
+    @api_community ||= current_user.community
+  end
+
   # Authorization: Bearer を解決する。ヘッダが無ければ何もしない。
   def authenticate_api_token!
     raw_token = bearer_token

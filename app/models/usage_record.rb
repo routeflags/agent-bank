@@ -17,11 +17,13 @@
 #  metadata                   :json
 #  created_at                 :datetime         not null
 #  updated_at                 :datetime         not null
+#  channel                    :string           default("web"), not null
 #
 # Indexes
 #
 #  index_usage_records_on_user_plan_subscription_id_and_created_at  (user_plan_subscription_id,created_at)
 #  index_usage_records_on_ai_model_id                               (ai_model_id)
+#  index_usage_records_on_channel_and_created_at                    (channel,created_at)
 #
 
 class UsageRecord < ApplicationRecord
