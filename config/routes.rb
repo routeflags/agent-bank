@@ -741,6 +741,10 @@ Rails.application.routes.draw do
           get :status
         end
       end
+
+      # MCP 用パーソナルアクセストークン（Issue #141）。発行・一覧・失効のみ。
+      # Bearer での認証は #142 で有効化する。
+      resources :tokens, only: [:index, :create, :destroy]
     end
     mount ActionCable.server => '/cable'
   end

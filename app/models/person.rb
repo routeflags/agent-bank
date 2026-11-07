@@ -133,6 +133,9 @@ class Person < ApplicationRecord
   has_one :wallet, dependent: :destroy
   has_many :user_plan_subscriptions, dependent: :destroy
 
+  # MCP 用パーソナルアクセストークン（Issue #141）。
+  has_many :api_tokens, dependent: :destroy
+
   # Finds or creates a wallet scoped to the specified community.
   # Wallets are unique per person+community pair.
   #
@@ -659,6 +662,7 @@ class Person < ApplicationRecord
   # 既に同一アドレスのレコードが存在する場合は何もしない。
   def create_email_record
     return if emails.exists?(address: email)
+
     emails.create!(
       address: email,
       community_id: community_id,

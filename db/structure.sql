@@ -113,6 +113,26 @@ CREATE TABLE `ai_providers` (
   UNIQUE KEY `index_ai_providers_on_slug` (`slug`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `api_tokens`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `api_tokens` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `person_id` varchar(22) NOT NULL,
+  `name` varchar(100) DEFAULT NULL,
+  `token_digest` varchar(255) NOT NULL,
+  `scopes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`scopes`)),
+  `last_used_at` datetime(6) DEFAULT NULL,
+  `expires_at` datetime(6) DEFAULT NULL,
+  `revoked_at` datetime(6) DEFAULT NULL,
+  `daily_cost_limit_cents` int(11) NOT NULL DEFAULT 500,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `index_api_tokens_on_token_digest` (`token_digest`),
+  KEY `index_api_tokens_on_person_id` (`person_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `ar_internal_metadata`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -1824,6 +1844,9 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261108010000'),
+('20261107000000'),
+('20261106000000'),
 ('20261102170000'),
 ('20261102000001'),
 ('20261028000001'),
