@@ -1,5 +1,10 @@
 // ═══════════════════════════════════════════════════════════
-// 楽市楽問 — Review List (My Page)
+// 楽市楽問 — レビュー一覧
+//
+// 上: マイページの .raku-reviews（ダークテーマ専用のプレースホルダ）。
+// 下: 出品詳細の .raku-review-list + いいねボタン（Issue #151）。
+//     こちらはダーク／ライト両テーマで成立させるため、テーマ変数（CSS
+//     カスタムプロパティ）のみを参照する。
 // ═══════════════════════════════════════════════════════════
 
 body.dark-theme {
@@ -118,4 +123,186 @@ body.dark-theme {
       opacity: 0.3;
     }
   }
+}
+
+// ───────────────────────────────────────────────────────────
+// 出品詳細のレビュー一覧（Issue #151）
+// ───────────────────────────────────────────────────────────
+
+.raku-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.raku-review-list__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.raku-review-list__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.raku-review-list__count {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.raku-review-list__empty {
+  margin: 0;
+  padding: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background-color: var(--bg-card);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.raku-review-list__items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.raku-review-list__item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.raku-review-list__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.raku-review-list__author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.raku-review-list__avatar {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.raku-review-list__author-name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.raku-review-list__date {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.raku-review-list__stars {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.raku-review-list__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+// いいねボタン。button 要素なのでキーボードで押せ、:focus-visible で
+// フォーカスリングを出す（マウス操作では出さない）。押下中（is-liked）は
+// 金地に濃色文字にして、ライト地でもコントラストを保つ。
+.raku-review-like {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  // ネイティブの button 描画（押下時にプラットフォーム色で塗られる）を切る。
+  // 色は下の指定だけで決まる。
+  appearance: none;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  transition: color var(--transition-fast), border-color var(--transition-fast),
+    background-color var(--transition-fast);
+
+  &:hover {
+    color: var(--text-primary);
+    background-color: transparent;
+    border-color: var(--accent-gold);
+  }
+
+  // 汎用の button ルール（main.scss の `button:hover { background: #3483de }` /
+  // `button:active { background: #2275d7 }`）は特異度 (0,1,1) でこのクラス
+  // (0,1,0) に勝つ。状態ごとに背景を明示して、青で塗られないようにする。
+  &:active {
+    background-color: transparent;
+  }
+
+  // Chromium は macOS のキーボードフォーカス時にボタンをシステム色（青）で
+  // 塗ることがあるため、リングに加えて塗りも固定する。
+  &:focus-visible {
+    color: var(--text-primary);
+    background-color: transparent;
+    border-color: var(--border-color);
+    outline: 2px solid var(--accent-gold);
+    outline-offset: 2px;
+  }
+
+  // いいね済みは金地＋濃色文字（ライト／ダーク共通）。
+  &.is-liked,
+  &.is-liked:hover,
+  &.is-liked:active,
+  &.is-liked:focus-visible {
+    color: #1a1a1a;
+    background-color: var(--accent-gold);
+    border-color: var(--accent-gold);
+  }
+
+  // 送信中。二重押しはサーバー側でも冪等だが見た目でも止める。
+  &[data-busy="true"] {
+    cursor: progress;
+    opacity: 0.6;
+  }
+}
+
+.raku-review-like__icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.raku-review-like__count {
+  font-variant-numeric: tabular-nums;
 }

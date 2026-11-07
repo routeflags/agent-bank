@@ -332,6 +332,11 @@
           .listing-author-activity-description
             = t(".feedback")
 
+    -# ── レビュー一覧（Issue #151）───────────────
+    -# 評価の要約カードの直下に置く。いいねは集計（avg_rating / reviews_count）
+    -# にも並び順にも影響させない。
+    = render partial: 'listings/review_list'
+
 / AI Persona Chat Panel — mounts only when the listing has an active persona
 - if @listing.default_run_mode.present? && @listing.default_run_mode == 'run_online'
   -# Strip whitespace-only lines from the react-rails output: HAML indents

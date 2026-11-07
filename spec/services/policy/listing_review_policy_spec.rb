@@ -99,4 +99,46 @@ describe Policy::ListingReviewPolicy do
       expect(policy.author?).to be(false)
     end
   end
+
+  # Issue #151: レビューへの「いいね」。
+  describe '#can_like?' do
+    let(:review) do
+      Testimonial.create!(listing: listing, author: reviewer, receiver: seller,
+                          grade: 1.0, text: 'ok')
+    end
+
+    it '他人のレビューにはいいねできる' do
+      policy = described_class.new(listing, stranger)
+
+      expect(policy.can_like?(review)).to be(true)
+      expect(policy.own_review?(review)).to be(false)
+    end
+
+    it '自分のレビューにはいいねできない' do
+      policy = described_class.new(listing, reviewer)
+
+      expect(policy.can_like?(review)).to be(false)
+      expect(policy.own_review?(review)).to be(true)
+    end
+
+    it '出品者でも、自分のレビューでなければいいねできる' do
+      policy = described_class.new(listing, seller)
+
+      expect(policy.can_like?(review)).to be(true)
+    end
+
+    it '未ログイン（nil）はいいねできない' do
+      policy = described_class.new(listing, nil)
+
+      expect(policy.can_like?(review)).to be(false)
+      expect(policy.own_review?(review)).to be(false)
+    end
+
+    it 'レビューが nil なら false' do
+      policy = described_class.new(listing, reviewer)
+
+      expect(policy.can_like?(nil)).to be(false)
+      expect(policy.own_review?(nil)).to be(false)
+    end
+  end
 end

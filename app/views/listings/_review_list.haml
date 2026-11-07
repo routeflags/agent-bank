@@ -1,0 +1,55 @@
+-# Issue #151: 出品（ペルソナ）のレビュー一覧といいね。
+-#
+-# 並びは既定の新しい順（Testimonial.id_order）。いいね数は並び順に使わない。
+-# 「いいねできるか」の判定は Policy::ListingReviewPolicy に集約し、
+-# コントローラ（403）と同じメソッドでボタンを出し分ける。未ログインは
+-# ボタンではなくログイン導線を出す。
+- content_for :extra_javascript do
+  :javascript
+    window.ST.initializeReviewLikes();
+
+- reviews = @listing_presenter.listing_reviews
+- review_policy = Policy::ListingReviewPolicy.new(@listing, @current_user)
+- liked_review_ids = @listing_presenter.liked_review_ids
+-# JS が件数を差し替えるときの aria-label テンプレート（%{count} を残したまま渡す）
+- like_label_template = t('lamprey.listings.review_like_label', count: '%{count}')
+
+.raku-review-list{id: "listing-reviews"}
+  .raku-review-list__header
+    %h2.raku-review-list__title= t('lamprey.listings.review_list_title')
+    - if reviews.any?
+      %span.raku-review-list__count= t('lamprey.listings.rating_count', count: reviews.size)
+  - if reviews.empty?
+    %p.raku-review-list__empty= t('lamprey.listings.no_reviews')
+  - else
+    %ul.raku-review-list__items
+      - reviews.each do |review|
+        - liked = liked_review_ids.include?(review.id)
+        %li.raku-review-list__item
+          .raku-review-list__meta
+            .raku-review-list__author
+              = small_avatar_thumb(review.author, class: 'raku-review-list__avatar')
+              %span.raku-review-list__author-name= PersonViewUtils.person_display_name(review.author, @current_community)
+            %span.raku-review-list__date= time_ago(review.created_at)
+          %span.raku-review-list__stars= t('lamprey.listings.review_stars_option', count: review.displayed_grade)
+          - if review.text.present?
+            %p.raku-review-list__text= review.text
+          - if review_policy.own_review?(review)
+            -# 自分のレビューにはいいねできない（サーバー側でも 403）。ボタンを出さない。
+          - elsif review_policy.can_like?(review)
+            %button.raku-review-like{type: "button",
+              class: ("is-liked" if liked),
+              "aria-pressed": liked ? "true" : "false",
+              "aria-label": t('lamprey.listings.review_like_label', count: review.likes_count),
+              "data-like-url": listing_testimonial_like_path(review.listing_id, review),
+              "data-unlike-url": listing_testimonial_like_path(review.listing_id, review),
+              "data-label-template": like_label_template}
+              %span.raku-review-like__icon{aria: {hidden: "true"}}= "♥"
+              %span.raku-review-like__count= review.likes_count
+          - else
+            -# 未ログイン: ボタンは出すが、押したらログインへ誘導する。
+            -# Ajax がセッション切れで押された場合はサーバーが 401 + login_url を返す。
+            = link_to(login_path, class: 'raku-review-like raku-review-like--guest',
+              "aria-label": t('lamprey.listings.review_like_login')) do
+              %span.raku-review-like__icon{aria: {hidden: "true"}}= "♥"
+              %span.raku-review-like__count= review.likes_count

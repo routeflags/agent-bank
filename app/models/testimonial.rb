@@ -13,6 +13,7 @@
 #  receiver_id      :string(255)
 #  blocked          :boolean          default(FALSE)
 #  listing_id       :integer
+#  likes_count      :integer          default(0), not null
 #
 # Indexes
 #
@@ -37,6 +38,10 @@ class Testimonial < ApplicationRecord
   # 出品（ペルソナ）単位の評価（Issue #106 Phase 1）。取引レビューは transaction_id
   # で紐づき listing_id は NULL のままなので optional。
   belongs_to :listing, optional: true
+
+  # レビューへの「いいね」（Issue #151）。いいねは評価（grade）ではないので、
+  # 集計（avg_rating / reviews_count）には関与させない。
+  has_many :likes, class_name: "TestimonialLike", dependent: :destroy
 
   validates_inclusion_of :grade, :in => 0..1, :allow_nil => false
 

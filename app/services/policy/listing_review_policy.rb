@@ -45,6 +45,25 @@ class Policy::ListingReviewPolicy
     Testimonial.where(listing_id: listing.id, author_id: user.id).exists?
   end
 
+  # レビューに「いいね」できるか（Issue #151）。
+  #
+  # 条件はここ 1 か所だけに置く。ビュー（ボタンを出すか）と
+  # `TestimonialLikesController`（403 を返すか）の両方がこのメソッドを使う。
+  # 未ログインは false になり、ビューはログイン導線を出す。
+  def can_like?(testimonial)
+    return false if testimonial.blank? || !valid_target?
+
+    !own_review?(testimonial)
+  end
+
+  # そのレビューの投稿者本人か。自分のレビューにはいいねできない（Issue #151）。
+  # `author?`（出品者本人か）とは別の判定。
+  def own_review?(testimonial)
+    return false if testimonial.blank? || user.blank?
+
+    testimonial.author_id == user.id
+  end
+
   private
 
   def valid_target?

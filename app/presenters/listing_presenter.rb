@@ -82,6 +82,33 @@ class ListingPresenter < MemoisticPresenter
     @listing.author.feedback_positive_percentage_in_community(@current_community)
   end
 
+  # 出品に対するレビュー（Issue #151）。新しい順（既定）で、モデレーションで
+  # 非表示にされたものは出さない。いいね数は並び順に使わない。
+  #
+  # @return [Array<Testimonial>]
+  def listing_reviews
+    Testimonial
+      .non_blocked
+      .where(listing_id: listing.id)
+      .id_order
+      .includes(:author)
+      .to_a
+  end
+
+  # 現在の利用者が「いいね」済みのレビュー ID（Issue #151）。
+  #
+  # ボタンの aria-pressed を出し分けるために使う。レビューごとに
+  # `TestimonialLike` を引くと N+1 になるため、1 クエリで一覧を取る。
+  #
+  # @return [Array<Integer>]
+  def liked_review_ids
+    return [] if current_user.blank?
+
+    TestimonialLike
+      .where(person_id: current_user.id, testimonial_id: listing_reviews.map(&:id))
+      .pluck(:testimonial_id)
+  end
+
   def youtube_link_ids
     ListingViewUtils.youtube_video_ids(@listing.description)
   end

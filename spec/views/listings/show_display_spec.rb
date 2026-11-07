@@ -197,4 +197,57 @@ RSpec.describe "出品詳細テンプレート", type: :view do
     expect(html).to include("100万トークンあたりの単価です")
     expect(html).to include("raku-cta-btn")
   end
+
+  # ── Issue #151: レビュー一覧といいね ──────────────────────
+  def write_review(author, text: "とても良かったです")
+    Testimonial.create!(listing: @listing, author: author, receiver: @owner,
+                        grade: 1.0, text: text)
+  end
+
+  def other_person(username)
+    FactoryBot.create(:person, username: username, community_id: @community.id)
+  end
+
+  it "#151: レビュー一覧を本文・件数つきで描画する" do
+    write_review(other_person("reviewone"))
+
+    html = render_show(@visitor)
+    expect(html).to include('id="listing-reviews"')
+    expect(html).to include(I18n.t("lamprey.listings.review_list_title", locale: :ja))
+    expect(html).to include("とても良かったです")
+    expect(html).to include("raku-review-like")
+  end
+
+  it "#151: 未ログインはボタンではなくログイン導線を出す" do
+    write_review(other_person("reviewguest"))
+
+    html = render_show(nil)
+    expect(html).to include("raku-review-like--guest")
+    expect(html).to include(I18n.t("lamprey.listings.review_like_login", locale: :ja))
+    expect(html).not_to include('aria-pressed="false"')
+  end
+
+  it "#151: 自分のレビューにはいいねボタンを出さない" do
+    write_review(@visitor)
+
+    html = render_show(@visitor)
+    expect(html).to include("とても良かったです")
+    expect(html).not_to include("raku-review-like")
+  end
+
+  it "#151: いいね済みなら aria-pressed が true になり件数を出す" do
+    review = write_review(other_person("reviewliked"))
+    TestimonialLike.create!(testimonial: review, person: @visitor)
+
+    html = render_show(@visitor)
+    expect(html).to include('aria-pressed="true"')
+    expect(html).to match(%r{raku-review-like__count[^>]*>\s*1\s*<})
+  end
+
+  it "#151: レビューが 0 件なら未レビュー文言を出し、ボタンも出さない" do
+    html = render_show(nil)
+
+    expect(html).to include(I18n.t("lamprey.listings.no_reviews", locale: :ja))
+    expect(html).not_to include("raku-review-like")
+  end
 end

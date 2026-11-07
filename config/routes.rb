@@ -551,7 +551,11 @@ Rails.application.routes.draw do
       resources :comments, :only => [:create, :destroy]
       # Issue #106 Phase 1: 出品（ペルソナ）単位の評価投稿。
       # 既存の /:person_id/testimonials（取引レビュー）とはパスもヘルパーも別。
-      resources :testimonials, only: [:create], controller: "listing_testimonials"
+      resources :testimonials, only: [:create], controller: "listing_testimonials" do
+        # Issue #151: レビューへの「いいね」。トグル 1 本ではなく create / destroy。
+        # パスは /listings/:listing_id/testimonials/:testimonial_id/like。
+        resource :like, only: [:create, :destroy], controller: "testimonial_likes"
+      end
       resources :listing_images do
         collection do
           post :add_from_file

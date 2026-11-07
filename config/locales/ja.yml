@@ -2596,6 +2596,10 @@ ja:
       review_text_placeholder: 使い心地やよかった点を書いてください（任意・1000文字まで）
       review_submit: 評価を投稿する
       review_already_given: このペルソナは評価済みです。投稿ありがとうございました。
+      # Issue #151: レビュー一覧といいね
+      review_list_title: レビュー一覧
+      review_like_label: "いいね（%{count}件）"
+      review_like_login: いいねするにはログインが必要です
       no_features: "このペルソナの機能はまだ登録されていません。"
       no_description: "このペルソナの説明はまだありません。"
       no_reviews: "まだレビューはありません。"

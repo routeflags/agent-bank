@@ -95,6 +95,7 @@
 //= require location_search
 //= require datepicker
 //= require follow
+//= require review_likes
 //= require paypal_account_settings
 //= require transaction
 //= require listing_form

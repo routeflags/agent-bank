@@ -2945,6 +2945,10 @@ en:
         up to 1000 characters)
       review_submit: Post review
       review_already_given: You have already reviewed this persona. Thank you!
+      # Issue #151: review list and likes
+      review_list_title: Reviews
+      review_like_label: "Like (%{count})"
+      review_like_login: Log in to like this review
       no_features: "No features listed for this persona yet."
       no_description: "No description for this persona yet."
       no_reviews: "No reviews yet."

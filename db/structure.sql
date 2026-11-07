@@ -1623,6 +1623,21 @@ CREATE TABLE `stripe_payments` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `testimonial_likes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `testimonial_likes` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `testimonial_id` int(11) NOT NULL,
+  `person_id` varchar(22) NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `updated_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `index_testimonial_likes_on_testimonial_id_and_person_id` (`testimonial_id`,`person_id`),
+  KEY `index_testimonial_likes_on_person_id` (`person_id`),
+  CONSTRAINT `fk_rails_b6b45e4498` FOREIGN KEY (`testimonial_id`) REFERENCES `testimonials` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `testimonials`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -1638,6 +1653,7 @@ CREATE TABLE `testimonials` (
   `receiver_id` varchar(255) DEFAULT NULL,
   `blocked` tinyint(1) DEFAULT 0,
   `listing_id` int(11) DEFAULT NULL,
+  `likes_count` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `index_testimonials_on_listing_id_and_author_id` (`listing_id`,`author_id`),
   KEY `index_testimonials_on_author_id` (`author_id`) USING BTREE,
@@ -1844,6 +1860,8 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261108100100'),
+('20261108100000'),
 ('20261108010000'),
 ('20261107000000'),
 ('20261106000000'),
