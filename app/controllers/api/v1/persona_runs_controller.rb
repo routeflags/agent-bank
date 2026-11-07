@@ -25,10 +25,10 @@
 #   429 concurrent_run（同じ資格情報で実行中）
 #   502 run_failed（AI プロバイダー未設定・上流エラーなどで応答を作れなかった）
 #
-# `usage.cost_cents` は `UsageRecord#cost_cents`（AI モデルの原価）。利用者への
-# 請求額は `UsageRecord#charge_cents` で、値が違う（請求は出品の単価×トークン数、
-# 原価はモデルの $/1k から計算）。応答契約は #144 の決定どおり cost_cents だけを
-# 載せ、請求額は `balance_cents` の変化で見る。
+# `usage.cost_cents` は **利用者への請求額**（`UsageRecord#charge_cents`）。
+# MCP のツールは「この 1 回で何円使ったか」を返すものなので、AI の原価
+# （`UsageRecord#cost_cents`、モデルの $/1k からの換算）ではなく請求額を載せる。
+# 原価は課金台帳側（`usage_records`）で確認する。
 class API::V1::PersonaRunsController < ApplicationController
   include APIAuthenticatable
 
@@ -185,7 +185,7 @@ class API::V1::PersonaRunsController < ApplicationController
   def usage_payload(usage_record)
     {
       total_tokens: usage_record.total_tokens,
-      cost_cents: usage_record.cost_cents.to_f
+      cost_cents: usage_record.charge_cents.to_f
     }
   end
 

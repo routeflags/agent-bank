@@ -43,15 +43,22 @@ class UsageRecord < ApplicationRecord
     self.cost_cents = calculate_cost_cents
   end
 
-  # Convert ai_model cost_per_1k rates into an integer cent value.
+  # Convert ai_model cost_per_1k rates into a cent value.
   # Uses BigDecimal to avoid floating-point precision issues with monetary values.
   #
-  # @return [Integer] cost in cents
+  # Issue #94 で `cost_cents` は decimal(14,2) になったが、ここだけ `to_i`
+  # のままだと 1 回 1 セント未満の原価がすべて 0 に潰れ、原価の積み上げ
+  # （逆ザヤ監視・#122）ができなくなる。小数 2 桁で四捨五入する。
+  #
+  # 単位は USD セント（`currency` の既定は USD）。利用者への請求額
+  # `charge_cents` は円建てなので、突合するときは為替を挟むこと。
+  #
+  # @return [BigDecimal] cost in US cents（小数 2 桁）
   def calculate_cost_cents
-    return 0 unless ai_model&.cost_per_1k_input && ai_model.cost_per_1k_output
+    return BigDecimal("0") unless ai_model&.cost_per_1k_input && ai_model.cost_per_1k_output
 
     input_cost  = BigDecimal(input_tokens.to_s) / 1000 * BigDecimal(ai_model.cost_per_1k_input.to_s)
     output_cost = BigDecimal(output_tokens.to_s) / 1000 * BigDecimal(ai_model.cost_per_1k_output.to_s)
-    ((input_cost + output_cost) * 100).to_i
+    ((input_cost + output_cost) * 100).round(2)
   end
 end

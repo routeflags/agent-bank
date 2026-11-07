@@ -81,12 +81,16 @@ RSpec.describe "Api::V1::PersonaRuns", type: :request do
       expect(response).to have_http_status(200)
       expect(json["content"]).to eq("はじめまして。相談役です。")
       expect(json["usage"]["total_tokens"]).to eq(150)
-      # usage_records.cost_cents は AI モデルの原価（$/1k からの換算）。
-      # 100/1000*1.0 + 50/1000*2.0 = 0.2 円 → 20 銭。
-      expect(json["usage"]["cost_cents"]).to eq(20.0)
+      # usage.cost_cents は利用者への請求額（charge_cents）。150 トークン × 単価
+      # 1,000 円 / 100 万トークン = 0.15 円。AI の原価（$/1k 換算の 0.2 円）とは
+      # 別物なので、取り違えないことをここで固定する。
+      expect(json["usage"]["cost_cents"]).to eq(0.15)
 
       usage_record = UsageRecord.last
-      expect(json["usage"]["cost_cents"]).to eq(usage_record.cost_cents.to_f)
+      expect(json["usage"]["cost_cents"]).to eq(usage_record.charge_cents.to_f)
+      # 原価は台帳側に残る。usage_records.cost_cents は USD セント建て（列の既定
+      # currency=USD）。100/1000*1.0 + 50/1000*2.0 = 0.2 USD = 20 セント。
+      expect(usage_record.cost_cents.to_f).to eq(20.0)
       expect(json["usage"]["total_tokens"]).to eq(usage_record.total_tokens)
 
       # Issue #148: 実行経路はセッションと利用記録の両方に残る。
