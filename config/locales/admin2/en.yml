@@ -78,6 +78,7 @@ en:
         user_rights: User rights
         invitations: View invitations
         user_fields: User fields
+        api_tokens: API tokens
       listings:
         listing_approval: Listing approval
         listing_comments: Listing comments
@@ -844,6 +845,26 @@ en:
       date_sent: Sent
       used_no: 'No'
       used_yes: 'Yes'
+    # MCP personal access tokens list / revocation (Issue #147)
+    api_tokens:
+      member: Member
+      name: Name
+      scopes: Scopes
+      last_used_at: Last used
+      daily_limit: Daily limit
+      status: Status
+      actions: Actions
+      paginate: tokens
+      entries: "%{count} tokens"
+      never_used: Never used
+      limit_value: "%{cents} JPY / day"
+      status_active: Active
+      status_expired: Expired
+      status_revoked: "Revoked on %{date}"
+      revoke: Revoke
+      revoke_confirm: "Revoke \"%{name}\"? MCP clients using this token will no longer be able to authenticate."
+      revoked: "Revoked \"%{name}\""
+      empty: No API token has been issued for MCP yet.
     manage_listings:
       search_placeholder: Search listings by title, user or category…
       export_to_csv: Export to CSV

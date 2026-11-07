@@ -287,6 +287,13 @@ Rails.application.routes.draw do
             get :delete_popup
           end
         end
+        # MCP 用パーソナルアクセストークンの一覧と失効（Issue #147）。
+        # 失効は取り消しができないので、POST（状態を変える操作）にしている。
+        resources :api_tokens, path: 'api-tokens', only: %i[index] do
+          member do
+            post :revoke
+          end
+        end
       end
       namespace :listings do
         resources :listing_fields do

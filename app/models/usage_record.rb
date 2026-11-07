@@ -18,17 +18,26 @@
 #  created_at                 :datetime         not null
 #  updated_at                 :datetime         not null
 #  channel                    :string           default("web"), not null
+#  person_id                  :string(22)
 #
 # Indexes
 #
 #  index_usage_records_on_user_plan_subscription_id_and_created_at  (user_plan_subscription_id,created_at)
 #  index_usage_records_on_ai_model_id                               (ai_model_id)
 #  index_usage_records_on_channel_and_created_at                    (channel,created_at)
+#  index_usage_records_on_person_id_and_channel_and_created_at      (person_id,channel,created_at)
 #
 
 class UsageRecord < ApplicationRecord
   belongs_to :ai_model, optional: true
   belongs_to :user_plan_subscription, optional: true
+
+  # この利用を請求された人（Issue #147）。
+  #
+  # 行の作成時点では誰の利用か分からず、`PersonaExecutorJob` が `person` を
+  # 渡して作る。列は nullable で、追加前に作られた行（帰属不明）は nil のまま。
+  # `people.id` は varchar(22) で UNIQUE ではないため DB レベルの FK は無い。
+  belongs_to :person, optional: true
 
   # See AiProvider — MariaDB json columns are typed as :text by Rails.
   serialize :metadata, coder: JSON

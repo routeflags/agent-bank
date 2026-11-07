@@ -28,6 +28,24 @@ class Rack::Attack
   # /api/v1 配下か（API ルートはロケール接頭辞の外にある）。
   API_PATH_PATTERN = %r{\A/api/v1(?:/|\z)}
 
+  ### 実行 API のトークン単位の制限（Issue #147） ###
+
+  # `POST /api/v1/personas/:id/run` は AI 呼び出しと課金を伴うため、
+  # /api/v1 全体（60 req / 5min）とは別に、トークンあたり 20 req / 5min で数える。
+  # キーは `api_throttle_key`（`token:<digest>`、Bearer が無ければ `ip:<ip>`）を
+  # 再利用し、throttle 名（`api/run`）だけ分ける。独立したキーなので、実行以外の
+  # 参照系リクエストが実行の枠を消費しない。
+  API_RUN_LIMIT = 20
+  API_RUN_PERIOD = 5.minutes
+
+  # 実行 API のパス。ロケール接頭辞は付かない（他の API と同じ）。
+  API_RUN_PATH_PATTERN = %r{\A/api/v1/personas/[^/]+/run\z}
+
+  # 実行 API のリクエストか（POST のみ）。
+  def self.api_run_path?(req)
+    req.post? && API_RUN_PATH_PATTERN.match?(req.path.to_s)
+  end
+
   # `Authorization: Bearer <token>`。ActionController のトークン認証と同じく
   # `Token <token>` 形式も受ける。
   AUTHORIZATION_PATTERN = /\A(?:Bearer|Token)\s+(\S+)\z/i
@@ -85,6 +103,18 @@ class Rack::Attack
            :limit => Rack::Attack::ADMIN_THROTTLE_LIMIT,
            :period => Rack::Attack::ADMIN_THROTTLE_PERIOD) do |req|
     req.env['action_dispatch.remote_ip'].to_s if Rack::Attack.admin_path?(req.path)
+  end
+
+  # Throttle POST /api/v1/personas/:id/run by token digest (20 / 5min)
+  # Key: "rack::attack:#{Time.now.to_i/:period}:api/run:#{digest or ip}"
+  #
+  # `api/token` より先に定義する。rack-attack は登録順に評価し、最初に
+  # 超えた throttle の名前を 429 の本文（scope）に使うため、実行 API を
+  # 両方の枠で同時に超えたときも `scope: "run"` で返せるようにする。
+  throttle('api/run',
+           :limit => Rack::Attack::API_RUN_LIMIT,
+           :period => Rack::Attack::API_RUN_PERIOD) do |req|
+    Rack::Attack.api_throttle_key(req) if Rack::Attack.api_run_path?(req)
   end
 
   # Throttle /api/v1 by token digest (60 / 5min), falling back to IP
@@ -155,10 +185,14 @@ class Rack::Attack
 
   # 429 のボディ。API（/api/v1）だけ JSON で返し、管理画面・ログインは
   # rack-attack 既定の text/plain のまま（Issue #142）。
+  # 実行 API の枠（`api/run`）で止めたときだけ `scope: "run"` を足し、
+  # /api/v1 全体の枠と区別できるようにする（Issue #147）。
   # 旧 `throttled_response` は rack-attack 6 で deprecated なので使わない。
   self.throttled_responder = lambda do |req|
     if Rack::Attack.api_path?(req.path)
-      [429, { 'content-type' => 'application/json' }, [{ error: 'rate_limited' }.to_json]]
+      body = { error: 'rate_limited' }
+      body[:scope] = 'run' if req.env['rack.attack.matched'].to_s == 'api/run'
+      [429, { 'content-type' => 'application/json' }, [body.to_json]]
     else
       Rack::Attack::Configuration::DEFAULT_THROTTLED_RESPONDER.call(req)
     end
