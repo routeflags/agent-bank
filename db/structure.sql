@@ -1785,10 +1785,12 @@ CREATE TABLE `usage_records` (
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
   `channel` varchar(255) NOT NULL DEFAULT 'web',
+  `person_id` varchar(22) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `index_usage_records_on_ai_model_id` (`ai_model_id`),
   KEY `index_usage_records_on_user_plan_subscription_id_and_created_at` (`user_plan_subscription_id`,`created_at`),
   KEY `index_usage_records_on_channel_and_created_at` (`channel`,`created_at`),
+  KEY `index_usage_records_on_person_id_and_channel_and_created_at` (`person_id`,`channel`,`created_at`),
   CONSTRAINT `fk_rails_962ab2ed19` FOREIGN KEY (`ai_model_id`) REFERENCES `ai_models` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1863,6 +1865,7 @@ CREATE TABLE `wallets` (
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 INSERT INTO `schema_migrations` (version) VALUES
+('20261108180000'),
 ('20261108170100'),
 ('20261108170000'),
 ('20261108100100'),

@@ -218,7 +218,10 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
 
       # Issue #148: 実行経路を利用記録に写す。`usage_records` は chat_session_id
       # を持たないため、経路別の集計（lamprey:usage_by_channel）はこの列を見る。
+      # Issue #147: 誰の利用かも一緒に残す。日次上限（`McpDailyLimit`）は
+      # person × channel × 期間で `charge_cents` を合計する。
       usage_record = UsageRecord.create!(
+        person: person,
         ai_model: adapter.ai_model,
         input_tokens: usage_result.input_tokens,
         output_tokens: usage_result.output_tokens,

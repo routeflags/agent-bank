@@ -23,6 +23,7 @@
 #   404 persona_not_found / session_not_found
 #   422 invalid_request
 #   429 concurrent_run（同じ資格情報で実行中）
+#   429 daily_limit_exceeded（当日の MCP 利用が上限を超えている。Issue #147）
 #   502 run_failed（AI プロバイダー未設定・上流エラーなどで応答を作れなかった）
 #
 # `usage.cost_cents` は **利用者への請求額**（`UsageRecord#charge_cents`）。
@@ -61,6 +62,10 @@ class API::V1::PersonaRunsController < ApplicationController
       return render_error(:unprocessable_entity, "invalid_request",
                           message: "max_tokens は正の整数で指定してください")
     end
+
+    # 日次上限（#147）。セッションを作る前・AI を呼ぶ前に必ず止める。
+    limit = McpDailyLimit.new(person: current_user, token: current_api_token)
+    return render_daily_limit_exceeded(limit) if limit.exceeded?
 
     listing = visible_personas.find_by(id: params[:id])
     return render_error(:not_found, "persona_not_found") if listing.nil?
@@ -146,6 +151,20 @@ class API::V1::PersonaRunsController < ApplicationController
   # セッションとメッセージだけが残るため、入口で止める（#51 と同じ閾値）。
   def render_insufficient_balance
     render_error(:payment_required, "insufficient_balance", topup_url: topup_url)
+  end
+
+  # 日次上限の超過（#147）。当日いくら使ったか（used_cents）と、その人の
+  # トークンに設定された上限（limit_cents）を返し、MCP 側が案内できるように
+  # する。日界は JST 0 時（`McpDailyLimit`）。
+  #
+  # @param limit [McpDailyLimit] 判定に使った上限
+  def render_daily_limit_exceeded(limit)
+    render_error(
+      :too_many_requests,
+      "daily_limit_exceeded",
+      limit_cents: limit.limit_cents,
+      used_cents: limit.used_cents.to_f
+    )
   end
 
   # アシスタントの応答が作られなかった場合。ジョブは残高不足やプロバイダー

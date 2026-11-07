@@ -74,6 +74,7 @@ ja:
         user_rights: ユーザー権限
         invitations: 招待状を見る
         user_fields: ユーザーフィールド
+        api_tokens: API トークン
       listings:
         listing_approval: リスト承認
         listing_comments: リストコメント
@@ -692,6 +693,26 @@ ja:
       message: メッセージ
       accepted: 承認済み
       date_sent: 送信済み
+    # MCP 用パーソナルアクセストークンの一覧・失効（Issue #147）
+    api_tokens:
+      member: 会員
+      name: 名前
+      scopes: スコープ
+      last_used_at: 最終使用
+      daily_limit: 日次上限
+      status: 状態
+      actions: 操作
+      paginate: トークン
+      entries: "%{count} 件のトークン"
+      never_used: 未使用
+      limit_value: "%{cents} 円 / 日"
+      status_active: 有効
+      status_expired: 期限切れ
+      status_revoked: "%{date} に失効"
+      revoke: 失効させる
+      revoke_confirm: "「%{name}」を失効させます。このトークンを使う MCP クライアントは即座に認証できなくなりますが、よろしいですか？"
+      revoked: "「%{name}」を失効させました"
+      empty: MCP 用の API トークンはまだ発行されていません。
       used_no: いいえ
       used_yes: はい
     manage_listings:

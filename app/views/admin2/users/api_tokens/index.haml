@@ -1,0 +1,57 @@
+- content_for :title do
+  = t('admin2.sidebar.users.api_tokens')
+
+.content-card-header
+  %h1.content-card-header-title
+    = t('admin2.sidebar.users.api_tokens')
+
+.content-card-section-container{style: 'padding: 0; max-width: none;'}
+  - if @tokens.empty?
+    %section.content-card-section
+      %p.ingress
+        = t('admin2.api_tokens.empty')
+  - else
+    .table-responsive
+      %table.table.table-hover.apitokens
+        %thead
+          %tr
+            %th{scope: :col}= t('admin2.api_tokens.member')
+            %th{scope: :col}= t('admin2.api_tokens.name')
+            %th{scope: :col}= t('admin2.api_tokens.scopes')
+            %th{scope: :col}= t('admin2.api_tokens.last_used_at')
+            %th{scope: :col}= t('admin2.api_tokens.daily_limit')
+            %th{scope: :col}= t('admin2.api_tokens.status')
+            %th{scope: :col}= t('admin2.api_tokens.actions')
+        %tbody
+          - @tokens.each do |token|
+            %tr
+              %td= person_name(token.person)
+              %td= token.name
+              %td= token.scope_list.join(', ')
+              %td
+                - if token.last_used_at.present?
+                  = l(token.last_used_at, format: :short_date)
+                - else
+                  = t('admin2.api_tokens.never_used')
+              %td= t('admin2.api_tokens.limit_value', cents: token.daily_cost_limit_cents)
+              %td
+                - if token.revoked?
+                  %span.badge.badge-skipped
+                    = t('admin2.api_tokens.status_revoked', date: l(token.revoked_at, format: :short_date))
+                - elsif token.expired?
+                  %span.badge.badge-unconfirmed
+                    = t('admin2.api_tokens.status_expired')
+                - else
+                  %span.badge.badge-positive
+                    = t('admin2.api_tokens.status_active')
+              %td.table-actions
+                - unless token.revoked?
+                  = button_to t('admin2.api_tokens.revoke'),
+                              revoke_admin2_users_api_token_path(token),
+                              method: :post,
+                              class: %i[btn btn-negative btn-sm],
+                              form: { data: { confirm: t('admin2.api_tokens.revoke_confirm', name: token.name) } }
+
+.table-bottom
+  %p= t('admin2.api_tokens.entries', count: @tokens.total_entries)
+  = will_paginate @tokens, renderer: WillPaginate::ActionView::BootstrapLinkRenderer, next_label: t('admin2.next_step'), previous_label: t('admin2.prev_step'), list_classes: %w[pagination justify-content-end]

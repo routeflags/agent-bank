@@ -349,6 +349,109 @@ RSpec.describe "Api::V1::PersonaRuns", type: :request do
         expect(response).to have_http_status(200)
       end
     end
+
+    # ===================================================================
+    # 日次上限（Issue #147）
+    #
+    # 既定の上限は 500 円/日。この describe の他の例は 1 回 0.15 円しか使わない
+    # （または課金に至らない）ため、既定値のままでも前提は壊れない。
+    # ===================================================================
+    describe "日次上限" do
+      include ActiveSupport::Testing::TimeHelpers
+
+      # 2026-02-01 09:00 JST（= 2026-02-01 00:00 UTC）。JST の当日は
+      # 2026-02-01 00:00 JST 〜 2026-02-02 00:00 JST。
+      let(:jst) { ActiveSupport::TimeZone["Asia/Tokyo"] }
+      let(:now) { jst.parse("2026-02-01 09:00:00") }
+
+      around do |example|
+        travel_to(now) { example.run }
+      end
+
+      def create_usage(person:, charge_cents:, created_at: now, channel: "mcp")
+        UsageRecord.create!(
+          person: person,
+          channel: channel,
+          charge_cents: charge_cents,
+          created_at: created_at,
+          updated_at: created_at
+        )
+      end
+
+      it "利用記録に請求された人を残す" do
+        post_run(message: message)
+
+        expect(UsageRecord.last.person_id).to eq(person.id)
+      end
+
+      it "上限ちょうどの利用があるときは通る" do
+        create_usage(person: person, charge_cents: "500.00")
+
+        post_run(message: message)
+
+        expect(response).to have_http_status(200)
+      end
+
+      it "上限を超えていると 429 daily_limit_exceeded を返し、AI を呼ばない" do
+        create_usage(person: person, charge_cents: "500.01")
+        allow(adapter).to receive(:stream)
+
+        expect { post_run(message: message) }
+          .not_to(change { [UsageRecord.count, ChatSession.count] })
+
+        expect(response).to have_http_status(429)
+        expect(json["error"]).to eq("daily_limit_exceeded")
+        expect(json["limit_cents"]).to eq(500)
+        expect(json["used_cents"]).to eq(500.01)
+        expect(adapter).not_to have_received(:stream)
+      end
+
+      it "JST 0 時をまたぐとリセットされる（前日 23:59 は数えない）" do
+        create_usage(person: person, charge_cents: "500.01",
+                     created_at: jst.parse("2026-01-31 23:59:00"))
+
+        post_run(message: message)
+
+        expect(response).to have_http_status(200)
+      end
+
+      it "当日（JST）の利用は数える" do
+        create_usage(person: person, charge_cents: "500.01",
+                     created_at: jst.parse("2026-02-01 00:05:00"))
+
+        post_run(message: message)
+
+        expect(response).to have_http_status(429)
+        expect(json["error"]).to eq("daily_limit_exceeded")
+      end
+
+      it "web チヤンネルの利用は合計に入らない" do
+        create_usage(person: person, charge_cents: "500.01", channel: "web")
+
+        post_run(message: message)
+
+        expect(response).to have_http_status(200)
+      end
+
+      it "他人の利用は自分の上限に影響しない" do
+        create_usage(person: other_person, charge_cents: "500.01")
+
+        post_run(message: message)
+
+        expect(response).to have_http_status(200)
+      end
+
+      it "上限額はトークンが持つ（トークンごとに変わる）" do
+        token_record.update!(daily_cost_limit_cents: 0)
+        create_usage(person: person, charge_cents: "0.15")
+
+        post_run(message: message)
+
+        expect(response).to have_http_status(429)
+        expect(json["limit_cents"]).to eq(0)
+        expect(json["used_cents"]).to eq(0.15)
+      end
+    end
   end
 
   # ロックは MySQL の接続（セッション）単位なので、リクエストを処理する接続と
