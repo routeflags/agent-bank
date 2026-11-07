@@ -38,6 +38,25 @@ describe("loadConfig", () => {
 
     assert.equal(config.baseUrl, "http://localhost:3000");
   });
+
+  it("スキル本文の取得は既定で無効", () => {
+    assert.equal(loadConfig({ AGENTBANK_TOKEN: "abc123" }).enableSkillDownload, false);
+  });
+
+  it("AGENTBANK_ENABLE_SKILL_DOWNLOAD=true のときだけ有効", () => {
+    const enabled = (value: string) =>
+      loadConfig({
+        AGENTBANK_TOKEN: "abc123",
+        AGENTBANK_ENABLE_SKILL_DOWNLOAD: value,
+      }).enableSkillDownload;
+
+    assert.equal(enabled("true"), true);
+    assert.equal(enabled(" TRUE "), true);
+    assert.equal(enabled("false"), false);
+    assert.equal(enabled("1"), false);
+    assert.equal(enabled("yes"), false);
+    assert.equal(enabled(""), false);
+  });
 });
 
 describe("normalizeBaseUrl", () => {
