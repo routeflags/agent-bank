@@ -14,6 +14,8 @@
 #  total_tokens  :integer          default(0), not null
 #  created_at    :datetime         not null
 #  updated_at    :datetime         not null
+#  title         :string(100)
+#  channel       :string           default("web"), not null
 #
 # Indexes
 #
@@ -27,6 +29,13 @@
 
 class ChatSession < ApplicationRecord
   STATUSES = %w[active closed].freeze
+
+  # 実行経路（Issue #148 第 1 段）。
+  #   web — ブラウザのチャット UI（DB の既定値）
+  #   mcp — 外部クライアント（MCP ツール / #144 の実行 API）
+  # ジョブがこの値を `usage_records.channel` に写す。値の制約はまだ無い
+  # （#146 / #147 で経路列・一覧を出す際に絞るかどうかを決める）。
+  CHANNEL_MCP = "mcp"
 
   belongs_to :listing
   # people.id is varchar(22) without UNIQUE, so DB-level FK is skipped.
@@ -68,5 +77,26 @@ class ChatSession < ApplicationRecord
   # Mark this session as closed and record the end time.
   def close!
     update!(status: "closed", ended_at: Time.current)
+  end
+
+  # 課金モデルの表示用の値（サーバー側で決める。クライアントの指定は使わない）。
+  # 実際の請求は `BillingService` が subscription から決めるため、この値は
+  # セッション一覧の表示のみに使う。
+  #
+  # セッションを作る経路が複数ある（chat_sessions#create と #144 の実行 API）
+  # ため、判定はここ 1 箇所に置く。
+  #
+  # @param person [Person]
+  # @param listing [Listing]
+  # @return [String] subscription_with_overage / token_based
+  def self.billing_model_for(person:, listing:)
+    subscription = UserPlanSubscription.find_by(
+      person: person,
+      listing: listing,
+      status: "active"
+    )
+    return "token_based" if subscription.nil?
+
+    subscription.billing_model.presence || "subscription_with_overage"
   end
 end

@@ -64,12 +64,6 @@ class API::V1::PersonasController < ApplicationController
     )
   end
 
-  # 認証済みの人の所属マーケットプレイス。
-  # API は `fetch_community` を実行しないため、ここで解決する。
-  def api_community
-    @api_community ||= current_user.community
-  end
-
   # 公開されている出品だけ。判定は /browse と同じ `Listing.currently_open`。
   def visible_listings
     Listing.where(community_id: api_community.id).currently_open

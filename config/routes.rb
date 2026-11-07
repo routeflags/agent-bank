@@ -753,6 +753,10 @@ Rails.application.routes.draw do
       # AI ペルソナ（出品）の公開情報（Issue #145）。
       # MCP の search_personas / get_persona 用。read scope。
       resources :personas, only: [:index, :show]
+
+      # ペルソナの実行（Issue #144）。MCP の run_persona 用。
+      # 課金を伴うので scope は run（参照系の resources :personas とは分ける）。
+      post 'personas/:id/run' => 'persona_runs#create', as: :persona_run
     end
     mount ActionCable.server => '/cable'
   end

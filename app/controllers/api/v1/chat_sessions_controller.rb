@@ -94,7 +94,7 @@ class API::V1::ChatSessionsController < ApplicationController
     end
 
     # Server-side billing model determination — never trust client input
-    billing_model = resolve_billing_model(current_user, listing)
+    billing_model = ChatSession.billing_model_for(person: current_user, listing: listing)
 
     session = ChatSession.new(
       person_id: current_user.id,
@@ -147,28 +147,6 @@ class API::V1::ChatSessionsController < ApplicationController
     return false if wallet.nil?
 
     wallet.balance_cents.to_f >= PersonaExecutorJob::MIN_BALANCE_CENTS
-  end
-
-  # Determines the billing model server-side based on subscription status.
-  # Never trusts client-provided billing_model values.
-  #
-  # @param person [Person]
-  # @param listing [Listing]
-  # @return [String] one of "subscription_with_overage", "token_based"
-  def resolve_billing_model(person, listing)
-    subscription = UserPlanSubscription.find_by(
-      person: person,
-      listing: listing,
-      status: "active"
-    )
-
-    if subscription
-      # Use the subscription's own billing_model if it has one,
-      # otherwise fall back to subscription_with_overage
-      subscription.billing_model.presence || "subscription_with_overage"
-    else
-      "token_based"
-    end
   end
 
   def serialize_session(session, include_messages: false)

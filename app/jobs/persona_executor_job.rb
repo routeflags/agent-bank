@@ -62,6 +62,15 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
   # HTTP statuses that mean the provider rejected our credentials.
   PROVIDER_AUTH_ERROR_STATUSES = [401, 403].freeze
 
+  # 直近の実行で作成した利用記録（`perform` が設定する）。
+  #
+  # ブラウザのチャットは Action Cable の broadcast だけで結果を返すが、#144 の
+  # 実行 API は同期実行なので、応答に載せる利用量をジョブから受け取る。
+  # `usage_records` は chat_session_id を持たず、外から実行 1 回分を特定する
+  # 手段が他に無いため、同じインスタンスから読む。
+  # アシスタント応答を作れなかった場合（早期 return・例外）は nil。
+  attr_reader :usage_record
+
   # Required by Delayed::Job when using Struct-based jobs.
   # Sets the community service name for I8n in the job thread.
   def before(job)
@@ -207,11 +216,15 @@ class PersonaExecutorJob < Struct.new(:chat_session_id, :message_id, :content)
         metadata: assistant_metadata
       )
 
+      # Issue #148: 実行経路を利用記録に写す。`usage_records` は chat_session_id
+      # を持たないため、経路別の集計（lamprey:usage_by_channel）はこの列を見る。
       usage_record = UsageRecord.create!(
         ai_model: adapter.ai_model,
         input_tokens: usage_result.input_tokens,
-        output_tokens: usage_result.output_tokens
+        output_tokens: usage_result.output_tokens,
+        channel: chat_session.channel
       )
+      @usage_record = usage_record
 
       billing_service = BillingService.new(
         person: person,
