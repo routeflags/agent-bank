@@ -102,6 +102,10 @@ module DataImport
         skill_markdown: attributes[:skill_markdown],
         price_cents: attributes[:price_cents],
         currency: attributes[:currency],
+        # チャットで動かすペルソナとして作る（Issue #138）。CSV からは
+        # run_mode を指定できないため、画面からの出品と同じ既定にする。
+        default_run_mode: PersonaDefaults.run_mode,
+        supported_run_modes: PersonaDefaults.supported_run_modes,
         author_id: attributes[:author].id,
         category: attributes[:category],
         listing_shape: attributes[:listing_shape],
@@ -111,7 +115,10 @@ module DataImport
 
     def persist(listing, row:, label:, warning:, result:, action:)
       if commit?
-        ActiveRecord::Base.transaction { listing.save! }
+        ActiveRecord::Base.transaction do
+          listing.save!
+          PersonaDefaults.ensure_default_ai_model!(listing)
+        end
       else
         messages = DryRun.validate(listing)
         raise RowError, messages.join(" / ") if messages.any?
