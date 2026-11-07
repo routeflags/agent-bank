@@ -7,8 +7,9 @@
 **サーバー側（`.env` と Caddyfile）** の 2 系統に分かれる。所要は DNS 浸透待ちを
 除いて 30 分程度。
 
-> **2026-11-06 適用済み。** `https://persona-bank.jp` で HTTP/2 200、証明書は
-> Let's Encrypt（CN=`persona-bank.jp`、有効期限 2027-02-04）、`http://` は 308 で
+> **2026-11-08 適用済み（当初の `persona-bank.jp` はレジストラに停止されたため、
+> `rakuichi-rakumon.jp` に切り替えた。経緯は Issue #140）。** `https://rakuichi-rakumon.jp` で HTTP/2 200、証明書は
+> Let's Encrypt（CN=`rakuichi-rakumon.jp`、有効期限 2027-02-05）、`http://` は 308 で
 > HTTPS へ、セッション Cookie は `Secure`、スモーク 21/21。
 > 以下の手順は「別ドメインへ移す／やり直す」ときの再現手順として残している。
 
@@ -16,14 +17,14 @@
 
 | 項目 | 結果 |
 |---|---|
-| `https://persona-bank.jp/ja` | HTTP/2 **200** |
-| `http://persona-bank.jp/ja` | **308** → `https://persona-bank.jp/ja` |
-| 証明書 | `subject: CN=persona-bank.jp` / `issuer: C=US; O=Let's Encrypt; CN=YE2` / 期限 2027-02-04 / `SSL certificate verify ok` |
+| `https://rakuichi-rakumon.jp/ja` | HTTP/2 **200** |
+| `http://rakuichi-rakumon.jp/ja` | **308** → `https://rakuichi-rakumon.jp/ja` |
+| 証明書 | `subject: CN=rakuichi-rakumon.jp` / `issuer: C=US; O=Let's Encrypt; CN=YE1` / 期限 2027-02-05 / `SSL certificate verify ok` |
 | `set-cookie` | `Secure` / `HttpOnly` / `SameSite=Lax` |
-| `.env` | `APP_DOMAIN=persona-bank.jp` / `FORCE_SSL=1` / `domain=persona-bank.jp` / `always_use_ssl=true` |
+| `.env` | `APP_DOMAIN=rakuichi-rakumon.jp` / `FORCE_SSL=1` / `domain=rakuichi-rakumon.jp` / `always_use_ssl=true` |
 | `Caddyfile` 20 行目 | `{$APP_DOMAIN:localhost} {` |
-| スモーク | **OK 全 21 項目が成功（0.7秒）** |
-| `https://www.persona-bank.jp/ja` | **301** → `https://persona-bank.jp/ja`（証明書 `CN=www.persona-bank.jp` / Let's Encrypt） |
+| スモーク | **OK 全 21 項目が成功（1.0秒）** |
+| `https://www.rakuichi-rakumon.jp/ja` | **301** → `https://rakuichi-rakumon.jp/ja`（証明書 `CN=www.rakuichi-rakumon.jp` / Let's Encrypt） |
 | ACME | http-01 で取得成功（Caddy ログ `authorizations succeeded; finalizing order`） |
 
 ---
@@ -45,18 +46,18 @@
 
 ---
 
-## 1. ドメイン（決定済み: `persona-bank.jp`）
+## 1. ドメイン（決定済み: `rakuichi-rakumon.jp`）
 
 | 項目 | 値 |
 |---|---|
-| 本番 URL | `https://persona-bank.jp` |
+| 本番 URL | `https://rakuichi-rakumon.jp` |
 | レジストラ / DNS | GoDaddy（NS は `ns39/ns40.domaincontrol.com`） |
 | 正しい A レコード | `@` → `153.126.189.79`（**1 本だけ**） |
 
 ### ⚠️ 取得直後の状態で残っている不要な A レコード（実測 2026-11-06）
 
 ```
-dig +short persona-bank.jp A
+dig +short rakuichi-rakumon.jp A
 3.33.130.190      ← GoDaddy のパーキング（/lander に飛ばすだけの 114 バイトの HTML）
 15.197.148.33     ← 同上
 153.126.189.79    ← 本番 VPS（Caddy が応答）
@@ -69,15 +70,15 @@ GoDaddy のパーキングページが出る。**この 2 本を削除するの�
 
 | 候補 | 判定 | 理由 |
 |---|---|---|
-| `@`（`persona-bank.jp`） | **採用** | 本番 URL はこれ 1 本に固定する |
-| `www` | 301 で apex へ寄せる | `www` は apex への CNAME のまま。Caddyfile の `www.{$APP_DOMAIN}` ブロックが `https://persona-bank.jp{uri}` へ **301** し、証明書も `www` 用に自動取得する（実測: `CN=www.persona-bank.jp` / Let's Encrypt） |
+| `@`（`rakuichi-rakumon.jp`） | **採用** | 本番 URL はこれ 1 本に固定する |
+| `www` | 301 で apex へ寄せる | `www` は apex への CNAME のまま。Caddyfile の `www.{$APP_DOMAIN}` ブロックが `https://rakuichi-rakumon.jp{uri}` へ **301** し、証明書も `www` 用に自動取得する（実測: `CN=www.rakuichi-rakumon.jp` / Let's Encrypt） |
 | `*`（ワイルドカード） | 使わない | 未知のホスト名でも Caddy に届き、ACME の取得失敗・レート制限の原因になる。アプリは 1 ホストで足りる |
 
 ---
 
 ## 2. DNS の A レコードを整理する
 
-GoDaddy → マイプロダクト → `persona-bank.jp` → **DNS**。
+GoDaddy → マイプロダクト → `rakuichi-rakumon.jp` → **DNS**。
 
 | 操作 | タイプ | 名前 | 値 |
 |---|---|---|---|
@@ -93,11 +94,11 @@ GoDaddy → マイプロダクト → `persona-bank.jp` → **DNS**。
 ### 浸透確認（期待結果: `153.126.189.79` が 1 行だけ返る）
 
 ```bash
-dig +short persona-bank.jp A
+dig +short rakuichi-rakumon.jp A
 # => 153.126.189.79
 
-dig +short @8.8.8.8 persona-bank.jp A
-dig +short @1.1.1.1 persona-bank.jp A
+dig +short @8.8.8.8 rakuichi-rakumon.jp A
+dig +short @1.1.1.1 rakuichi-rakumon.jp A
 ```
 
 `3.33.130.190` / `15.197.148.33` がまだ混ざるうちは **次に進まない**
@@ -143,8 +144,8 @@ nc -vz 153.126.189.79 443
 
 ```bash
 cd ansible
-ansible-playbook playbooks/app.yml -e app_domain=persona-bank.jp --check --diff  # 差分確認
-ansible-playbook playbooks/app.yml -e app_domain=persona-bank.jp                 # 反映
+ansible-playbook playbooks/app.yml -e app_domain=rakuichi-rakumon.jp --check --diff  # 差分確認
+ansible-playbook playbooks/app.yml -e app_domain=rakuichi-rakumon.jp                 # 反映
 ```
 
 `app.yml` がやること:
@@ -160,8 +161,8 @@ ssh ubuntu@153.126.189.79
 cd /opt/agent-bank
 
 # 1) .env
-sed -i 's|^APP_DOMAIN=.*|APP_DOMAIN=persona-bank.jp|' .env
-sed -i 's|^domain=.*|domain=persona-bank.jp|' .env
+sed -i 's|^APP_DOMAIN=.*|APP_DOMAIN=rakuichi-rakumon.jp|' .env
+sed -i 's|^domain=.*|domain=rakuichi-rakumon.jp|' .env
 
 # 2) Caddyfile の 1 行（http:// を外すだけ。これで自動 HTTPS が有効になる）
 sed -i 's|^http://\({[^}]*}\)|\1|' Caddyfile   # 20行目が `{$APP_DOMAIN:localhost} {` になっていれば成功
@@ -186,16 +187,16 @@ sudo docker compose -f compose.production.yaml logs --tail=30 caddy
 ## 5. `https://` の到達確認
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\n' https://persona-bank.jp/ja
+curl -sS -o /dev/null -w '%{http_code}\n' https://rakuichi-rakumon.jp/ja
 # => 200
 
-curl -sSI http://persona-bank.jp/ja | head -1
+curl -sSI http://rakuichi-rakumon.jp/ja | head -1
 # => HTTP/1.1 308 Permanent Redirect        ← Caddy が HTTPS へ飛ばす
 
 # 証明書が正規に取れているか（自己署名ではないこと）
-echo | openssl s_client -servername persona-bank.jp -connect persona-bank.jp:443 2>/dev/null \
+echo | openssl s_client -servername rakuichi-rakumon.jp -connect rakuichi-rakumon.jp:443 2>/dev/null \
   | openssl x509 -noout -issuer -subject -dates
-# => issuer が Let's Encrypt 系、subject が CN = persona-bank.jp
+# => issuer が Let's Encrypt 系、subject が CN = rakuichi-rakumon.jp
 ```
 
 ---
@@ -207,7 +208,7 @@ Caddy 側の HTTPS が確認できてから入れる。Rails 側でも
 
 ```bash
 # Ansible
-cd ansible && ansible-playbook playbooks/app.yml -e app_domain=persona-bank.jp -e force_ssl=true
+cd ansible && ansible-playbook playbooks/app.yml -e app_domain=rakuichi-rakumon.jp -e force_ssl=true
 
 # 手作業
 ssh ubuntu@153.126.189.79 'cd /opt/agent-bank && sed -i "s|^FORCE_SSL=.*|FORCE_SSL=1|" .env \
@@ -217,9 +218,9 @@ ssh ubuntu@153.126.189.79 'cd /opt/agent-bank && sed -i "s|^FORCE_SSL=.*|FORCE_S
 ### 期待結果
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\n' https://persona-bank.jp/ja      # 200
+curl -sS -o /dev/null -w '%{http_code}\n' https://rakuichi-rakumon.jp/ja      # 200
 ssh ubuntu@153.126.189.79 "curl -sS -o /dev/null -w '%{http_code}\\n' http://127.0.0.1:3000/_health"   # 200（SSL 除外）
-curl -sSI https://persona-bank.jp/ja | grep -i set-cookie                 # Secure が付く
+curl -sSI https://rakuichi-rakumon.jp/ja | grep -i set-cookie                 # Secure が付く
 ```
 
 ---
@@ -230,7 +231,7 @@ curl -sSI https://persona-bank.jp/ja | grep -i set-cookie                 # Secu
 ssh ubuntu@153.126.189.79 'cd /opt/agent-bank && PW=$(sed -n "s/^ROOT_PASSWORD=//p" ~/.env | head -1) \
   && echo "$PW" | sudo -S -p "" docker run --rm --network host \
   -v /opt/agent-bank/script/smoke_check.rb:/tmp/smoke_check.rb:ro \
-  agent-bank-web ruby /tmp/smoke_check.rb https://persona-bank.jp'
+  agent-bank-web ruby /tmp/smoke_check.rb https://rakuichi-rakumon.jp'
 # => 21/21 成功（すべて OK）
 ```
 
