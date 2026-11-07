@@ -123,6 +123,13 @@ class Listing < ApplicationRecord
 
   scope :exist, -> { where(deleted: false) }
 
+  # --- ペルソナ出品の既定（Issue #138） ---
+  # 画面からの出品（ListingFormViewUtils）と同じ状態に、モデル層でも揃える。
+  # CSV/シード取り込みや factory が run_mode を指定しなくても `run_online` になり、
+  # 既定の AI モデルが 1 件だけ付く（無ければ何もしない）。
+  before_validation :apply_persona_defaults, on: :create
+  after_create :ensure_default_persona_ai_model
+
   # --- AI Persona Search Scopes ---
 
   # Returns only listings whose default run mode is 'run_online'.
@@ -231,6 +238,16 @@ class Listing < ApplicationRecord
   # Overrides the to_param method to implement clean URLs
   def to_param
     self.class.to_param(id, title)
+  end
+
+  # 出品作成時の既定値（Issue #138）。
+  def apply_persona_defaults
+    self.default_run_mode = PersonaDefaults.run_mode if default_run_mode.blank?
+    self.supported_run_modes = PersonaDefaults.supported_run_modes if supported_run_modes.blank?
+  end
+
+  def ensure_default_persona_ai_model
+    PersonaDefaults.ensure_default_ai_model!(self)
   end
 
   def self.to_param(id, title)

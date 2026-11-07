@@ -1051,7 +1051,7 @@ CREATE TABLE `listings` (
   `state` varchar(255) DEFAULT 'approved',
   `approval_count` int(11) DEFAULT 0,
   `supported_run_modes` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`supported_run_modes`)),
-  `default_run_mode` varchar(255) DEFAULT 'download',
+  `default_run_mode` varchar(255) DEFAULT 'run_online',
   `total_sold` int(11) DEFAULT 0,
   `avg_rating` float DEFAULT 0,
   `skill_markdown` mediumtext DEFAULT NULL COMMENT '出品者のスキル説明 (Markdown) — 所有者のみ閲覧可・フロント非表示',
