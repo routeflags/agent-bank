@@ -1,7 +1,7 @@
 {
   "name": "@agentbank/mcp",
   "version": "0.1.0",
-  "description": "Agent Bank（Lamprey）のペルソナを MCP クライアントから検索・取得する stdio サーバー",
+  "description": "Agent Bank（Lamprey）のペルソナを MCP クライアントから検索・参照・実行する stdio サーバー",
   "license": "UNLICENSED",
   "private": true,
   "type": "module",

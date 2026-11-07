@@ -1,9 +1,11 @@
 // ツール応答の整形。モデルが読みやすい日本語のテキストにする。
 //
-// 列名は API のフィールド名をそのまま添える。price_cents は通貨を含まない
-// 最小単位の数値なので、勝手に「円」と付けない（API が通貨を返さないため）。
+// price_cents（一覧・詳細の価格）は通貨を含まない最小単位の数値なので、
+// 勝手に「円」と付けない（API が通貨を返さないため）。一方で実行 API の
+// usage.cost_cents（請求額）と balance_cents（残高）は API の契約が「円」
+// （app/controllers/api/v1/persona_runs_controller.rb）なので「円」を付ける。
 
-import type { PersonaDetail, PersonaSummary } from "./client.js";
+import type { PersonaDetail, PersonaRunResult, PersonaSummary } from "./client.js";
 
 export function formatPersonaList(personas: PersonaSummary[]): string {
   if (personas.length === 0) {
@@ -30,6 +32,24 @@ export function formatPersonaDetail(persona: PersonaDetail): string {
   ];
 
   return lines.join("\n");
+}
+
+/**
+ * 実行結果。本文の後に、この 1 回の請求額と実行後の残高、継続用の
+ * セッション id を添える（次の実行で `session_id` に渡せる）。
+ */
+export function formatPersonaRun(result: PersonaRunResult): string {
+  return [
+    result.content || "（応答の本文は空でした）",
+    "",
+    "---",
+    [
+      `消費: ${formatYen(result.usage.cost_cents)} 円`,
+      `残高: ${formatYen(result.balance_cents)} 円`,
+      `セッション: ${result.session_id}`,
+    ].join(" / "),
+    `（消費は今回の実行への請求額、残高は実行後の額。使用トークン: ${withThousands(result.usage.total_tokens)}）`,
+  ].join("\n");
 }
 
 /** 一覧と詳細で共通の項目。 */
@@ -70,6 +90,14 @@ function withThousands(value: number): string {
   return Math.trunc(value)
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/**
+ * 円建ての金額。API は小数を含むことがある（請求額 0.59 円など）ため、
+ * 整数なら 3 桁区切り、小数なら 2 桁までを出す。
+ */
+function formatYen(value: number): string {
+  return Number.isInteger(value) ? withThousands(value) : value.toFixed(2);
 }
 
 function indent(text: string): string {

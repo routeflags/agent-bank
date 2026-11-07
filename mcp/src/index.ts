@@ -13,11 +13,14 @@ import { createServer, SERVER_NAME, SERVER_VERSION } from "./server.js";
 async function main(): Promise<void> {
   const config = loadConfig();
   const client = new AgentBankClient(config);
-  const server = createServer(client);
+  const server = createServer(client, { enableSkillDownload: config.enableSkillDownload });
 
   await server.connect(new StdioServerTransport());
-  // トークンは出さない。接続先とバージョンだけ。
-  console.error(`${SERVER_NAME} ${SERVER_VERSION} started (API: ${config.baseUrl})`);
+  // トークンは出さない。接続先とバージョン、有効なツールの範囲だけ。
+  const skill = config.enableSkillDownload ? "有効" : "無効";
+  console.error(
+    `${SERVER_NAME} ${SERVER_VERSION} started (API: ${config.baseUrl}, skill download: ${skill})`,
+  );
 }
 
 main().catch((error: unknown) => {

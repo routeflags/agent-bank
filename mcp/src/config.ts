@@ -9,6 +9,8 @@ export interface AgentBankConfig {
   token: string;
   /** 末尾スラッシュを除いた API のベース URL。 */
   baseUrl: string;
+  /** スキル本文ダウンロードのツールを一覧に出すか（既定 false）。 */
+  enableSkillDownload: boolean;
 }
 
 /** 環境変数が不正なときの失敗。main が stderr に出して終了する。 */
@@ -34,14 +36,29 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AgentBankConfi
       [
         "環境変数 AGENTBANK_TOKEN が設定されていません。",
         "  1. マーケットプレイスのマイページ →「MCP 接続」でトークンを発行してください。",
-        '  2. MCP クライアントの設定（claude_desktop_config.json など）の "env" に',
+        "  2. 実行（run_persona）を使うときは、run を許可したトークンを発行してください。",
+        '  3. MCP クライアントの設定（claude_desktop_config.json など）の "env" に',
         "     AGENTBANK_TOKEN を設定して、クライアントを再起動してください。",
         "  詳しい手順: mcp/README.md",
       ].join("\n"),
     );
   }
 
-  return { token, baseUrl: normalizeBaseUrl(env.AGENTBANK_BASE_URL) };
+  return {
+    token,
+    baseUrl: normalizeBaseUrl(env.AGENTBANK_BASE_URL),
+    enableSkillDownload: isEnabled(env.AGENTBANK_ENABLE_SKILL_DOWNLOAD),
+  };
+}
+
+/**
+ * 真偽値の環境変数。`true`（大文字小文字は問わない）のときだけ有効。
+ *
+ * 未設定・空・`1` や `yes` などはすべて無効とする。既定で無効な機能
+ * （スキル本文のダウンロード）を、書き間違いで有効にしてしまわないため。
+ */
+export function isEnabled(raw: string | undefined): boolean {
+  return (raw ?? "").trim().toLowerCase() === "true";
 }
 
 /**

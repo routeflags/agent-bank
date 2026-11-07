@@ -1,12 +1,15 @@
-// Agent Bank の参照系 API（/api/v1/personas）への HTTP クライアント。
+// Agent Bank の API への HTTP クライアント。
 //
-// 認証は Bearer トークン（scope read）。トークンはリクエストヘッダにだけ載せ、
-// ログにも例外の文言にも含めない。
+// 認証は Bearer トークン（参照系は scope read、実行系は scope run）。
+// トークンはリクエストヘッダにだけ載せ、ログにも例外の文言にも含めない。
 //
 // fetch は差し替え可能にしてある。テストは HTTP をモックするだけで、
 // 本物のサーバーを必要としない。
+//
+// 課金を伴う実行（runPersona）は **自動リトライしない**。再送すると
+// 二重に課金されるため、失敗はすべて呼び出し元（モデル）に見せて判断させる。
 
-import { AgentBankApiError, type ApiErrorKind } from "./errors.js";
+import { AgentBankApiError, createApiError, type ApiScope } from "./errors.js";
 
 export interface PersonaCategory {
   id: number;
@@ -39,7 +42,45 @@ export interface SearchPersonasParams {
   limit?: number | undefined;
 }
 
+/** `POST /api/v1/personas/:id/run` の引数。 */
+export interface RunPersonaParams {
+  /** 実行するペルソナの id。 */
+  personaId: number;
+  /** 送る発話。 */
+  message: string;
+  /** 出力トークンの上限（省略時はモデル上限と残高から決まる）。 */
+  maxTokens?: number | undefined;
+  /** 継続するセッション。省略時は新規作成。 */
+  sessionId?: number | undefined;
+}
+
+/** 1 回の実行の使用量。 */
+export interface PersonaRunUsage {
+  total_tokens: number;
+  /** この実行への **利用者への請求額（円）**。AI の原価ではない。 */
+  cost_cents: number;
+}
+
+/** `POST /api/v1/personas/:id/run` の 200 応答。 */
+export interface PersonaRunResult {
+  content: string;
+  usage: PersonaRunUsage;
+  /** 実行後の残高（円）。 */
+  balance_cents: number;
+  session_id: number;
+}
+
 export type FetchLike = typeof globalThis.fetch;
+
+/** `request` のオプション。省略時は参照系（GET / read）。 */
+interface RequestOptions {
+  method?: "GET" | "POST";
+  search?: URLSearchParams;
+  /** JSON にして本文に載せる値。undefined ならば本文なし。 */
+  body?: unknown;
+  /** 要求する scope。実行系は "run"。 */
+  scope?: ApiScope;
+}
 
 export interface AgentBankClientOptions {
   token: string;
@@ -75,7 +116,7 @@ export class AgentBankClient {
     if (params.category) search.set("category", params.category);
     if (params.limit !== undefined) search.set("limit", String(params.limit));
 
-    const body = await this.request("/api/v1/personas", search);
+    const body = await this.request("/api/v1/personas", { search });
     const personas = readArray(body, "personas");
     return personas.map((persona) => toPersonaSummary(persona));
   }
@@ -93,14 +134,46 @@ export class AgentBankClient {
   }
 
   /**
-   * GET を 1 回送る。失敗はすべて AgentBankApiError に正規化する。
+   * `POST /api/v1/personas/:id/run`。課金を伴う 1 回の実行。
+   *
+   * 実行は同期で、応答は生成完了後に返る（1 リクエストに 1 応答）。
+   *
+   * @throws {AgentBankApiError} 402 残高不足 / 404 / 422 / 429 実行中 /
+   *   5xx 実行失敗 / ネットワーク
+   */
+  async runPersona(params: RunPersonaParams): Promise<PersonaRunResult> {
+    const payload: Record<string, string | number> = { message: params.message };
+    if (params.maxTokens !== undefined) payload["max_tokens"] = params.maxTokens;
+    if (params.sessionId !== undefined) payload["session_id"] = params.sessionId;
+
+    const body = await this.request(`/api/v1/personas/${params.personaId}/run`, {
+      method: "POST",
+      body: payload,
+      scope: "run",
+    });
+
+    return toRunResult(body);
+  }
+
+  /**
+   * リクエストを 1 回送る。失敗はすべて AgentBankApiError に正規化する。
+   * リトライはしない（実行系は再送が二重課金になるため）。
    *
    * @param path `/api/v1/...` で始まるパス
-   * @throws {AgentBankApiError} 401/403/404/429/5xx/ネットワーク/応答不正
+   * @param options メソッド・クエリ・本文・要求 scope（既定は GET / read）
+   * @throws {AgentBankApiError} 401/402/403/404/422/429/5xx/ネットワーク/応答不正
    */
-  private async request(path: string, search?: URLSearchParams): Promise<unknown> {
+  private async request(path: string, options: RequestOptions = {}): Promise<unknown> {
+    const search = options.search;
     const query = search && search.size > 0 ? `?${search.toString()}` : "";
     const url = `${this.baseUrl}${path}${query}`;
+    const scope: ApiScope = options.scope ?? "read";
+
+    const headers: Record<string, string> = {
+      accept: "application/json",
+      authorization: `Bearer ${this.token}`,
+    };
+    if (options.body !== undefined) headers["content-type"] = "application/json";
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -108,11 +181,9 @@ export class AgentBankClient {
     let response: Response;
     try {
       response = await this.fetchImpl(url, {
-        method: "GET",
-        headers: {
-          accept: "application/json",
-          authorization: `Bearer ${this.token}`,
-        },
+        method: options.method ?? "GET",
+        headers,
+        ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
         signal: controller.signal,
       });
     } catch (error) {
@@ -122,34 +193,10 @@ export class AgentBankClient {
     }
 
     const body = await parseJson(response);
-    if (!response.ok) throw this.httpError(response.status, body);
+    if (!response.ok) {
+      throw createApiError(response.status, body, { scope, baseUrl: this.baseUrl });
+    }
     return body;
-  }
-
-  /** HTTP ステータスを利用者が読める文言に変換する。 */
-  private httpError(status: number, body: unknown): AgentBankApiError {
-    const serverMessage = typeof body === "object" && body !== null
-      ? asString((body as Record<string, unknown>)["error"])
-      : "";
-
-    const message = (() => {
-      switch (status) {
-        case 401:
-          return "トークンが無効か失効しています。マイページの『MCP 接続』で再発行してください";
-        case 403:
-          return "このトークンには必要な権限がありません。『MCP 接続』で read スコープ付きのトークンを発行し直してください";
-        case 404:
-          return "指定のペルソナは見つかりません";
-        case 429:
-          return "リクエストが多すぎます。少し待って再試行してください";
-        default:
-          return serverMessage !== ""
-            ? `Agent Bank API がエラーを返しました（HTTP ${status}）: ${serverMessage}`
-            : `Agent Bank API がエラーを返しました（HTTP ${status}）`;
-      }
-    })();
-
-    return new AgentBankApiError(kindOfStatus(status), message, { status });
   }
 
   /** 接続失敗・タイムアウト。原因は含めるが、トークンは含めない。 */
@@ -168,14 +215,6 @@ export class AgentBankClient {
       { cause: error },
     );
   }
-}
-
-function kindOfStatus(status: number): ApiErrorKind {
-  if (status === 401) return "auth";
-  if (status === 403) return "forbidden";
-  if (status === 404) return "not_found";
-  if (status === 429) return "rate_limited";
-  return "server";
 }
 
 function isAbortError(error: unknown): boolean {
@@ -206,25 +245,46 @@ async function parseJson(response: Response): Promise<unknown> {
 function readArray(body: unknown, key: string): Record<string, unknown>[] {
   const value = isRecord(body) ? body[key] : undefined;
   if (!Array.isArray(value)) {
-    throw new AgentBankApiError(
-      "response",
-      "Agent Bank API の応答を解釈できませんでした。API の仕様が変わった可能性があります",
-    );
+    throw unreadableResponse();
   }
 
   return value.filter(isRecord);
 }
 
 function readObject(body: unknown, key: string): Record<string, unknown> {
-  const value = isRecord(body) ? body[key] : undefined;
-  if (!isRecord(value)) {
-    throw new AgentBankApiError(
-      "response",
-      "Agent Bank API の応答を解釈できませんでした。API の仕様が変わった可能性があります",
-    );
-  }
+  return requireRecord(isRecord(body) ? body[key] : undefined);
+}
 
+/** 応答そのものがオブジェクトか（成功時のトップレベル）。 */
+function requireRecord(value: unknown): Record<string, unknown> {
+  if (!isRecord(value)) throw unreadableResponse();
   return value;
+}
+
+function unreadableResponse(): AgentBankApiError {
+  return new AgentBankApiError(
+    "response",
+    "Agent Bank API の応答を解釈できませんでした。API の仕様が変わった可能性があります",
+  );
+}
+
+/**
+ * 実行 API の 200 応答。`usage.cost_cents` は請求額（円）、
+ * `balance_cents` は実行後の残高（円）。
+ */
+function toRunResult(body: unknown): PersonaRunResult {
+  const record = requireRecord(body);
+  const usage = requireRecord(record["usage"]);
+
+  return {
+    content: asString(record["content"]),
+    usage: {
+      total_tokens: asNumber(usage["total_tokens"]),
+      cost_cents: asNumber(usage["cost_cents"]),
+    },
+    balance_cents: asNumber(record["balance_cents"]),
+    session_id: asNumber(record["session_id"]),
+  };
 }
 
 function toPersonaSummary(source: Record<string, unknown>): PersonaSummary {
