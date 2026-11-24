@@ -1,8 +1,12 @@
 - content = ""
 
+-# ja はビュー側の版管理された法定文言、それ以外は未整備のため英語プレースホルダを出す。
+-# DB の上書き（terms_page_content）がある場合はそちらを最優先する。
 - content += render :layout => "layouts/mercury_editable_page", :locals => { :content_type => "terms_page_content" } do
   - if @community_customization && @community_customization.terms_page_content
     = @community_customization.terms_page_content.html_safe
+  - elsif I18n.locale == :ja
+    = render "infos/localized_terms/terms_ja"
   - else
     = render "infos/localized_terms/terms_en"
 

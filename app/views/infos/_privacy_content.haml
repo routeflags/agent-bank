@@ -1,5 +1,7 @@
 - if @community_customization && @community_customization.privacy_page_content
   - content = @community_customization.privacy_page_content.html_safe
+- elsif I18n.locale == :ja
+  - content = render "infos/localized_privacy_policy/privacy_policy_ja"
 - else
   - content = render "infos/localized_privacy_policy/privacy_policy_en"
 

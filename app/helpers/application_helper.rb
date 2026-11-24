@@ -329,6 +329,12 @@ module ApplicationHelper
       :path => terms_infos_path,
       :name => "terms"
     }
+    links << {
+      :text => t('layouts.infos.tradelaw'),
+      :icon_class => icon_class("terms"),
+      :path => tradelaw_infos_path,
+      :name => "tradelaw"
+    }
   end
 
 

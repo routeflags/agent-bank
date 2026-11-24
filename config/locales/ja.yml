@@ -1015,6 +1015,7 @@ ja:
       news: ニュース
       register_details: プライバシーポリシー
       terms: 利用規約
+      tradelaw: 特定商取引法に基づく表記
     lightbox:
       close: 閉じる
     logged_in:
@@ -2324,6 +2325,7 @@ ja:
       docs: "ドキュメント"
       terms: "利用規約"
       privacy: "プライバシーポリシー"
+      tradelaw: "特定商取引法に基づく表記"
       copyright: "© %{year} %{marketplace_name}. All rights reserved."
 
     chat:

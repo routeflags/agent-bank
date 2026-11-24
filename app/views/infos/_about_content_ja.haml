@@ -1,0 +1,43 @@
+-# 「このサイトについて」の日本語ページ。
+-# 旧 _default_about_page.haml（Sharetribe の宣伝文）を置き換えるための、
+-# 楽市楽問と運営会社の紹介。about.haml から ja ロケールでのみ描画される。
+%h2 楽市楽問とは
+%p 楽市楽問は、AI ペルソナ・エージェント・スキルを探し、購入し、チャットで利用できるマーケットプレイスです。
+%p 出品者は、AI の設定、指示文、プログラム、関連資料等を出品物として登録できます。購入者は、目的や用途に合った出品物を検索して選び、利用許諾の範囲内で利用できます。
+%p AI による応答は自動生成されるため、内容の正確性・完全性を保証するものではありません。重要な判断に使う場合は、利用目的に応じて内容を検証してください。詳しくは#{link_to "利用規約", terms_infos_path}をご確認ください。
+
+%h2 運営会社
+%table
+  %tbody
+    %tr
+      %th{:scope => "row"} 会社名
+      %td 株式会社旗指物（Routeflags Inc.）
+    %tr
+      %th{:scope => "row"} 所在地
+      %td 〒160-0008 東京都新宿区四谷三栄町16番地11
+    %tr
+      %th{:scope => "row"} 代表者
+      %td 代表取締役 加藤恭司
+    %tr
+      %th{:scope => "row"} 電話
+      %td 03-3341-4053（平日 10:00〜17:00）
+    %tr
+      %th{:scope => "row"} 設立
+      %td 2013年10月28日
+    %tr
+      %th{:scope => "row"} 資本金
+      %td 6,000,000円
+    %tr
+      %th{:scope => "row"} 事業内容
+      %td ウェブサービスの企画・運営、ソフトウェア・ロボティクス開発、システム構築
+    %tr
+      %th{:scope => "row"} 会社概要
+      %td= link_to "会社概要ページ", "https://blog.routeflags.com/会社概要/", :rel => "nofollow", target: :_blank
+
+%h2 お問い合わせ・関連ページ
+%p 本サービスに関するお問い合わせは、下記の窓口からお願いします。
+%ul
+  %li= link_to "お問い合わせ窓口", new_user_feedback_path
+  %li= link_to "利用規約", terms_infos_path
+  %li= link_to "プライバシーポリシー", privacy_infos_path
+  %li= link_to "特定商取引法に基づく表記", tradelaw_infos_path

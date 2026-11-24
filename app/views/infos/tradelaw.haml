@@ -1,0 +1,12 @@
+= render :partial => "layouts/left_hand_navigation", :locals => { :links => about_links }
+
+- content_for :title do
+  = t('layouts.infos.tradelaw').html_safe
+
+- content_for :title_header do
+  %h1= t("layouts.infos.info_about_kassi")
+
+.left-navi-section.about-section
+  - content = render :partial => "infos/tradelaw_content_ja"
+  - content_for :meta_description, StringUtils.first_words(strip_tags(content.html_safe))
+  = content

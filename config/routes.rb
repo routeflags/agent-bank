@@ -608,6 +608,7 @@ Rails.application.routes.draw do
         get :how_to_use
         get :terms
         get :privacy
+        get :tradelaw
         get :news
       end
     end

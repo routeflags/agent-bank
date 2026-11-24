@@ -1239,6 +1239,7 @@ en:
       news: News
       register_details: Privacy Policy
       terms: Terms of Service
+      tradelaw: Legal Notice (Specified Commercial Transactions Act)
     lightbox:
       close: Close
     logged_in:
@@ -2756,6 +2757,7 @@ en:
       docs: "Documentation"
       terms: "Terms of Service"
       privacy: "Privacy Policy"
+      tradelaw: "Legal Notice"
       copyright: "© %{year} %{marketplace_name}. All rights reserved."
     homepage:
       hero_heading: "Rakuichi Rakumon — AI persona marketplace"

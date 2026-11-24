@@ -9,6 +9,10 @@
   = render :layout => "layouts/mercury_editable_page", :locals => { :content_type => "about_page_content" } do
     - if @community_customization && @community_customization.about_page_content
       - content = @community_customization.about_page_content.html_safe
+    - elsif I18n.locale == :ja
+      -# 楽市楽問の運営会社情報ページ（日本語）。_default_about_page は Sharetribe の
+      -# 宣伝文なので、他ロケールのフォールバックとしてのみ残す。
+      - content = render :partial => "about_content_ja"
     - else
       - content = render :partial => "default_about_page"
 
