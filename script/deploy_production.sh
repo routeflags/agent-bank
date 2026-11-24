@@ -86,7 +86,9 @@ S() { echo "$PW" | sudo -S -p "" "$@"; }
 
 # 公開ホスト名は .env の APP_DOMAIN（Caddy のサイトアドレス）に合わせる。
 APP_DOMAIN=$(sed -n 's/^APP_DOMAIN=//p' .env | head -1)
-BASE="http://${APP_DOMAIN:-localhost}"
+# 本番は Caddy が http → https にリダイレクト（308）するため https で叩く。
+# http のままだと全件 308 になりスモークが誤失敗する。
+BASE="https://${APP_DOMAIN:-localhost}"
 
 echo "smoke base: $BASE"
 S docker run --rm --network host \
